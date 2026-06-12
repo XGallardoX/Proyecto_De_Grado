@@ -1,0 +1,4 @@
+requests==2.28.1
+numpy
+pandas==1.5.2
+pygame
