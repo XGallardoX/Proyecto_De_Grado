@@ -1,0 +1,24 @@
+# Python
+pycache/
+*.py[cod]
+*$py.class
+
+# Entornos virtuales
+venv/
+env/
+ENV/
+.venv/
+
+# Variables de entorno
+.env
+
+# Editores
+.vscode/
+.idea/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Ignorar .PNG de reportes 
+*.png
