@@ -1,0 +1,134 @@
+
+import argparse
+import sys
+
+from sim.engine import Simulation
+from analysis.visualizer import Visualizer
+
+# Edificio
+ANCHO  = 40.0
+ALTO   = 30.0
+PISO_H = 10.0
+N_PISOS = 3
+STAIR_XY = (20.0, 15.0)   # hueco de escalera (presente en todos los pisos)
+STAIR_HALF_W = 1.7        # mitad del ancho del hueco de escalera (m)
+
+# Tiempo de simulación
+DT = 0.5  # segundos de tiempo simulado por paso
+
+# Radio / medio 
+DEFAULTS = dict(
+    rango_comm=16.0,     # m: alcance máximo de radio
+    perdida_base=0.02,   # prob. de pérdida incluso a 0 m
+    falloff=0.85,        # cuánto degrada la fiabilidad con la distancia
+    floor_atten=0.55,    # factor de atenuación extra por piso de diferencia
+    timeout=30.0,        # s sin señal de un compañero -> caído (regla pedida)
+    beacon_cada=2.0,     # s entre beacons de identificación
+    batman_cada=4.0,     # s entre OGMs propios (BATMAN)
+    heartbeat_cada=8.0,  # s entre "estoy bien" de un rescatista
+    ttl=6,   # saltos máximos de un OGM (del código real)
+    battery_drain=0.030,      # % por segundo (rescatistas)
+    battery_drain_surv=0.012, # % por segundo (celular de superviviente)
+    rango_deteccion=7.0, # m: contacto físico con un superviviente
+    move_speed=0.32,     # m por paso de un rescatista
+)
+
+# Colores
+C_RESC   = ["#378ADD", "#1D9E75", "#9B59B6", "#E8A838",
+            "#2E86C1", "#16A085", "#8E44AD", "#D4AC0D"]
+C_SURV   = "#E24B4A"
+C_SURV_OK = "#1D9E75"
+C_DEAD   = "#8C8B85"
+C_ALERT  = "#C0392B"
+C_OGM    = "#F0A500"
+C_BCN    = "#5DADE2"
+C_HB     = "#27AE60"
+C_HELP   = "#E74C3C"
+C_MSG    = "#9B59B6"   # mensaje personalizado entre nodos (R o S)
+C_BG     = "#F8F7F4"
+C_WALL   = "#D3D1C7"
+C_FLOOR  = "#E8E6E0"
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Simulador BATMAN - Red de Expansión de Cobertura",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+
+    # --- Parámetros de Configuración ---
+    parser.add_argument(
+        "-n", "--nodes",
+        type=int,
+        default=2,
+        help="Cantidad total de nodos en la red (N > 1)"
+    )
+    parser.add_argument(
+        "-g", "--gateways",
+        type=int,
+        default=1,
+        help="Cantidad de nodos que actuarán como Gateway (conectados a Internet)"
+    )
+    parser.add_argument(
+        "--escenario",
+        type=str,
+        default="base",
+        choices=["base", "denso", "particion"],
+        help="Escenario de despliegue de nodos"
+    )
+    parser.add_argument(
+        "--msg",
+        type=str,
+        default="Iniciando Red de Expansión de Cobertura...",
+        help="Mensaje personalizado de inicio"
+    )
+
+    args = parser.parse_args()
+
+
+    if args.nodes <= 1:
+        print("Error: El número de nodos debe ser mayor a 1 para simular una red ad-hoc.")
+        sys.exit(1)
+
+    if args.gateways >= args.nodes:
+        print("Error: La cantidad de Gateways debe ser menor que el total de nodos.")
+        sys.exit(1)
+
+    print(f"\n{'='*60}")
+    print(f" {args.msg}")
+    print(f"{'='*60}")
+    print(f" Configuración:")
+    print(f"  - Nodos totales: {args.nodes}")
+    print(f"  - Gateways:      {args.gateways}")
+    print(f"  - Escenario:     {args.escenario}")
+    print(f"{'='*60}\n")
+
+
+    sim_config = {
+        "n_nodes": args.nodes,
+        "n_gateways": args.gateways,
+        "rango_comm": 16.0,
+        "timeout": 30.0,
+        "battery_drain": 0.02,
+    }
+
+    try:
+        # . Instanciar el motor de simulación
+     
+        sim = Simulation(escenario=args.escenario, cfg=sim_config,DEFAULTS=DEFAULTS,DT=DT,N_PISOS=N_PISOS,PISO_H=PISO_H,STAIR_XY=STAIR_XY,STAIR_HALF_W=STAIR_HALF_W,ANCHO=ANCHO,ALTO=ALTO,C_RESC=C_RESC,C_SURV=C_SURV,C_SURV_OK=C_SURV_OK,C_DEAD=C_DEAD,C_OGM=C_OGM,C_BCN=C_BCN,C_HB=C_HB)
+        sim.C_BG = C_BG
+        sim.C_WALL = C_WALL
+        sim.C_FLOOR = C_FLOOR
+        sim.C_ALERT = C_ALERT
+        sim.C_MSG = C_MSG
+        viz = Visualizer(sim)
+        viz.run()
+
+    except KeyboardInterrupt:
+        print("\nSimulación finalizada por el usuario.")
+    except Exception as e:
+        print(f"\nError crítico en la simulación: {e}")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
