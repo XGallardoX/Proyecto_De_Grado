@@ -147,6 +147,13 @@ def build_analysis_figure(sim):
     ts = time.strftime('%Y%m%d_%H%M%S')
     fname = f"analisis_red_{sim.escenario}_{ts}.png"
     fig.savefig(fname, dpi=110)
+
+    try:
+        from analysis.reporter import export_simulation_reports
+        export_simulation_reports(sim)
+    except Exception as e:
+        print(f"[visualizer] Error al exportar reportes automáticos: {e}")
+
     return fname
 
 
