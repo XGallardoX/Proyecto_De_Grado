@@ -22,3 +22,7 @@ Thumbs.db
 
 # Ignorar .PNG de reportes 
 *.png
+*.json
+*.txt
+*.csv
+*.csv#
