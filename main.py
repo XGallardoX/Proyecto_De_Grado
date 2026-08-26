@@ -3,6 +3,7 @@ import argparse
 import sys
 
 from sim.engine import Simulation
+from sim.config_loader import load_scenario
 from analysis.visualizer import Visualizer
 
 # Edificio
@@ -74,7 +75,15 @@ def main():
         type=str,
         default="base",
         choices=["base", "denso", "particion"],
-        help="Escenario de despliegue de nodos"
+        help="Escenario de despliegue de nodos (posiciones aleatorias; "
+             "ignorado si se pasa --config)"
+    )
+    parser.add_argument(
+        "--config",
+        type=str,
+        default=None,
+        help="Ruta a un archivo JSON de escenario con nodos y posiciones "
+             "explícitas (ver README). Si se pasa, ignora -n/-g/--escenario."
     )
     parser.add_argument(
         "--msg",
@@ -85,37 +94,78 @@ def main():
 
     args = parser.parse_args()
 
+    ancho, alto, piso_h, n_pisos = ANCHO, ALTO, PISO_H, N_PISOS
+    stair_xy, stair_half_w = STAIR_XY, STAIR_HALF_W
+    escenario_nombre = args.escenario
 
-    if args.nodes <= 1:
-        print("Error: El número de nodos debe ser mayor a 1 para simular una red ad-hoc.")
-        sys.exit(1)
+    if args.config:
+        try:
+            scenario = load_scenario(
+                args.config,
+                default_building=dict(ancho=ANCHO, alto=ALTO, piso_h=PISO_H,
+                                       n_pisos=N_PISOS)
+            )
+        except ValueError as e:
+            print(f"Error en archivo de escenario: {e}")
+            sys.exit(1)
 
-    if args.gateways >= args.nodes:
-        print("Error: La cantidad de Gateways debe ser menor que el total de nodos.")
-        sys.exit(1)
+        building = scenario["building"]
+        ancho = building.get("ancho", ANCHO)
+        alto = building.get("alto", ALTO)
+        piso_h = building.get("piso_h", PISO_H)
+        n_pisos = building.get("n_pisos", N_PISOS)
+        stair_xy = tuple(building.get("stair_xy", STAIR_XY))
+        stair_half_w = building.get("stair_half_w", STAIR_HALF_W)
+        escenario_nombre = scenario.get("name", args.config)
 
-    print(f"\n{'='*60}")
-    print(f" {args.msg}")
-    print(f"{'='*60}")
-    print(f" Configuración:")
-    print(f"  - Nodos totales: {args.nodes}")
-    print(f"  - Gateways:      {args.gateways}")
-    print(f"  - Escenario:     {args.escenario}")
-    print(f"{'='*60}\n")
+        n_total = len(scenario["nodes"])
+        n_gw = sum(1 for n in scenario["nodes"] if n["role"] == "G")
 
+        sim_config = dict(DEFAULTS)
+        sim_config.update(scenario.get("medium", {}))
+        sim_config.update(scenario.get("protocol", {}))
+        sim_config["nodes"] = scenario["nodes"]
+        sim_config["n_nodes"] = n_total
+        sim_config["n_gateways"] = n_gw
 
-    sim_config = {
-        "n_nodes": args.nodes,
-        "n_gateways": args.gateways,
-        "rango_comm": 16.0,
-        "timeout": 30.0,
-        "battery_drain": 0.02,
-    }
+        print(f"\n{'='*60}")
+        print(f" {args.msg}")
+        print(f"{'='*60}")
+        print(f" Configuración (desde {args.config}):")
+        print(f"  - Nodos totales: {n_total}")
+        print(f"  - Gateways:      {n_gw}")
+        print(f"  - Escenario:     {escenario_nombre}")
+        print(f"{'='*60}\n")
+    else:
+        if args.nodes <= 1:
+            print("Error: El número de nodos debe ser mayor a 1 para simular una red ad-hoc.")
+            sys.exit(1)
+
+        if args.gateways >= args.nodes:
+            print("Error: La cantidad de Gateways debe ser menor que el total de nodos.")
+            sys.exit(1)
+
+        print(f"\n{'='*60}")
+        print(f" {args.msg}")
+        print(f"{'='*60}")
+        print(f" Configuración:")
+        print(f"  - Nodos totales: {args.nodes}")
+        print(f"  - Gateways:      {args.gateways}")
+        print(f"  - Escenario:     {args.escenario}")
+        print(f"{'='*60}\n")
+
+        sim_config = {
+            "n_nodes": args.nodes,
+            "n_gateways": args.gateways,
+            "rango_comm": 16.0,
+            "timeout": 30.0,
+            "battery_drain": 0.02,
+        }
 
     try:
         # . Instanciar el motor de simulación
-     
-        sim = Simulation(escenario=args.escenario, cfg=sim_config,DEFAULTS=DEFAULTS,DT=DT,N_PISOS=N_PISOS,PISO_H=PISO_H,STAIR_XY=STAIR_XY,STAIR_HALF_W=STAIR_HALF_W,ANCHO=ANCHO,ALTO=ALTO,C_RESC=C_RESC,C_SURV=C_SURV,C_SURV_OK=C_SURV_OK,C_DEAD=C_DEAD,C_OGM=C_OGM,C_BCN=C_BCN,C_HB=C_HB)
+
+        sim = Simulation(escenario=escenario_nombre, cfg=sim_config,DEFAULTS=DEFAULTS,DT=DT,N_PISOS=n_pisos,PISO_H=piso_h,STAIR_XY=stair_xy,STAIR_HALF_W=stair_half_w,ANCHO=ancho,ALTO=alto,C_RESC=C_RESC,C_SURV=C_SURV,C_SURV_OK=C_SURV_OK,C_DEAD=C_DEAD,C_OGM=C_OGM,C_BCN=C_BCN,C_HB=C_HB)
         sim.C_BG = C_BG
         sim.C_WALL = C_WALL
         sim.C_FLOOR = C_FLOOR

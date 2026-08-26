@@ -56,29 +56,44 @@ class Simulation:
         self.debris = []
 
 
-        n_gateways = self.cfg.get("n_gateways", 1)
-        n_nodes = self.cfg.get("n_nodes", 10)
-
-        gateways = []
-        for i in range(n_gateways):
-            gateways.append((i + 1, random.uniform(5, 35), random.uniform(5, 25), 1))
-
-        nodes = []
-        for i in range(n_nodes - n_gateways):
-            nodes.append((i + 1 + n_gateways, random.uniform(5, 35), random.uniform(5, 25), 1))
-
+        explicit_nodes = self.cfg.get("nodes")
         gi = ni = 0
-        for nid, x, y, p in gateways:
-            gi += 1
-            n = SimNode(nid, 'G', float(x), float(y), p, self,self.DEFAULTS,self.N_PISOS,self.PISO_H,self.STAIR_XY,self.STAIR_HALF_W,self.DT)
-            self.local_index[nid] = gi
-            self.nodes[nid] = n
-        for nid, x, y, p in nodes:
-            ni += 1
-            n = SimNode(nid, 'N', float(x), float(y), p, self,self.DEFAULTS,self.N_PISOS,self.PISO_H,self.STAIR_XY,self.STAIR_HALF_W,self.DT)
-            self.local_index[nid] = ni
-            self.nodes[nid] = n
+        if explicit_nodes:
+            # posiciones a voluntad, ya validadas por sim.config_loader
+            for spec in explicit_nodes:
+                nid, role = spec["id"], spec["role"]
+                n = SimNode(nid, role, float(spec["x"]), float(spec["y"]), 1, self,
+                            self.DEFAULTS, self.N_PISOS, self.PISO_H, self.STAIR_XY,
+                            self.STAIR_HALF_W, self.DT)
+                if role == 'G':
+                    gi += 1
+                    self.local_index[nid] = gi
+                else:
+                    ni += 1
+                    self.local_index[nid] = ni
+                self.nodes[nid] = n
+        else:
+            n_gateways = self.cfg.get("n_gateways", 1)
+            n_nodes = self.cfg.get("n_nodes", 10)
 
+            gateways = []
+            for i in range(n_gateways):
+                gateways.append((i + 1, random.uniform(5, 35), random.uniform(5, 25), 1))
+
+            nodes = []
+            for i in range(n_nodes - n_gateways):
+                nodes.append((i + 1 + n_gateways, random.uniform(5, 35), random.uniform(5, 25), 1))
+
+            for nid, x, y, p in gateways:
+                gi += 1
+                n = SimNode(nid, 'G', float(x), float(y), p, self,self.DEFAULTS,self.N_PISOS,self.PISO_H,self.STAIR_XY,self.STAIR_HALF_W,self.DT)
+                self.local_index[nid] = gi
+                self.nodes[nid] = n
+            for nid, x, y, p in nodes:
+                ni += 1
+                n = SimNode(nid, 'N', float(x), float(y), p, self,self.DEFAULTS,self.N_PISOS,self.PISO_H,self.STAIR_XY,self.STAIR_HALF_W,self.DT)
+                self.local_index[nid] = ni
+                self.nodes[nid] = n
 
         self.log(f"Escenario '{self.escenario}' iniciado · {gi} gateways, "
                  f"{ni} nodos · timeout={self.cfg['timeout']:.0f}s",

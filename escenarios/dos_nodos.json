@@ -1,0 +1,7 @@
+{
+  "name": "dos_nodos",
+  "nodes": [
+    { "id": 1, "role": "G", "x": 5,  "y": 5 },
+    { "id": 2, "role": "N", "x": 20, "y": 15 }
+  ]
+}

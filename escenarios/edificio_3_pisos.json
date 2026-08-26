@@ -1,0 +1,16 @@
+{
+  "name": "edificio_3_pisos",
+  "building": { "ancho": 40, "alto": 30, "piso_h": 10, "n_pisos": 3,
+                "stair_xy": [20, 15], "stair_half_w": 1.7 },
+  "medium":   { "rango_comm": 16, "falloff": 0.85, "floor_atten": 0.55 },
+  "protocol": { "timeout": 30, "beacon_cada": 2, "batman_cada": 4 },
+  "nodes": [
+    { "id": 1, "role": "G", "x": 5,  "y": 5  },
+    { "id": 2, "role": "G", "x": 35, "y": 25 },
+    { "id": 3, "role": "N", "x": 20, "y": 3  },
+    { "id": 4, "role": "N", "x": 10, "y": 13 },
+    { "id": 5, "role": "N", "x": 30, "y": 13 },
+    { "id": 6, "role": "N", "x": 15, "y": 23 },
+    { "id": 7, "role": "N", "x": 25, "y": 27 }
+  ]
+}

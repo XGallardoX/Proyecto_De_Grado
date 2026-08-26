@@ -14,6 +14,47 @@
 > BATMAN real" describe el estado anterior; se actualizará por completo
 > como parte del rediseño (ver `PLAN_TRABAJO.md`, parte 3).
 
+## Archivo de escenario (`--config`)
+
+En vez de `-n`/`-g`/`--escenario` (posiciones aleatorias), `main.py`
+acepta un archivo JSON con nodos y posiciones explícitas:
+
+```bash
+python main.py --config escenarios/edificio_3_pisos.json
+```
+
+Esquema:
+
+```json
+{
+  "name": "edificio_3_pisos",
+  "building": { "ancho": 40, "alto": 30, "piso_h": 10, "n_pisos": 3,
+                "stair_xy": [20, 15], "stair_half_w": 1.7 },
+  "medium":   { "rango_comm": 16, "falloff": 0.85, "floor_atten": 0.55 },
+  "protocol": { "timeout": 30, "beacon_cada": 2, "batman_cada": 4 },
+  "nodes": [
+    { "id": 1, "role": "G", "x": 5,  "y": 5  },
+    { "id": 2, "role": "N", "x": 20, "y": 15 }
+  ]
+}
+```
+
+- Sólo `nodes` es obligatorio; `building`/`medium`/`protocol` faltantes
+  usan los valores por defecto del simulador.
+- `id`: entero único por nodo. `role`: `"G"` (Gateway) o `"N"` (Nodo de
+  usuario) — se requiere al menos un `"G"`. `x`/`y`: posición en metros,
+  debe caer dentro de `[0, ancho] x [0, alto]`.
+- El **piso** de cada nodo se deriva de `y` (`y // piso_h`), no se
+  declara aparte — para ubicarlo en el piso 2 de un edificio de
+  `piso_h: 10`, usar `y` entre 10 y 20.
+- Config inválido (id duplicado, rol desconocido, sin gateway,
+  coordenadas fuera del edificio, campo faltante) frena la ejecución
+  con un mensaje de error específico, antes de arrancar la simulación.
+
+Dos ejemplos listos para probar en `escenarios/`: `dos_nodos.json` (el
+caso mínimo) y `edificio_3_pisos.json` (2 gateways + 5 nodos
+repartidos en los 3 pisos).
+
 ## Archivos del proyecto
 
 ```

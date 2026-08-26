@@ -20,9 +20,9 @@ venv3.9/
 .DS_Store
 Thumbs.db
 
-# Ignorar .PNG de reportes 
-*.png
-*.json
-*.txt
-*.csv
+# Ignorar reportes generados por analysis/reporter.py y el PNG de análisis
+analisis_red_*.png
+reporte_*.csv
+reporte_*.json
+reporte_*.txt
 *.csv#
