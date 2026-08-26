@@ -1,10 +1,15 @@
 
 import argparse
+import os
 import sys
 
 from sim.engine import Simulation
 from sim.config_loader import load_scenario
 from analysis.visualizer import Visualizer
+
+ESCENARIOS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "escenarios")
+ESCENARIOS_DISPONIBLES = ["base", "colapso_progresivo", "particion",
+                          "rescatista_perdido", "denso"]
 
 # Edificio
 ANCHO  = 40.0
@@ -73,17 +78,19 @@ def main():
     parser.add_argument(
         "--escenario",
         type=str,
-        default="base",
-        choices=["base", "denso", "particion"],
-        help="Escenario de despliegue de nodos (posiciones aleatorias; "
-             "ignorado si se pasa --config)"
+        default=None,
+        choices=ESCENARIOS_DISPONIBLES,
+        help="Escenario predefinido con nodos y posiciones fijas "
+             f"(atajo a --config {ESCENARIOS_DIR}/<nombre>.json). "
+             "Si no se pasa, usa -n/-g con posiciones aleatorias."
     )
     parser.add_argument(
         "--config",
         type=str,
         default=None,
         help="Ruta a un archivo JSON de escenario con nodos y posiciones "
-             "explícitas (ver README). Si se pasa, ignora -n/-g/--escenario."
+             "explícitas (ver README). Tiene prioridad sobre --escenario "
+             "y sobre -n/-g."
     )
     parser.add_argument(
         "--msg",
@@ -98,10 +105,14 @@ def main():
     stair_xy, stair_half_w = STAIR_XY, STAIR_HALF_W
     escenario_nombre = args.escenario
 
-    if args.config:
+    config_path = args.config
+    if config_path is None and args.escenario is not None:
+        config_path = os.path.join(ESCENARIOS_DIR, f"{args.escenario}.json")
+
+    if config_path:
         try:
             scenario = load_scenario(
-                args.config,
+                config_path,
                 default_building=dict(ancho=ANCHO, alto=ALTO, piso_h=PISO_H,
                                        n_pisos=N_PISOS)
             )
@@ -116,7 +127,7 @@ def main():
         n_pisos = building.get("n_pisos", N_PISOS)
         stair_xy = tuple(building.get("stair_xy", STAIR_XY))
         stair_half_w = building.get("stair_half_w", STAIR_HALF_W)
-        escenario_nombre = scenario.get("name", args.config)
+        escenario_nombre = scenario.get("name", config_path)
 
         n_total = len(scenario["nodes"])
         n_gw = sum(1 for n in scenario["nodes"] if n["role"] == "G")
@@ -125,13 +136,14 @@ def main():
         sim_config.update(scenario.get("medium", {}))
         sim_config.update(scenario.get("protocol", {}))
         sim_config["nodes"] = scenario["nodes"]
+        sim_config["events"] = scenario.get("events", [])
         sim_config["n_nodes"] = n_total
         sim_config["n_gateways"] = n_gw
 
         print(f"\n{'='*60}")
         print(f" {args.msg}")
         print(f"{'='*60}")
-        print(f" Configuración (desde {args.config}):")
+        print(f" Configuración (desde {config_path}):")
         print(f"  - Nodos totales: {n_total}")
         print(f"  - Gateways:      {n_gw}")
         print(f"  - Escenario:     {escenario_nombre}")
@@ -145,13 +157,15 @@ def main():
             print("Error: La cantidad de Gateways debe ser menor que el total de nodos.")
             sys.exit(1)
 
+        escenario_nombre = "aleatorio"
+
         print(f"\n{'='*60}")
         print(f" {args.msg}")
         print(f"{'='*60}")
         print(f" Configuración:")
         print(f"  - Nodos totales: {args.nodes}")
         print(f"  - Gateways:      {args.gateways}")
-        print(f"  - Escenario:     {args.escenario}")
+        print(f"  - Escenario:     {escenario_nombre} (posiciones aleatorias)")
         print(f"{'='*60}\n")
 
         sim_config = {

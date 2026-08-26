@@ -1,0 +1,17 @@
+{
+  "name": "rescatista_perdido",
+  "building": { "ancho": 40, "alto": 30, "piso_h": 10, "n_pisos": 3,
+                "stair_xy": [20, 15], "stair_half_w": 1.7 },
+  "nodes": [
+    { "id": 1,   "role": "G", "x": 7,  "y": 27 },
+    { "id": 2,   "role": "G", "x": 11, "y": 27 },
+    { "id": 3,   "role": "G", "x": 9,  "y": 24 },
+    { "id": 4,   "role": "G", "x": 13, "y": 25 },
+    { "id": 101, "role": "N", "x": 34, "y": 3  },
+    { "id": 102, "role": "N", "x": 5,  "y": 5  },
+    { "id": 103, "role": "N", "x": 33, "y": 15 }
+  ],
+  "events": [
+    { "type": "wander", "node_id": 4, "until": 80.0 }
+  ]
+}

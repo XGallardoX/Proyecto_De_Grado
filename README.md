@@ -43,17 +43,35 @@ Esquema:
   usan los valores por defecto del simulador.
 - `id`: entero único por nodo. `role`: `"G"` (Gateway) o `"N"` (Nodo de
   usuario) — se requiere al menos un `"G"`. `x`/`y`: posición en metros,
-  debe caer dentro de `[0, ancho] x [0, alto]`.
+  debe caer dentro de `[0, ancho] x [0, alto]`. `battery` (opcional):
+  batería inicial 0–100, por defecto 100.
 - El **piso** de cada nodo se deriva de `y` (`y // piso_h`), no se
   declara aparte — para ubicarlo en el piso 2 de un edificio de
   `piso_h: 10`, usar `y` entre 10 y 20.
+- `events` (opcional): lista de eventos del escenario. Por ahora sólo
+  existe `{"type": "wander", "node_id": <id>, "until": <t>}` — el nodo
+  se interna lejos hasta el segundo `until` y deja de dar señal.
 - Config inválido (id duplicado, rol desconocido, sin gateway,
   coordenadas fuera del edificio, campo faltante) frena la ejecución
   con un mensaje de error específico, antes de arrancar la simulación.
 
-Dos ejemplos listos para probar en `escenarios/`: `dos_nodos.json` (el
-caso mínimo) y `edificio_3_pisos.json` (2 gateways + 5 nodos
-repartidos en los 3 pisos).
+`--escenario {base,colapso_progresivo,particion,rescatista_perdido,denso}`
+es un atajo a `--config escenarios/<nombre>.json` — son los 5
+escenarios del repo madre, migrados 1 a 1 (roles `R`→`G`, `S`→`N`) con
+sus posiciones, baterías escalonadas (`colapso_progresivo`), rango de
+radio reducido (`particion`) y evento `wander` (`rescatista_perdido`)
+originales. `dos_nodos.json` y `edificio_3_pisos.json` son dos
+ejemplos adicionales, más simples, para probar el formato.
+
+## Tests
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+Corre sobre `sim/config_loader.py`, `sim/radio.py` y `sim/engine.py`
+directamente (sin `Visualizer`/pygame, no necesita pantalla), incluida
+la regresión de los 5 escenarios migrados.
 
 ## Archivos del proyecto
 

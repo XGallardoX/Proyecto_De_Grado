@@ -64,8 +64,25 @@ def load_scenario(path, default_building=None):
                 f"edificio [0,{ancho}]x[0,{alto}]"
             )
 
+        if "battery" in spec and not (0 <= spec["battery"] <= 100):
+            raise ValueError(
+                f"{path}: nodo {nid} tiene battery={spec['battery']} "
+                f"fuera de [0,100]"
+            )
+
     if n_gateways == 0:
         raise ValueError(f"{path}: se requiere al menos un nodo con role 'G' (Gateway)")
+
+    for ev in data.get("events", []):
+        if ev.get("type") != "wander":
+            raise ValueError(f"{path}: tipo de evento desconocido: {ev.get('type')}")
+        if ev.get("node_id") not in seen_ids:
+            raise ValueError(
+                f"{path}: evento 'wander' referencia node_id "
+                f"{ev.get('node_id')} que no existe en 'nodes'"
+            )
+        if "until" not in ev:
+            raise ValueError(f"{path}: evento 'wander' sin campo 'until'")
 
     data["building"] = building
     return data

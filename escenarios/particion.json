@@ -1,0 +1,15 @@
+{
+  "name": "particion",
+  "building": { "ancho": 40, "alto": 30, "piso_h": 10, "n_pisos": 3,
+                "stair_xy": [20, 15], "stair_half_w": 1.7 },
+  "medium": { "rango_comm": 11.0 },
+  "nodes": [
+    { "id": 1,   "role": "G", "x": 6,  "y": 27 },
+    { "id": 2,   "role": "G", "x": 9,  "y": 24 },
+    { "id": 3,   "role": "G", "x": 34, "y": 5  },
+    { "id": 4,   "role": "G", "x": 31, "y": 4  },
+    { "id": 101, "role": "N", "x": 5,  "y": 22 },
+    { "id": 102, "role": "N", "x": 37, "y": 7  },
+    { "id": 103, "role": "N", "x": 20, "y": 14 }
+  ]
+}

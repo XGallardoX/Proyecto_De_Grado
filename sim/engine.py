@@ -65,6 +65,8 @@ class Simulation:
                 n = SimNode(nid, role, float(spec["x"]), float(spec["y"]), 1, self,
                             self.DEFAULTS, self.N_PISOS, self.PISO_H, self.STAIR_XY,
                             self.STAIR_HALF_W, self.DT)
+                if "battery" in spec:
+                    n.battery = float(spec["battery"])
                 if role == 'G':
                     gi += 1
                     self.local_index[nid] = gi
@@ -72,6 +74,14 @@ class Simulation:
                     ni += 1
                     self.local_index[nid] = ni
                 self.nodes[nid] = n
+
+            for ev in self.cfg.get("events", []):
+                if ev["type"] == "wander" and ev["node_id"] in self.nodes:
+                    self.wanderer = self.nodes[ev["node_id"]]
+                    self.wander_until = float(ev["until"])
+                    self.log(f"Escenario: {self.label_of(ev['node_id'])} se "
+                             f"internará lejos (hasta t={ev['until']:.0f}) y "
+                             f"dejará de dar señal.", "warn")
         else:
             n_gateways = self.cfg.get("n_gateways", 1)
             n_nodes = self.cfg.get("n_nodes", 10)
