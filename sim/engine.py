@@ -53,6 +53,7 @@ class Simulation:
         self.wander_until = -1.0
         self._prev_components = 1
         self._last_part_evt = -100.0
+        self.debris = []
 
 
         n_gateways = self.cfg.get("n_gateways", 1)
@@ -106,7 +107,7 @@ class Simulation:
     
 
     def register_found(self, sid, by_id):
-        if sid in self.nodes and self.nodes[sid].role == 'S' \
+        if sid in self.nodes and self.nodes[sid].role == 'N' \
                 and sid not in self.found_ids:
             self.found_ids.add(sid)
             self.found_by[sid] = by_id

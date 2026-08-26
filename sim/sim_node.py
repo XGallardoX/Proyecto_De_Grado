@@ -92,7 +92,7 @@ class SimNode:
     def tick(self, now):
         if not self.alive:
             return
-        drain = (self.sim.cfg['battery_drain'] if self.role == 'R'
+        drain = (self.sim.cfg['battery_drain'] if self.role == 'G'
                  else self.sim.cfg['battery_drain_surv'])
         self.battery = max(0.0, self.battery - drain * self.DT)
         if self.battery <= 0:

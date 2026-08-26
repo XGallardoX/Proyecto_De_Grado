@@ -2,6 +2,18 @@
 - Borrador del proyecto de simulador
 ---
 
+> **Nota (2026-08-26):** desde el merge de `develop` del repo madre, el
+> punto de entrada activo es `python main.py -n <nodos> -g <gateways>
+> [--escenario base|denso|particion]` (roles `G`=Gateway/`N`=Nodo),
+> respaldado por los paquetes `mesh/` (protocolo BATMAN real),
+> `sim/` (motor de simulación + medio radio) y `analysis/` (métricas,
+> visualizador pygame, exportador de reportes CSV/JSON/TXT). Los
+> archivos `batman_node.py` y `simulacion_batman_real.py` descritos más
+> abajo **ya no se usan** — quedan en el repo sin cambios, huérfanos.
+> El resto de esta sección de "Archivos del proyecto" y "Simulación con
+> BATMAN real" describe el estado anterior; se actualizará por completo
+> como parte del rediseño (ver `PLAN_TRABAJO.md`, parte 3).
+
 ## Archivos del proyecto
 
 ```

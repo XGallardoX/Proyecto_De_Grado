@@ -137,7 +137,7 @@ def export_simulation_reports(sim):
         if hasattr(sim, "found_ids"):
             summary_data["supervivientes_hallados"] = len(sim.found_ids)
             
-        surv_nodes = [n for n in sim.nodes.values() if n.role == 'S']
+        surv_nodes = [n for n in sim.nodes.values() if n.role == 'N']
         if surv_nodes:
             summary_data["total_supervivientes"] = len(surv_nodes)
 
