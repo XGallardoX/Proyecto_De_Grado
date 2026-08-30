@@ -4,16 +4,23 @@ import os
 import time
 from collections import defaultdict
 
-def export_simulation_reports(sim):
+def export_simulation_reports(sim, out_dir=None):
     """
     Exports simulation results to CSV, JSON, and TEXT files in Spanish.
+
+    Si no se pasa `out_dir`, crea una carpeta propia por ejecución en
+    reportes/<escenario>_<timestamp>/.
     """
-    ts = time.strftime('%Y%m%d_%H%M%S')
     escenario = getattr(sim, "escenario", "desconocido")
-    
-    csv_fn = f"reporte_{escenario}_{ts}.csv"
-    json_fn = f"reporte_{escenario}_{ts}.json"
-    text_fn = f"reporte_{escenario}_{ts}.txt"
+
+    if out_dir is None:
+        ts = time.strftime('%Y%m%d_%H%M%S')
+        out_dir = os.path.join("reportes", f"{escenario}_{ts}")
+    os.makedirs(out_dir, exist_ok=True)
+
+    csv_fn = os.path.join(out_dir, "reporte.csv")
+    json_fn = os.path.join(out_dir, "reporte.json")
+    text_fn = os.path.join(out_dir, "reporte.txt")
     
     rec = getattr(sim, "recorder", None)
     if not rec or not hasattr(rec, "t") or len(rec.t) == 0:

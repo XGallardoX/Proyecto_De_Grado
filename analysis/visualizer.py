@@ -1,5 +1,6 @@
 
 import math
+import os
 import time
 import matplotlib
 import numpy as np
@@ -145,12 +146,14 @@ def build_analysis_figure(sim):
     ax6.grid(alpha=0.25)
 
     ts = time.strftime('%Y%m%d_%H%M%S')
-    fname = f"analisis_red_{sim.escenario}_{ts}.png"
+    out_dir = os.path.join("reportes", f"{sim.escenario}_{ts}")
+    os.makedirs(out_dir, exist_ok=True)
+    fname = os.path.join(out_dir, "analisis_red.png")
     fig.savefig(fname, dpi=110)
 
     try:
         from analysis.reporter import export_simulation_reports
-        export_simulation_reports(sim)
+        export_simulation_reports(sim, out_dir)
     except Exception as e:
         print(f"[visualizer] Error al exportar reportes automáticos: {e}")
 

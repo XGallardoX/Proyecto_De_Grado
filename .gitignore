@@ -21,8 +21,6 @@ venv3.9/
 Thumbs.db
 
 # Ignorar reportes generados por analysis/reporter.py y el PNG de análisis
-analisis_red_*.png
-reporte_*.csv
-reporte_*.json
-reporte_*.txt
+# (cada ejecución crea su propia carpeta con fecha/hora dentro de reportes/)
+reportes/
 *.csv#
