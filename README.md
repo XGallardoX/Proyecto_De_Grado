@@ -1,18 +1,63 @@
-# Simulador redes Ad Hoc usando BATMAN
-- Borrador del proyecto de simulador
+# Simulador de redes Ad-Hoc con BATMAN
+
+Simulador de una red mesh ad-hoc que enruta con el protocolo
+**B.A.T.M.A.N.** No reimplementa el protocolo de forma simplificada:
+usa las mismas clases (`BatmanRouter`, `FaultManager`, `RouteEntry`,
+`PeerInfo`) que correrían en un dispositivo real. Lo único simulado es
+el **medio radio** — en vez de sockets UDP reales, un `RadioMedium`
+decide qué paquetes llegan según distancia 3D y piso. Detalle completo
+de cómo encajan las piezas en [`docs/arquitectura.md`](docs/arquitectura.md).
+
 ---
 
-> **Nota (2026-08-26):** desde el merge de `develop` del repo madre, el
-> punto de entrada activo es `python main.py -n <nodos> -g <gateways>
-> [--escenario base|denso|particion]` (roles `G`=Gateway/`N`=Nodo),
-> respaldado por los paquetes `mesh/` (protocolo BATMAN real),
-> `sim/` (motor de simulación + medio radio) y `analysis/` (métricas,
-> visualizador pygame, exportador de reportes CSV/JSON/TXT). Los
-> archivos `batman_node.py` y `simulacion_batman_real.py` descritos más
-> abajo **ya no se usan** — quedan en el repo sin cambios, huérfanos.
-> El resto de esta sección de "Archivos del proyecto" y "Simulación con
-> BATMAN real" describe el estado anterior; se actualizará por completo
-> como parte del rediseño (ver `PLAN_TRABAJO.md`, parte 3).
+## Instalación
+
+```bash
+python -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+Dependencias: `numpy`, `matplotlib`, `pygame`/`pygame-ce`.
+
+---
+
+## Cómo ejecutar
+
+Punto de entrada único: `main.py`. Abre una ventana `pygame` con la
+simulación en vivo.
+
+```bash
+python main.py --escenario base
+```
+
+### Opciones de `main.py`
+
+| Flag | Qué hace |
+|---|---|
+| `-n`, `--nodes N` | Cantidad total de nodos, posiciones **aleatorias** (default `2`, requiere `N > 1`). Se ignora si se usa `--config`/`--escenario`. |
+| `-g`, `--gateways N` | Cuántos de esos nodos son Gateway (`G`) en modo aleatorio (default `1`, debe ser `< --nodes`). |
+| `--escenario {base,colapso_progresivo,particion,rescatista_perdido,denso}` | Atajo a `--config escenarios/<nombre>.json` — carga nodos y posiciones **explícitas**, tiene prioridad sobre `-n`/`-g`. |
+| `--config archivo.json` | Ruta a un escenario JSON propio (ver sección siguiente). Tiene prioridad sobre `--escenario` y sobre `-n`/`-g`. |
+| `--msg "texto"` | Mensaje de cabecera que se imprime al iniciar. |
+
+Tres formas de arrancar, de menor a mayor control sobre la topología:
+
+```bash
+# 1) Aleatorio: 5 nodos, 2 gateways, posiciones al azar
+python main.py -n 5 -g 2
+
+# 2) Uno de los 5 escenarios predefinidos (posiciones fijas)
+python main.py --escenario colapso_progresivo
+
+# 3) Tu propio archivo de escenario
+python main.py --config escenarios/dos_nodos.json
+```
+
+No hay modo `--headless`/`--inspect` en `main.py` todavía — siempre
+abre la ventana `pygame` (ver "Gaps conocidos" en `docs/arquitectura.md`).
+
+---
 
 ## Archivo de escenario (`--config`)
 
@@ -55,13 +100,84 @@ Esquema:
   coordenadas fuera del edificio, campo faltante) frena la ejecución
   con un mensaje de error específico, antes de arrancar la simulación.
 
-`--escenario {base,colapso_progresivo,particion,rescatista_perdido,denso}`
-es un atajo a `--config escenarios/<nombre>.json` — son los 5
-escenarios del repo madre, migrados 1 a 1 (roles `R`→`G`, `S`→`N`) con
-sus posiciones, baterías escalonadas (`colapso_progresivo`), rango de
-radio reducido (`particion`) y evento `wander` (`rescatista_perdido`)
-originales. `dos_nodos.json` y `edificio_3_pisos.json` son dos
-ejemplos adicionales, más simples, para probar el formato.
+Los 5 escenarios de `--escenario` son atajos a
+`escenarios/{base,colapso_progresivo,particion,rescatista_perdido,denso}.json`.
+`dos_nodos.json` y `edificio_3_pisos.json` son dos ejemplos adicionales,
+más simples, para probar el formato.
+
+---
+
+## Controles en la ventana en vivo
+
+| Tecla / acción | Efecto |
+|---|---|
+| `ESPACIO` | Pausa / reanuda |
+| `TAB`, `←`/`→`, o clic sobre un nodo | Seleccionar nodo |
+| `1`-`9` | Seleccionar el N-ésimo Gateway |
+| `F` | El nodo seleccionado cae (deja de emitir) |
+| `G` | El nodo seleccionado se recupera |
+| `A` | Añadir un nodo nuevo a la simulación |
+| `D` | Eliminar el nodo seleccionado |
+| `M` | Enviar un mensaje libre entre dos nodos (abre un cuadro de texto en la ventana: `1>3 cuidado con los escombros`, `Enter` envía, `Esc` cancela) |
+| `I` | Vuelca en la terminal el estado interno real de la red: vecinos (TQ, saltos, última vez oído), tabla de rutas BATMAN, componentes/particiones y enlaces de radio |
+| `S` | Cambiar de escenario (cicla entre los predefinidos) |
+| `+`/`-` | Aumentar/reducir el rango de radio |
+| `[`/`]` | Reducir/aumentar el `falloff` (degradación con la distancia) |
+| `P` | Exportar ahora mismo el análisis y los reportes (sin cerrar la ventana) — ver sección siguiente |
+| `R` | Reiniciar la simulación |
+| `Q` / `Esc` | Salir (también exporta análisis y reportes) |
+
+Los mensajes se enrutan salto por salto sobre la malla real: llegan
+siempre que exista un camino (aunque sea indirecto, multi-salto) entre
+origen y destino, y sólo se pierden si la malla está partida o el
+destino está caído.
+
+---
+
+## Qué genera cada ejecución (`reportes/`)
+
+Al salir de la ventana (`Q`/`Esc`/cerrar), o cada vez que presionas
+`P`, se crea una carpeta nueva:
+
+```
+reportes/<escenario>_<fecha_hora>/
+├── analisis_red.png   ← figura de 6 paneles (matplotlib)
+├── reporte.csv         ← serie temporal, una fila por paso registrado
+├── reporte.json        ← metadatos + resumen + serie temporal + eventos
+└── reporte.txt         ← resumen legible en texto plano
+```
+
+Cada ejecución (o cada exportación manual con `P`) tiene su propia
+carpeta con marca de tiempo, así que corridas distintas nunca se pisan.
+La carpeta `reportes/` está en `.gitignore` — no se commitea.
+
+**`analisis_red.png`** — 6 paneles:
+1. Nodos activos en el tiempo (Gateways vs. Nodos de usuario).
+2. Auto-reorganización de la malla: nº de componentes conectados
+   (1 = malla unida, >1 = partición BATMAN) y nodos de usuario
+   alcanzables.
+3. Calidad de enrutamiento: TQ medio de las rutas y saltos medios.
+4. Detección de gateway perdido: silencio máximo vs. el umbral de
+   `timeout` configurado.
+5. Calidad del medio radio: ratio de paquetes entregados/intentados.
+6. Ancho de banda total de la red, con eventos marcados.
+
+**`reporte.csv`** — una fila por paso registrado, columnas: tiempo,
+gateways/nodos activos, componentes de malla, nodos alcanzables, TQ
+promedio, saltos promedio, silencio máximo, tasa de entrega, alertas
+activas, ancho de banda, hallazgos acumulados, tipo y descripción de
+evento (si hubo alguno en ese instante).
+
+**`reporte.json`** — `metadatos` (escenario, fecha, configuración
+usada), `resumen` (estado final: nodos por rol, componentes finales,
+paquetes transmitidos/recibidos), `serie_temporal_metricas` (igual que
+el CSV pero en JSON) y `eventos` (lista cronológica).
+
+**`reporte.txt`** — el mismo resumen en formato legible para pegar en
+un informe: parámetros de configuración, estadísticas finales,
+promedios de rendimiento y cronología de eventos.
+
+---
 
 ## Tests
 
@@ -73,378 +189,24 @@ Corre sobre `sim/config_loader.py`, `sim/radio.py` y `sim/engine.py`
 directamente (sin `Visualizer`/pygame, no necesita pantalla), incluida
 la regresión de los 5 escenarios migrados.
 
-## Archivos del proyecto
-
-```
-mesh_os/
-├── batman_node.py            ← Nodo principal (corre en CADA dispositivo)
-├── mesh_cli.py               ← CLI de control interactivo (terminal aparte)
-├── setup_mesh.sh             ← Configura la red Wi-Fi Ad-Hoc en Linux
-├── simulacion_mesh_v3.py     ← Simulación visual (BATMAN simplificado)
-└── simulacion_batman_real.py ← Simulación que EJECUTA el BATMAN real
-```
-
 ---
 
-## Simulación con BATMAN real (`simulacion_batman_real.py`)
-
-Esta simulación **no reimplementa** el protocolo: importa y ejecuta las
-mismas clases que corren en los dispositivos físicos
-(`BatmanRouter`, `FaultManager`, `PeerInfo` de `batman_node.py`). Lo
-único simulado es el **medio radio**: en lugar de sockets UDP broadcast,
-un `RadioMedium` entrega los OGM/beacons según la distancia 3D y el
-piso, con pérdida de paquetes. Así el TQ y la reconvergencia que se ven
-son producidos por el código real, no por una maqueta.
-
-Todos los celulares son nodos de la malla: **rescatistas** (emiten
-"Hola, soy el rescatista Rx", OGMs BATMAN y un heartbeat "estoy bien")
-y **supervivientes** (su celular también enruta y emite "AYUDA"). Si un
-rescatista pasa más de `--timeout` segundos (30 por defecto) sin que los
-demás lo oigan, el `FaultManager` real lo marca como caído.
-
-La **vista en vivo usa `pygame`** (mucho más fluida que matplotlib);
-`matplotlib` se usa **sólo** para el PNG de análisis post-ejecución.
-Instala la dependencia con `pip install pygame`.
-
-```bash
-# Modo gráfico interactivo (ventana pygame en vivo):
-python simulacion_batman_real.py
-python simulacion_batman_real.py --escenario rescatista_perdido
-
-# Modo headless: corre N s y guarda la figura de análisis (PNG):
-python simulacion_batman_real.py --headless --duracion 240 \
-       --escenario colapso_progresivo
-
-# Inspeccionar la red EN TEXTO (tabla de rutas, vecinos, conectividad):
-python simulacion_batman_real.py --inspect --escenario base
-python simulacion_batman_real.py --inspect --duracion 120 > red.txt
-```
-
-El modo `--inspect` (o la tecla `I` en vivo) vuelca en la terminal el
-estado interno **real** de la malla: por cada nodo, sus vecinos
-(`PeerInfo`: TQ, saltos, última vez que se oyó), su **tabla de rutas
-BATMAN** (`RouteEntry`: destino, siguiente salto, saltos, TQ), a quién
-cree caído y qué supervivientes encontró; más la conectividad global
-(componentes/particiones) y los enlaces de radio con su fiabilidad. Así
-puedes ver "las partes" de la red ad-hoc directamente desde el código.
-
-**Escenarios** (`--escenario`): `base`, `colapso_progresivo`,
-`particion`, `rescatista_perdido`, `denso`.
-
-**Parámetros modificables** (CLI o teclas en caliente): rango de radio,
-pérdida/atenuación del medio, timeout del heartbeat, e intervalos del
-protocolo. **Teclas**: `ESPACIO` pausa · `TAB`/`←`/`→` seleccionar
-**cualquier nodo** (rescatista o superviviente), `1-9` rescatista ·
-**clic** sobre un nodo para seleccionarlo · `F` caer el nodo
-seleccionado · `G` revivirlo (funcionan con rescatistas **y**
-supervivientes; un superviviente con el móvil caído deja de emitir señal
-y no puede ser hallado hasta revivir) · `M` enviar mensaje libre entre
-**cualquier par de nodos** (abre un cuadro de texto **dentro de la
-ventana**: escribe `R1>R3 cuidado con los escombros` o
-`S2>R1 estoy atrapado en el piso 2`, `Enter` envía, `Esc` cancela) ·
-`I` **inspeccionar** la red (imprime en la terminal la tabla de rutas
-BATMAN, vecinos y conectividad de **todos** los nodos) ·
-`S` cambiar escenario · `+/-` rango · `[ ]` pérdida ·
-`A` guardar análisis · `R` reiniciar · `Q`/`Esc` salir.
-
-El edificio tiene **escombros impenetrables** (las personas tienen que
-rodearlos) y **losas inter-piso** que sólo se pueden cruzar por el
-**hueco de la escalera** (línea verde punteada en el mapa). Los
-mensajes personalizados se enrutan **salto por salto** y **llegan
-siempre que exista un camino** entre origen y destino, aunque sea
-**indirecto** (multi-salto a través de nodos intermedios): se busca la
-ruta más corta sobre la malla y se anima salto por salto. El mensaje
-**sólo se pierde** si la malla está **partida** (no hay ningún camino)
-o si el nodo destino está caído — igual que en la malla física.
-
-Al salir (o con `A`, o en headless) se genera
-`analisis_red_<escenario>_<fecha>.png` con 6 paneles: nodos activos,
-auto-reorganización de la malla, calidad de enrutamiento (TQ y saltos),
-detección de rescatista perdido vs. umbral, calidad del medio radio y
-progreso del rescate — con líneas verticales en cada evento.
-
----
-
-## Hardware necesario
-
-| Componente | Opciones |
-|---|---|
-| **Dispositivos** | Raspberry Pi 3/4/5, laptop Linux, PC con Linux |
-| **Wi-Fi** | Tarjeta que soporte modo **IBSS (Ad-Hoc)** |
-| **OS** | Raspberry Pi OS, Ubuntu 20+, Debian 10+ |
-| **Python** | 3.9 o superior (solo stdlib, sin pip) |
-| **Mínimo** | 2 dispositivos (funciona con hasta ~20 nodos) |
-
-> **Verificar soporte Ad-Hoc de tu tarjeta Wi-Fi:**
-> ```bash
-> iw list | grep "Supported interface modes" -A 10
-> # Debe aparecer "IBSS" en la lista
-> ```
-
----
-
-## Paso 1 — Copiar los archivos
-
-En **cada dispositivo**, crea una carpeta y copia los 3 archivos:
-
-```bash
-mkdir ~/mesh_os
-cd ~/mesh_os
-# Copia batman_node.py, mesh_cli.py y setup_mesh.sh aquí
-```
-
----
-
-## Paso 2 — Configurar la red Ad-Hoc
-
-Ejecuta esto en **cada dispositivo**, cambiando la IP según el número de nodo:
-
-### Nodo 1 (primer dispositivo):
-```bash
-sudo bash setup_mesh.sh wlan0 192.168.99.1 1
-```
-
-### Nodo 2 (segundo dispositivo):
-```bash
-sudo bash setup_mesh.sh wlan0 192.168.99.2 2
-```
-
-### Nodo 3 (tercer dispositivo):
-```bash
-sudo bash setup_mesh.sh wlan0 192.168.99.3 3
-```
-
-### Nodo 4 (cuarto dispositivo):
-```bash
-sudo bash setup_mesh.sh wlan0 192.168.99.4 4
-```
-
-> El script configura la red Ad-Hoc, asigna la IP estática y abre los puertos del firewall. Solo necesitas ejecutarlo una vez (o después de cada reinicio).
-
----
-
-## Paso 3 — Verificar conectividad
-
-Antes de iniciar el nodo, verifica que los dispositivos se ven entre sí:
-
-```bash
-# Desde el Nodo 1, hacer ping al Nodo 2:
-ping 192.168.99.2
-
-# Desde el Nodo 2, hacer ping al Nodo 1:
-ping 192.168.99.1
-```
-
-Si el ping no responde:
-```bash
-# Ver si la interfaz está en modo Ad-Hoc:
-iwconfig wlan0
-
-# Verificar IP asignada:
-ip addr show wlan0
-
-# Re-ejecutar el setup:
-sudo bash setup_mesh.sh wlan0 192.168.99.X X
-```
-
----
-
-## Paso 4 — Iniciar el nodo
-
-En **cada dispositivo**, abre una terminal y ejecuta:
-
-### Nodo 1:
-```bash
-cd ~/mesh_os
-python3 batman_node.py --id 1 --interface wlan0 --bind 192.168.99.1
-```
-
-### Nodo 2:
-```bash
-cd ~/mesh_os
-python3 batman_node.py --id 2 --interface wlan0 --bind 192.168.99.2
-```
-
-### Nodo 3:
-```bash
-cd ~/mesh_os
-python3 batman_node.py --id 3 --interface wlan0 --bind 192.168.99.3
-```
-
-### Nodo 4:
-```bash
-cd ~/mesh_os
-python3 batman_node.py --id 4 --interface wlan0 --bind 192.168.99.4
-```
-
-**Modo demo** (inyecta tareas ML automáticamente cada 20 segundos):
-```bash
-python3 batman_node.py --id 1 --interface wlan0 --bind 192.168.99.1 --demo
-```
-
-**Más logs para depuración:**
-```bash
-python3 batman_node.py --id 1 --interface wlan0 --log-level DEBUG
-```
-
----
-
-## Paso 5 — Usar el CLI de control
-
-En una **segunda terminal** del mismo dispositivo:
-
-```bash
-cd ~/mesh_os
-python3 mesh_cli.py
-```
-
-Verás el prompt:
-```
-  mesh>
-```
-
-### Comandos principales:
+## Estructura del proyecto
 
 ```
-  mesh> status          # Estado del nodo: batería, carga, reputación
-  mesh> peers           # Tabla de pares conocidos con TQ y hops
-  mesh> routes          # Tabla de rutas B.A.T.M.A.N.
-  mesh> mem             # Listar toda la memoria distribuida
-  mesh> mem result.T1-ABC123    # Leer un resultado específico
-  mesh> memw sensor.temp 22.5   # Escribir en memoria distribuida
-  mesh> task mlp        # Enviar tarea MLP al mejor nodo disponible
-  mesh> task linreg     # Enviar tarea de Regresión Lineal
-  mesh> task sfusion    # Fusión de sensores
-  mesh> task astar      # Planificación de rutas A*
-  mesh> tasks           # Ver todas las tareas y sus estados
-  mesh> fault           # Ver log de fallos y reconfiguraciones
-  mesh> ping 192.168.99.2       # Ping TCP al Nodo 2
-  mesh> help            # Ver todos los comandos
-  mesh> exit            # Salir del CLI
+main.py                  ← punto de entrada (CLI)
+mesh/                     ← protocolo BATMAN real (router, fault manager, ...)
+sim/                      ← motor de simulación + medio radio + carga de escenarios
+analysis/                 ← métricas, visualizador pygame, reportes
+escenarios/*.json         ← escenarios predefinidos
+tests/                     ← pruebas unitarias
 ```
 
----
+Ver [`docs/arquitectura.md`](docs/arquitectura.md) para el detalle de
+cómo se relacionan estas capas y por qué las métricas que se ven
+(TQ, rutas, particiones) las produce el código real del protocolo y no
+una maqueta.
 
-## Flujo completo de ejemplo
-
-```
-[Nodo 1]                    [Nodo 2]                    [Nodo 3]
-    │                           │                           │
-    │←──── Beacon UDP ──────────│                           │
-    │──── OGM (seq=1) ─────────→│──── OGM forward ─────────→│
-    │                           │                           │
-    │  (CLI: task mlp)          │                           │
-    │                           │                           │
-    │  Calcula scores:          │                           │
-    │  N1=0.8, N2=1.2, N3=0.6  │                           │
-    │                           │                           │
-    │──── TASK TCP ────────────→│                           │
-    │                           │  Ejecuta MLP              │
-    │                           │  (XOR gate, 1000 épocas)  │
-    │←──── TRES (resultado) ────│                           │
-    │                           │                           │
-    │  memory.write(result)     │                           │
-    │                           │                           │
-    │←──── MSYN (mem sync) ─────│←──── MSYN (mem sync) ────│
-    │  (propagación del         │                           │
-    │   resultado a todos       │                           │
-    │   los nodos)              │                           │
-```
-
----
-
-## Arranque automático con systemd (opcional)
-
-Para que el nodo inicie solo al encender la Raspberry Pi:
-
-```bash
-# El script setup_mesh.sh ya crea el servicio. Solo actívalo:
-sudo systemctl enable mesh-node
-sudo systemctl start mesh-node
-
-# Ver logs del servicio:
-sudo journalctl -u mesh-node -f
-
-# Detener:
-sudo systemctl stop mesh-node
-```
-
----
-
-## Escenario con laptops (sin Wi-Fi Ad-Hoc)
-
-Si tu tarjeta Wi-Fi no soporta modo IBSS, puedes probar en red local (LAN/Wi-Fi normal):
-
-```bash
-# En cada dispositivo, solo iniciar el nodo con la IP de la red local:
-python3 batman_node.py --id 1 --interface eth0 --bind 192.168.1.10
-
-# El broadcast UDP funciona igual en LAN normal.
-# El protocolo BATMAN opera exactamente igual.
-```
-
----
-
-## Puertos utilizados
-
-| Puerto | Protocolo | Uso |
-|--------|-----------|-----|
-| 5555 | UDP broadcast | OGMs B.A.T.M.A.N. y Beacons |
-| 5556 | TCP | Transferencia de tareas y resultados |
-| 5557 | TCP | Sincronización de memoria distribuida |
-| 5559 | TCP (loopback) | API de control del CLI |
-
----
-
-## Salida esperada al iniciar
-
-```
-[10:32:01][INFO][Node[N1]] Nodo N1 activo — interfaz: wlan0
-[10:32:01][INFO][Ctrl[N1]] CtrlAPI en 127.0.0.1:5559
-[10:32:01][INFO][Node[N1]] Escuchando broadcast :5555
-[10:32:01][INFO][Node[N1]] TCP tareas :5556
-[10:32:03][INFO][Router[N1]] OGM de N2 (192.168.99.2) seq=1 TQ=1.00
-[10:32:04][INFO][Router[N1]] OGM de N3 (192.168.99.3) seq=1 TQ=0.87
-[10:32:05][INFO][Sched[N1]] Ejecutando MLP [T2-A3F9C1]
-[10:32:08][INFO][Sched[N1]] OK T2-A3F9C1: {'mse': 0.00012, 'hidden': 4}
-```
-
----
-
-## Preguntas frecuentes
-
-**¿Por qué no se ven los nodos?**
-- Verifica que están en la misma red Ad-Hoc: `iwconfig wlan0` → debe mostrar el mismo ESSID `MeshOS_AdHoc`
-- Verifica que el firewall no bloquea UDP 5555: `sudo ufw allow 5555`
-
-**¿Por qué las tareas no se envían a otros nodos?**
-- Los nodos necesitan ~8-12 segundos para descubrirse mutuamente (2-3 ciclos de OGM)
-- Espera que `peers` muestre al menos un par antes de enviar tareas
-
-**¿Se puede usar con más de 4 nodos?**
-- Sí, el protocolo escala. Solo asigna IDs y IPs diferentes a cada nodo.
-
-**¿Qué pasa si apago un nodo?**
-- Después de 15 segundos sin señal, los demás detectan el fallo
-- Las tareas asignadas a ese nodo se reasignan automáticamente
-- La memoria se re-replica en los nodos restantes
-
-**¿Dónde se guardan los datos de memoria?**
-- En `./mesh_data/mem_nX.json` (donde X es el ID del nodo)
-- Se restaura automáticamente al reiniciar el nodo
-
-## Pasos para correr el proyecto
-- Crear un entorno virtual en Python
-```bash
-  python -m venv venv
-  source venv/bin/activate
-```
-- Instalar los requerimientos
-```bash
-pip install -r requirements.txt
-```
-- Ejecutar:
-```bash
-python simulacion_batman_real.py
-```
-
+`batman_node.py` y `simulacion_batman_real.py` (raíz del repo) son el
+prototipo **anterior** a la migración a `mesh/`/`sim/`/`analysis/`.
+Ya no se usan — quedan en el repo sin mantenimiento, huérfanos.

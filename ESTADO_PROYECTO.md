@@ -5,7 +5,7 @@
 > completando. Detalle completo del plan en `PLAN_TRABAJO.md`, del
 > análisis del repo madre en `ANALISIS_REPO_MADRE.md`.
 
-Fecha: 2026-08-26
+Fecha: 2026-08-30
 
 ---
 
@@ -49,15 +49,36 @@ renombrados `R`/`S` → `G`/`N` = Gateway/Nodo).
 
 Todo esto ya está en `main` (commits `0348693`, `6a41861`, `3d6fb5c`).
 
+**Parte 3 del plan — documentación técnica:**
+- `README.md` reescrito: instalación, todas las flags de `main.py`
+  explicadas, controles de la ventana en vivo, y qué contiene cada
+  reporte (`analisis_red.png`, `reporte.csv/json/txt`). Se quitó la
+  sección de despliegue en hardware real (`mesh_cli.py`,
+  `setup_mesh.sh`, systemd, etc.) porque documentaba archivos que ya
+  no existen en el repo — quedó como huella en el historial de git,
+  no en el README activo.
+- `docs/arquitectura.md`: explica las 3 capas (`mesh/` protocolo real,
+  `sim/` puente de simulación, `analysis/` métricas/visualización) y
+  por qué el TQ que se ve en pantalla lo calcula el `BatmanRouter`
+  real y no una maqueta. Documenta también qué partes de `mesh/`
+  (memoria distribuida, scheduler, API de control) el simulador no
+  usa, y dos gaps conocidos (headless roto en `visualizer.py`,
+  `register_found()`/`my_survivors` muerto).
+- De paso (pedido aparte, no parte del plan original): los reportes y
+  el PNG de análisis ahora se agrupan en
+  `reportes/<escenario>_<fecha_hora>/` por ejecución en vez de quedar
+  sueltos en la raíz del repo.
+
 ---
 
 ## Falta
 
-1. **Parte 3 — documentación técnica.** El `README.md` solo tiene una
-   nota parcial sobre el config JSON. Falta la sección completa del
-   formato de escenario bien desarrollada y un `docs/arquitectura.md`
-   explicando las 3 capas (protocolo real / puente de simulación /
-   visualización) — por qué el TQ que se ve es real y no una maqueta.
+1. **Entregable del análisis del repo madre.** `ESTADO_PROYECTO.md`
+   y `PLAN_TRABAJO.md` mencionan `ANALISIS_REPO_MADRE.md` como el
+   documento donde vive ese análisis, pero **no existe** en el repo
+   (tampoco se encontró en el resto de la carpeta del proyecto). El
+   análisis en sí se hizo — se ve en los bugs de migración corregidos
+   — pero no quedó un entregable trazable.
 
 2. **Track B — documento de grado.** Nada tocado todavía en
    `Plantilla/` (los capítulos siguen en blanco, numerados
@@ -78,9 +99,11 @@ Todo esto ya está en `main` (commits `0348693`, `6a41861`, `3d6fb5c`).
    documento (ver sección 4.2–4.3 de `PLAN_TRABAJO.md`).
 
 4. **Gaps menores conocidos:** no hay modo `--headless`/`--duracion`
-   en `main.py` (existía en el `simulacion_batman_real.py` viejo, no
-   se portó); no se pudo probar el modo gráfico manualmente en este
-   entorno por falta de pantalla.
+   en `main.py` — existía en el `simulacion_batman_real.py` viejo y
+   hay un intento de portarlo al final de `analysis/visualizer.py`,
+   pero está roto (revienta con `TypeError` al primer uso, ver
+   "Gaps conocidos" en `docs/arquitectura.md`). El modo gráfico
+   (`pygame`) sí se probó manualmente y corre sin errores.
 
 ---
 
@@ -93,5 +116,6 @@ Todo esto ya está en `main` (commits `0348693`, `6a41861`, `3d6fb5c`).
 | 3 | Pruebas, ajustes de UI | Metodología (Cap. 3) |
 | 4 | README + `docs/arquitectura.md` | Desarrollo + resultados (Cap. 4–5) |
 
-Semanas 1–2 de Track A ya están cubiertas (esquema, migración y
-pruebas). Track B todavía no arrancó.
+Semanas 1, 3 y 4 de Track A ya están cubiertas (esquema/migración,
+pruebas y documentación); semana 2 (refactor de `_build_world`) no se
+verificó puntualmente en esta revisión. Track B todavía no arrancó.
