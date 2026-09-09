@@ -98,6 +98,12 @@ def main():
         default="Iniciando Red de Expansión de Cobertura...",
         help="Mensaje personalizado de inicio"
     )
+    parser.add_argument(
+        "--static",
+        action="store_true",
+        help="Los nodos no se mueven: quedan fijos en su posición inicial "
+             "(equivale a move_speed=0)."
+    )
 
     args = parser.parse_args()
 
@@ -175,6 +181,9 @@ def main():
             "timeout": 30.0,
             "battery_drain": 0.02,
         }
+
+    if args.static:
+        sim_config["move_speed"] = 0
 
     try:
         # . Instanciar el motor de simulación

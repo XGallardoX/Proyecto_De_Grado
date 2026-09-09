@@ -189,6 +189,11 @@ class SimNode:
         if not self.alive:
             return
 
+        if self.sim.cfg.get('move_speed', 0) <= 0:
+            # move_speed=0: nodos estáticos, sin persecución ni jitter.
+            self._record_history()
+            return
+
         if self.role == 'N':
             # Nodos de usuario atrapados: micro-movimiento (sin chocar)
             for _ in range(3):
