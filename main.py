@@ -88,9 +88,9 @@ def main():
         "--config",
         type=str,
         default=None,
-        help="Ruta a un archivo JSON de escenario con nodos y posiciones "
-             "explícitas (ver README). Tiene prioridad sobre --escenario "
-             "y sobre -n/-g."
+        help="Ruta a un archivo de escenario (.json o .txt, ver README) con "
+             "nodos y posiciones explícitas, o en modo aleatorio. Tiene "
+             "prioridad sobre --escenario y sobre -n/-g."
     )
     parser.add_argument(
         "--msg",
@@ -135,16 +135,24 @@ def main():
         stair_half_w = building.get("stair_half_w", STAIR_HALF_W)
         escenario_nombre = scenario.get("name", config_path)
 
-        n_total = len(scenario["nodes"])
-        n_gw = sum(1 for n in scenario["nodes"] if n["role"] == "G")
-
         sim_config = dict(DEFAULTS)
         sim_config.update(scenario.get("medium", {}))
         sim_config.update(scenario.get("protocol", {}))
-        sim_config["nodes"] = scenario["nodes"]
-        sim_config["events"] = scenario.get("events", [])
-        sim_config["n_nodes"] = n_total
-        sim_config["n_gateways"] = n_gw
+
+        if "random" in scenario:
+            n_total = scenario["random"]["n_nodes"]
+            n_gw = scenario["random"]["n_gateways"]
+            sim_config["n_nodes"] = n_total
+            sim_config["n_gateways"] = n_gw
+            posiciones = "aleatorias"
+        else:
+            n_total = len(scenario["nodes"])
+            n_gw = sum(1 for n in scenario["nodes"] if n["role"] == "G")
+            sim_config["nodes"] = scenario["nodes"]
+            sim_config["events"] = scenario.get("events", [])
+            sim_config["n_nodes"] = n_total
+            sim_config["n_gateways"] = n_gw
+            posiciones = "explícitas"
 
         print(f"\n{'='*60}")
         print(f" {args.msg}")
@@ -152,7 +160,7 @@ def main():
         print(f" Configuración (desde {config_path}):")
         print(f"  - Nodos totales: {n_total}")
         print(f"  - Gateways:      {n_gw}")
-        print(f"  - Escenario:     {escenario_nombre}")
+        print(f"  - Escenario:     {escenario_nombre} (posiciones {posiciones})")
         print(f"{'='*60}\n")
     else:
         if args.nodes <= 1:

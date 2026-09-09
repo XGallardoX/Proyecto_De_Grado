@@ -114,5 +114,81 @@ class ConfigLoaderTests(unittest.TestCase):
             load_scenario(path)
 
 
+class ConfigLoaderTxtTests(unittest.TestCase):
+    def _write_txt(self, content):
+        fd, path = tempfile.mkstemp(suffix=".txt")
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(content)
+        self.addCleanup(os.unlink, path)
+        return path
+
+    def test_txt_nodos_explicitos_equivalente_a_json(self):
+        path = self._write_txt("""
+            name: mi_escenario
+
+            [building]
+            ancho=50
+            alto=20
+
+            [protocol]
+            static=true
+            timeout=45
+
+            [nodes]
+            # comentario de línea completa
+            1 G 1 1
+            2 N 2 2 80
+        """)
+        scenario = load_scenario(path)
+        self.assertEqual(scenario["name"], "mi_escenario")
+        self.assertEqual(scenario["building"]["ancho"], 50)
+        self.assertEqual(scenario["protocol"]["move_speed"], 0)
+        self.assertEqual(scenario["protocol"]["timeout"], 45)
+        self.assertEqual(len(scenario["nodes"]), 2)
+        self.assertEqual(scenario["nodes"][1]["battery"], 80.0)
+
+    def test_txt_modo_random(self):
+        path = self._write_txt("""
+            [nodes]
+            mode=random
+            n_nodes=5
+            n_gateways=2
+        """)
+        scenario = load_scenario(path)
+        self.assertEqual(scenario["random"], {"n_nodes": 5, "n_gateways": 2})
+        self.assertNotIn("nodes", scenario)
+
+    def test_txt_random_requiere_n_nodes_mayor_a_1(self):
+        path = self._write_txt("[nodes]\nmode=random\nn_nodes=1\nn_gateways=0\n")
+        with self.assertRaisesRegex(ValueError, "n_nodes"):
+            load_scenario(path)
+
+    def test_txt_random_requiere_gateways_menor_a_nodos(self):
+        path = self._write_txt("[nodes]\nmode=random\nn_nodes=3\nn_gateways=3\n")
+        with self.assertRaisesRegex(ValueError, "n_gateways"):
+            load_scenario(path)
+
+    def test_txt_no_mezcla_nodos_explicitos_con_random(self):
+        path = self._write_txt(
+            "[nodes]\n1 G 1 1\nmode=random\nn_nodes=3\nn_gateways=1\n"
+        )
+        with self.assertRaisesRegex(ValueError, "mode=random"):
+            load_scenario(path)
+
+    def test_txt_seccion_desconocida(self):
+        path = self._write_txt("[foo]\nbar=1\n")
+        with self.assertRaisesRegex(ValueError, "sección desconocida"):
+            load_scenario(path)
+
+    def test_txt_archivo_inexistente(self):
+        with self.assertRaisesRegex(ValueError, "no encontrado"):
+            load_scenario("/no/existe/escenario.txt")
+
+    def test_txt_valida_igual_que_json_rol_invalido(self):
+        path = self._write_txt("[nodes]\n1 X 1 1\n")
+        with self.assertRaisesRegex(ValueError, "rol inválido"):
+            load_scenario(path)
+
+
 if __name__ == "__main__":
     unittest.main()

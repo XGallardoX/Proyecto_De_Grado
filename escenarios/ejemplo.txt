@@ -1,0 +1,24 @@
+# Ejemplo de escenario en texto plano, equivalente a dos_nodos.json.
+# Cualquier línea que empiece con # (o lo que siga a un #) es un comentario.
+
+name: ejemplo_txt
+
+[building]
+ancho=40
+alto=30
+piso_h=10
+n_pisos=3
+
+[protocol]
+# static=true deja los nodos fijos (equivale a move_speed=0)
+static=false
+timeout=30
+
+[nodes]
+# id  role  x   y   [battery opcional]
+1     G     7   27
+2     N     20  15
+
+[events]
+# type    node_id  until
+# wander  2        60

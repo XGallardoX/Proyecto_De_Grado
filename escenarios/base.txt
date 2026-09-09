@@ -1,0 +1,23 @@
+# Equivalente en texto plano de escenarios/base.json
+
+name: base
+
+[building]
+ancho=40
+alto=30
+piso_h=10
+n_pisos=3
+stair_xy=20,15
+stair_half_w=1.7
+
+[protocol]
+static=true
+
+[nodes]
+1    G  7   27
+2    G  11  27
+3    G  9   24
+4    G  13  25
+101  N  34  3
+102  N  5   5
+103  N  33  15

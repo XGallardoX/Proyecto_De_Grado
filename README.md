@@ -63,7 +63,9 @@ abre la ventana `pygame` (ver "Gaps conocidos" en `docs/arquitectura.md`).
 ## Archivo de escenario (`--config`)
 
 En vez de `-n`/`-g`/`--escenario` (posiciones aleatorias), `main.py`
-acepta un archivo JSON con nodos y posiciones explícitas:
+acepta un archivo JSON **o texto plano (`.txt`)** con nodos y
+posiciones explícitas (o en modo aleatorio, ver más abajo). El formato
+se detecta por la extensión del archivo.
 
 ```bash
 python main.py --config escenarios/edificio_3_pisos.json
@@ -100,6 +102,55 @@ Esquema:
 - Config inválido (id duplicado, rol desconocido, sin gateway,
   coordenadas fuera del edificio, campo faltante) frena la ejecución
   con un mensaje de error específico, antes de arrancar la simulación.
+
+### Formato `.txt` (equivalente al JSON, más fácil de editar a mano)
+
+```bash
+python main.py --config escenarios/ejemplo.txt
+```
+
+```
+name: mi_escenario
+
+[building]
+ancho=40
+alto=30
+piso_h=10
+n_pisos=3
+
+[medium]
+rango_comm=16
+falloff=0.85
+
+[protocol]
+timeout=30
+static=true      # equivale a move_speed=0 (nodos fijos, ver --static)
+
+[nodes]
+# id  role  x   y   [battery opcional]
+1     G     7   27
+2     N     20  15
+
+[events]
+# type    node_id  until
+wander    2        60
+```
+
+- `#` marca comentarios (línea completa o al final de una línea).
+- Secciones `[building]`, `[medium]`, `[protocol]` son opcionales,
+  `clave=valor` uno por línea — mismas claves que el JSON (`ancho`,
+  `rango_comm`, `timeout`, `move_speed`, etc.). `protocol` acepta
+  además `static=true/false` como atajo legible de `move_speed=0`.
+- `[nodes]` es obligatoria: una línea por nodo (`id role x y
+  [battery]`, separado por espacios), **o** modo aleatorio con
+  `mode=random`, `n_nodes=N`, `n_gateways=G` en vez de líneas de nodos
+  (no se pueden mezclar los dos estilos en la misma sección).
+- `[events]` es opcional, una línea por evento: `wander node_id until`.
+- Mismas validaciones y mismos mensajes de error que el JSON (id
+  duplicado, rol inválido, sin gateway, fuera del edificio, etc.).
+
+Ver [escenarios/ejemplo.txt](escenarios/ejemplo.txt) para un ejemplo
+completo funcionando.
 
 Los 5 escenarios de `--escenario` son atajos a
 `escenarios/{base,colapso_progresivo,particion,rescatista_perdido,denso}.json`.
