@@ -109,12 +109,20 @@ daba por perdidos.
    `hyperref` (que todavía dice `MIA-D.Martinez`) — porque hacen falta
    el título definitivo y el nombre del asesor.
 
-2. **Compilar el documento.** El estado del arte se escribió y se
-   revisó de forma estática (entornos y llaves balanceados, tabla
-   consistente, las 17 citas resuelven contra `referencias.bib`), pero
-   **no se compiló**: esta máquina no tiene toolchain de LaTeX
-   instalado. Falta una pasada por Overleaf, o instalar `texlive`, para
-   confirmar que sale limpio.
+2. ~~Compilar el documento.~~ **Hecho.** Se instaló TeX Live en
+   `~/texlive/2026` (sin root) y el documento compila limpio:
+   `pdflatex` + `bibtex` + 2 pasadas → `main.pdf`, 42 páginas, sin
+   citas ni referencias sin resolver. El estado del arte queda en las
+   páginas 27–32 (Capítulo 3) y la tabla comparativa como Tabla 3.1.
+   Para compilar:
+   ```bash
+   export PATH=~/texlive/2026/bin/x86_64-linux:$PATH
+   cd Plantilla && pdflatex main && bibtex main && pdflatex main && pdflatex main
+   ```
+   Los únicos avisos de `Overfull \hbox` grandes (82.5pt) vienen del
+   banner de capítulo de la plantilla (`\rule{18.5cm}` contra un
+   `textwidth` de 15.6cm) y salen en los 8 capítulos por igual — son
+   de la plantilla, no del contenido nuevo.
 
 3. **Pregunta abierta — framing del proyecto (necesita que la
    resuelvan entre los dos):** `register_found()`/`my_survivors`
