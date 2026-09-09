@@ -17,6 +17,7 @@
 *.ilg
 *.bcf
 *.run.xml
+*.brf
 
 # PDF generado por main.tex (anclado a esta carpeta: NO ignora
 # MIA-PlantillaDocumento/main.pdf, que es el PDF de referencia de la plantilla)
