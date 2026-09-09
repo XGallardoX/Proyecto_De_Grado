@@ -1,0 +1,260 @@
+% Estado del arte: simuladores de redes existentes, con énfasis en las
+% herramientas aplicables a redes descentralizadas (ad-hoc/mesh, P2P y
+% de consenso distribuido).
+
+La evaluación de un protocolo de red rara vez se hace desplegando la red
+completa: el costo, la dificultad de reproducir las condiciones del canal y la
+imposibilidad de repetir un experimento con exactitud han hecho de la
+simulación la herramienta dominante en el área. Este capítulo revisa las
+herramientas de simulación de redes disponibles hoy, distingue las que
+permiten estudiar redes descentralizadas de las de propósito general y, a
+partir de esa revisión, delimita el vacío que el presente trabajo pretende
+cubrir.
+
+\section{Simuladores de redes de propósito general}
+\label{sec:simuladores-generales}
+
+La primera generación de herramientas ampliamente adoptadas por la comunidad
+académica se organiza alrededor del paradigma de \textit{simulación por
+eventos discretos}: el estado de la red avanza saltando de un evento
+(transmisión, recepción, expiración de un temporizador) al siguiente, sin
+recorrer el tiempo de forma continua.
+
+\textbf{ns-2 y ns-3.} El simulador ns-2, desarrollado en el marco del proyecto
+VINT, fue durante casi dos décadas la referencia de facto en investigación de
+redes~\cite{Ns2VintProject}. Su sucesor, ns-3, reescribió el núcleo
+completamente en C++ e incorporó una pila TCP/IP completa junto con modelos de
+tecnologías inalámbricas como IEEE 802.11, LTE y WiMAX~\cite{Riley2010ns3}. La
+posibilidad de integrar ns-3 con bancos de pruebas y aplicaciones reales lo
+convirtió en el estándar aceptado por la comunidad para publicar resultados.
+
+\textbf{OMNeT++ e INET.} OMNeT++ es un entorno modular de simulación por
+eventos discretos escrito en C++, concebido como una infraestructura genérica
+más que como un simulador de redes cerrado~\cite{Varga2008Omnetpp}. La
+funcionalidad de red propiamente dicha la aporta el marco de trabajo INET, una
+biblioteca de modelos que incluye la pila de Internet, protocolos de enlace
+cableados e inalámbricos, modelos de movilidad y un conjunto de protocolos de
+enrutamiento para redes ad-hoc.
+
+\textbf{GloMoSim y QualNet.} GloMoSim se propuso específicamente para la
+simulación paralela de redes inalámbricas de gran escala, organizando la pila
+de comunicaciones en capas con una API propia por capa, de modo que los
+modelos de una capa interactúan con los de la capa adyacente únicamente a
+través de esas interfaces~\cite{Zeng1998Glomosim}. Su evolución comercial,
+QualNet, y otras herramientas propietarias como Riverbed Modeler (antes
+OPNET) y NetSim, ocupan el mismo nicho con soporte comercial y bibliotecas de
+modelos más extensas.
+
+El rasgo que comparten todas estas herramientas, y que resulta central para
+este trabajo, es que \textbf{el protocolo bajo estudio se reimplementa como un
+modelo dentro del simulador}. Lo que se valida experimentalmente es, en
+sentido estricto, ese modelo, no la implementación que después se despliega en
+un dispositivo real.
+
+\section{Herramientas orientadas a redes descentralizadas}
+\label{sec:simuladores-descentralizados}
+
+El término \textit{red descentralizada} se emplea en la literatura con al
+menos tres alcances distintos, y a cada uno le corresponde una familia
+diferente de herramientas. Conviene separarlas antes de compararlas.
+
+\subsection{Redes ad-hoc móviles y redes malladas}
+\label{subsec:manet}
+
+Son redes sin infraestructura fija, en las que cada nodo actúa
+simultáneamente como terminal y como encaminador. Las herramientas
+disponibles se reparten entre simuladores y emuladores:
+
+\begin{itemize}
+\item \textbf{ns-3} incluye modelos de los protocolos de enrutamiento ad-hoc
+clásicos (AODV, OLSR, DSDV y DSR) sobre su modelo de canal
+inalámbrico~\cite{Riley2010ns3}.
+
+\item \textbf{INET sobre OMNeT++} ofrece un conjunto equivalente de protocolos
+MANET junto con modelos de movilidad configurables~\cite{Varga2008Omnetpp}.
+
+\item \textbf{Cooja}, el simulador del sistema operativo Contiki para redes de
+sensores, introduce la noción de \textit{simulación multinivel}: permite
+simular simultáneamente a nivel de red, de sistema operativo y de instrucción
+de máquina, ejecutando el firmware real del nodo sobre una emulación del
+hardware~\cite{Osterlind2006Cooja}. TOSSIM, del ecosistema TinyOS, sigue una
+estrategia comparable.
+
+\item \textbf{EMANE} (\textit{Extendable Mobile Ad-hoc Network Emulator})
+aporta modelos de radio y de capa física detallados, pensados expresamente
+para emular redes MANET, y suele integrarse con otros
+emuladores~\cite{Nrl2023Emane}.
+
+\item \textbf{CORE} (\textit{Common Open Research Emulator}) es un emulador en
+tiempo real que instancia topologías híbridas compuestas por nodos virtuales y
+hardware real, apoyándose en la virtualización de la pila de red del sistema
+operativo; escala a topologías de más de un centenar de nodos virtuales sobre
+un único servidor~\cite{Ahrenholz2008Core}.
+
+\item \textbf{Mininet-WiFi} extiende Mininet a redes inalámbricas definidas por
+software: cada nodo es un proceso ubicado en un espacio de nombres de red de
+Linux, interconectado mediante pares de interfaces virtuales, de manera que
+cualquier programa que corra sobre Linux corre sin modificaciones dentro de la
+topología emulada~\cite{Fontes2015MininetWifi}.
+\end{itemize}
+
+\subsection{Redes entre pares y superposiciones descentralizadas}
+\label{subsec:p2p}
+
+Cuando la descentralización ocurre en la capa de aplicación y no en la capa
+física, el objeto de estudio deja de ser el canal inalámbrico y pasa a ser la
+topología lógica de la superposición (\textit{overlay}). Las herramientas
+representativas son:
+
+\begin{itemize}
+\item \textbf{PeerSim}, diseñado para escalar hasta del orden de un millón de
+nodos, a costa de un modelo deliberadamente abstracto que prescinde por
+completo de las capas inferiores~\cite{Montresor2009Peersim}.
+
+\item \textbf{OverSim}, construido sobre OMNeT++, que combina modelos de
+superposiciones estructuradas y no estructuradas (Chord, Pastry, Kademlia) con
+la posibilidad de ejecutar aplicaciones de red reales sobre el mismo
+código~\cite{Baumgart2009Oversim}.
+
+\item \textbf{PlanetSim} y \textbf{PeerfactSim.KOM}, orientados a la evaluación
+comparativa sistemática de sistemas entre pares.
+\end{itemize}
+
+\subsection{Redes descentralizadas con consenso distribuido}
+\label{subsec:blockchain}
+
+Una tercera lectura de \textit{descentralizado} corresponde a los sistemas de
+registro distribuido. \textbf{SimBlock} es un simulador de red de cadena de
+bloques dirigido por eventos que permite modificar con facilidad el
+comportamiento de los nodos, de modo que puede estudiarse cómo influye ese
+comportamiento sobre la red en su conjunto~\cite{Aoki2019Simblock}.
+\textbf{BlockSim}, escrito en Python sobre la biblioteca SimPy, cubre un
+propósito similar para Ethereum y Bitcoin. Estas herramientas modelan la
+propagación de bloques y el consenso, pero no la capa física ni la movilidad,
+por lo que quedan fuera del alcance de este trabajo.
+
+\section{Simulación, emulación y ejecución de código real}
+\label{sec:simulacion-vs-emulacion}
+
+La revisión anterior muestra que las herramientas no se distinguen solamente
+por el dominio que cubren, sino por un eje más determinante: qué tan cerca
+está el código evaluado del código que finalmente se despliega. Pueden
+distinguirse tres niveles:
+
+\begin{itemize}
+\item \textbf{Simulación pura.} El protocolo se reimplementa como modelo dentro
+del simulador. Escala bien y es perfectamente reproducible, pero introduce una
+brecha entre el modelo validado y la implementación desplegada.
+
+\item \textbf{Emulación.} El código real se ejecuta sobre un sistema operativo
+virtualizado o sobre espacios de nombres de red. La fidelidad es alta, pero
+cada nodo cuesta recursos del sistema anfitrión y el modelado del medio radio
+requiere componentes adicionales o hardware específico.
+
+\item \textbf{Enfoques híbridos o multinivel.} El código real del protocolo se
+ejecuta sobre un modelo del medio, como en la simulación multinivel de
+Cooja~\cite{Osterlind2006Cooja}.
+\end{itemize}
+
+La Tabla~\ref{tab:comparativa-simuladores} resume las herramientas revisadas
+según estos criterios.
+
+\begin{table}[htbp!]
+    \centering
+    \caption{Comparación de las herramientas de simulación y emulación revisadas}
+    \label{tab:comparativa-simuladores}
+    \footnotesize
+    \begin{tabular}{|p{2.6cm}|p{2.0cm}|p{3.4cm}|p{3.6cm}|}
+        \hline
+        \textbf{Herramienta} & \textbf{Tipo} & \textbf{Dominio principal} & \textbf{Código del protocolo} \\
+        \hline
+        ns-3 & Simulador & Redes en general, MANET & Modelo reimplementado \\
+        \hline
+        OMNeT++ / INET & Simulador & Redes en general, MANET & Modelo reimplementado \\
+        \hline
+        GloMoSim / QualNet & Simulador & Redes inalámbricas a gran escala & Modelo reimplementado \\
+        \hline
+        Cooja & Multinivel & Redes de sensores (Contiki) & Firmware real sobre hardware emulado \\
+        \hline
+        EMANE & Emulador & MANET, capa física detallada & Código real del sistema \\
+        \hline
+        CORE & Emulador & Topologías híbridas en tiempo real & Código real del sistema \\
+        \hline
+        Mininet-WiFi & Emulador & Redes inalámbricas definidas por software & Binarios reales de Linux \\
+        \hline
+        PeerSim & Simulador & Superposiciones entre pares & Modelo abstracto \\
+        \hline
+        OverSim & Simulador & Superposiciones estructuradas & Modelo y aplicaciones reales \\
+        \hline
+        SimBlock & Simulador & Redes de cadena de bloques & Modelo de propagación \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\section{El protocolo B.A.T.M.A.N. en la literatura}
+\label{sec:batman-literatura}
+
+B.A.T.M.A.N. (\textit{Better Approach To Mobile Ad-hoc Networking}) fue
+propuesto como alternativa a los protocolos de estado de enlace para redes
+malladas comunitarias, y se encuentra especificado como borrador de la
+IETF~\cite{Neumann2008Batman}. A diferencia de OLSR, ningún nodo construye una
+visión completa de la topología: cada nodo conoce únicamente cuál de sus
+vecinos es el mejor siguiente salto hacia cada destino, decisión que toma a
+partir de la calidad de transmisión (TQ) acumulada de los mensajes de
+originador (OGM) que recibe. Esta decisión de diseño reduce la sobrecarga de
+señalización y la sensibilidad a la información topológica desactualizada.
+
+Su implementación de referencia, \textit{batman-adv}, opera en la capa de
+enlace y está incorporada al núcleo de Linux, lo que la convierte en una de
+las pocas implementaciones de protocolos de enrutamiento ad-hoc con despliegue
+real sostenido en redes comunitarias~\cite{OpenMesh2024Batmanadv}. En cuanto
+a su evaluación, la literatura reporta estudios de desempeño frente a enlaces
+asimétricos y trabajos de modelado y verificación formal del protocolo. Es
+significativo que estas evaluaciones se apoyen mayoritariamente en modelos del
+protocolo construidos dentro de un simulador, y no en la implementación
+efectivamente desplegada.
+
+\section{Redes ad-hoc en escenarios de emergencia}
+\label{sec:redes-desastre}
+
+El escenario de aplicación que motiva este trabajo cuenta con una línea de
+investigación propia. Las redes ad-hoc multisalto han sido estudiadas de forma
+sistemática como respuesta al problema de las comunicaciones en zonas de
+desastre, donde la infraestructura fija resulta destruida o
+saturada~\cite{Reina2015Disaster}. Las propiedades que las hacen adecuadas en
+ese contexto son el despliegue rápido, la configuración mínima, la
+conectividad multisalto y la capacidad de auto-reparación ante la pérdida de
+nodos. Los trabajos revisados en esa línea coinciden en señalar la evaluación
+de protocolos de enrutamiento y de esquemas de difusión como uno de los
+frentes abiertos.
+
+\section{Brecha identificada}
+\label{sec:brecha}
+
+De la revisión anterior se desprenden tres observaciones que, en conjunto,
+delimitan el aporte de este trabajo:
+
+\begin{enumerate}
+\item Los simuladores de propósito general y los orientados a MANET
+(Sección~\ref{sec:simuladores-generales}) evalúan un modelo del protocolo, no
+su implementación. Las conclusiones obtenidas sobre B.A.T.M.A.N. en esas
+herramientas son, por tanto, conclusiones sobre el modelo.
+
+\item Los emuladores (Sección~\ref{subsec:manet}) sí ejecutan código real, pero
+al precio de un costo por nodo considerable en el anfitrión y sin un modelo de
+propagación tridimensional listo para usar que dé cuenta de la atenuación
+entre pisos de una edificación, que es precisamente la condición del escenario
+de interés.
+
+\item Las herramientas de redes descentralizadas de las
+Secciones~\ref{subsec:p2p} y~\ref{subsec:blockchain} operan en la capa de
+aplicación y no modelan ni el medio radio ni la movilidad física de los nodos.
+\end{enumerate}
+
+Existe entonces un punto intermedio poco explorado: ejecutar la
+\textbf{implementación real del protocolo} —las mismas clases que correrían en
+un dispositivo desplegado— dentro de un mismo proceso, sustituyendo únicamente
+la capa de transporte por un modelo del medio radio que sí contemple la
+geometría del edificio y la atenuación entre pisos. Esta estrategia conserva
+la fidelidad del código evaluado sin incurrir en el costo por nodo de la
+emulación, y es la que adopta el simulador desarrollado en este trabajo.

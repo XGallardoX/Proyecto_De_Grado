@@ -1,0 +1,26 @@
+# Artefactos de compilación de LaTeX.
+# Sólo se versionan las fuentes: .tex, .bib, .cls y las imágenes.
+# Todo lo de abajo se regenera al compilar (Overleaf o pdflatex local).
+*.aux
+*.log
+*.toc
+*.lof
+*.lot
+*.out
+*.synctex.gz
+*.bbl
+*.blg
+*.fls
+*.fdb_latexmk
+*.idx
+*.ind
+*.ilg
+*.bcf
+*.run.xml
+
+# PDF generado por main.tex (anclado a esta carpeta: NO ignora
+# MIA-PlantillaDocumento/main.pdf, que es el PDF de referencia de la plantilla)
+/main.pdf
+
+# Basura de Finder (macOS) heredada de la plantilla
+Icon_
