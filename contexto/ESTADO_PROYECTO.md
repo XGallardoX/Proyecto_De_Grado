@@ -117,8 +117,18 @@ Todo esto ya está en `main` (commits `0348693`, `6a41861`, `3d6fb5c`).
 - El evento `HEAL` y la métrica de reconvergencia ya no cuentan como
   reunificación que la partición desaparezca porque se cayó el Gateway
   aislado (pasaba en `colapso_progresivo`).
-- Pruebas: de 40 a 132 (`SimNode`, reportes, modos sin ventana, lotes,
-  y que los escenarios y lotes del repo sigan cargando).
+- Pruebas: de 40 a 144 (`SimNode`, reportes, modos sin ventana, lotes,
+  movilidad, y que los escenarios y lotes del repo sigan cargando).
+- **Movilidad `repartir` (opcional):** con la movilidad de siempre
+  (`seguir`), cada Gateway va al Nodo de usuario más cercano, y en
+  `denso` los 8 terminan encima del mismo (3.2 de 6 nodos cubiertos).
+  Con `--movilidad repartir` (o `"movilidad": "repartir"` en el
+  escenario o en el lote) va un Gateway por Nodo de usuario: se cubren
+  todos, pero la malla de Gateways se parte y la entrega del radio cae
+  casi a la mitad. `seguir` sigue siendo el valor por defecto, y se
+  verificó que todos los resultados de antes salen idénticos.
+  `lotes/movilidad.json` compara los dos modos en los 5 escenarios
+  (caso 11 de la guía).
 - **Guía de ejecución** en `docs/guia_ejecucion.md`: cómo correr cada
   escenario y 10 casos (tumbar un Gateway, mensajes, ruta multi-salto,
   escenario propio, lote de referencia, movilidad contra nodos fijos,
@@ -179,14 +189,20 @@ documentos de trabajo de agosto; siguen en el historial de git).
      es tocar el protocolo "real" (también lo usa `mesh/node.py`) y
      cambia todos los resultados. ¿Se corrige, o se reporta así y la
      calidad del medio se mide con la tasa de entrega del radio?
-   - **La reconvergencia no se observa.** Con la movilidad actual,
-     ninguna partición se reunificó en las 50 corridas de los 5
+   - **La reconvergencia no se observa.** Con la movilidad por
+     defecto, ninguna partición se reunificó en las 50 corridas de los 5
      escenarios (`particion` arranca partida y sigue así; en
-     `rescatista_perdido` el Gateway que se aleja no vuelve). Para
-     medirla hacen falta escenarios donde la partición se deshaga, o
+     `rescatista_perdido` el Gateway que se aleja no vuelve). Con
+     `repartir`, en `denso` sí aparecen reunificaciones, pero son sobre
+     todo parpadeos de enlaces en el borde del alcance. Para medirla en
+     serio hacen falta escenarios donde la partición se deshaga, o
      eventos de caída/recuperación programables en el escenario (hoy
      la caída y recuperación manual, teclas `F`/`G`, sólo existen en la
      ventana).
+   - **¿Qué movilidad usar en el documento?** `seguir` mantiene la malla
+     unida pero cubre poco; `repartir` cubre todo pero la parte (ver
+     caso 11 de la guía). Se pueden reportar las dos como comparación,
+     o diseñar un tercer modo que reparta sin partir la malla.
    - En modo `-n`/`-g` desde la línea de comandos, `battery_drain` vale
      0.02 en vez del 0.030 por defecto (viene del repo madre, commit
      `bf98d2f`): confirmar si es a propósito.

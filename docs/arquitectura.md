@@ -151,7 +151,13 @@ se retiró del repo; queda en el historial de git.)
   nodo y se separa. El tiempo de reconvergencia sale "no aplica". Para
   medirlo hacen falta escenarios donde la partición se deshaga (ver
   [`movimiento_nodos.md`](movimiento_nodos.md) para la regla de
-  movilidad).
+  movilidad). Con la movilidad opcional `repartir` sí aparecen
+  reunificaciones en `denso` (11.7 episodios por corrida, reconvergencia
+  de 7.9 ± 10.0 s en 9 de 10 corridas), pero muchas son parpadeos: un
+  Gateway que ya llegó a su nodo sigue dando pasos de 0.32 m alrededor
+  de él (`_move_avoiding()` no se detiene), y un enlace que queda justo
+  en el borde del alcance se prende y se apaga. Esos valores hay que
+  leerlos con cuidado.
 - **No hay fallos programables en el escenario.** Sin ventana, los
   únicos fallos posibles son la batería agotada (`battery`,
   `battery_drain`) y el alejamiento (`wander`); la caída y la

@@ -145,6 +145,26 @@ class ConstruirSimulacionTests(unittest.TestCase):
             with self.assertRaises(ValueError, msg=kwargs):
                 main_mod.construir_simulacion(**kwargs)
 
+    def test_movilidad_reemplaza_la_del_escenario(self):
+        sim, info = main_mod.construir_simulacion(
+            main_mod.ruta_escenario("denso"), movilidad="repartir")
+        self.assertEqual(sim.cfg["movilidad"], "repartir")
+        self.assertEqual(info["movilidad"], "repartir")
+        _, info = main_mod.construir_simulacion(
+            main_mod.ruta_escenario("denso"), static=True)
+        self.assertEqual(info["movilidad"], "nodos fijos")
+
+    def test_repartir_cubre_mas_nodos_que_seguir_en_denso(self):
+        alcanzables = {}
+        for movilidad in ("seguir", "repartir"):
+            main_mod.fijar_semilla(1)
+            sim, _ = main_mod.construir_simulacion(
+                main_mod.ruta_escenario("denso"), movilidad=movilidad)
+            main_mod.correr(sim, 100)
+            alcanzables[movilidad] = sim.recorder.node_reach[-1]
+        self.assertEqual(alcanzables["repartir"], 6)
+        self.assertLess(alcanzables["seguir"], 6)
+
     def test_static_deja_move_speed_en_0(self):
         self.assertEqual(escenario("base", static=True).cfg["move_speed"], 0)
         self.assertGreater(escenario("base").cfg["move_speed"], 0)
@@ -204,6 +224,14 @@ class ModosSinVentanaTests(unittest.TestCase):
             self.assertIn("RED AD-HOC - INSTANTANEA", salida)
             self.assertIn("Tabla de rutas BATMAN", salida)
             self.assertEqual(os.listdir(tmp), [])
+
+    def test_el_banner_muestra_la_movilidad(self):
+        with en_directorio_temporal():
+            _, salida = silencioso(main_mod.main,
+                                   ["--inspect", "--escenario", "denso",
+                                    "--duracion", "1", "--movilidad",
+                                    "repartir"])
+        self.assertIn("Movilidad:     repartir", salida)
 
     def test_flags_invalidos_terminan_con_error_de_uso(self):
         for argv in (["--duracion", "50"],                  # sin --headless

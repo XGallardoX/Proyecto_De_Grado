@@ -265,6 +265,68 @@ class MovilidadTests(unittest.TestCase):
         self.assertEqual((g.x, g.y), (5.0, 5.0))
 
 
+class MovilidadRepartirTests(unittest.TestCase):
+    """movilidad="repartir": un Gateway por Nodo de usuario vivo."""
+
+    def _sim(self, nodes, movilidad="repartir", events=None):
+        return make_simulation(nodes, protocol={"movilidad": movilidad},
+                               events=events)
+
+    def _mover(self, sim, pasos=10):
+        for _ in range(pasos):
+            for nodo in sim.nodes.values():
+                nodo.move(sim.t)
+            sim.t += sim.DT
+
+    def test_por_defecto_es_seguir(self):
+        self.assertEqual(simulacion().cfg["movilidad"], "seguir")
+
+    def test_cada_gateway_va_a_un_nodo_distinto(self):
+        # N1 queda a la izquierda y es el más cercano de los dos Gateway;
+        # N2, lejos a la derecha
+        nodes = [{"id": 1, "role": "G", "x": 5, "y": 5},
+                 {"id": 2, "role": "G", "x": 6, "y": 5},
+                 {"id": 3, "role": "N", "x": 2, "y": 5},
+                 {"id": 4, "role": "N", "x": 30, "y": 5}]
+        seguir, repartir = self._sim(nodes, "seguir"), self._sim(nodes)
+        self.assertEqual(repartir.objetivo_repartido(repartir.nodes[1]).id, 3)
+        self.assertEqual(repartir.objetivo_repartido(repartir.nodes[2]).id, 4)
+        self._mover(seguir)
+        self._mover(repartir)
+        self.assertLess(seguir.nodes[2].x, 6.0)     # los dos hacia N1
+        self.assertGreater(repartir.nodes[2].x, 8.0)  # G2 hacia N2
+
+    def test_el_gateway_que_sobra_se_queda_quieto(self):
+        sim = self._sim([{"id": 1, "role": "G", "x": 5, "y": 5},
+                         {"id": 2, "role": "G", "x": 10, "y": 5},
+                         {"id": 3, "role": "G", "x": 15, "y": 5},
+                         {"id": 4, "role": "N", "x": 2, "y": 5}])
+        self._mover(sim)
+        self.assertLess(sim.nodes[1].x, 5.0)          # el asignado se mueve
+        self.assertEqual((sim.nodes[2].x, sim.nodes[2].y), (10.0, 5.0))
+        self.assertEqual((sim.nodes[3].x, sim.nodes[3].y), (15.0, 5.0))
+
+    def test_ignora_los_nodos_de_usuario_caidos(self):
+        sim = self._sim([{"id": 1, "role": "G", "x": 5, "y": 5},
+                         {"id": 2, "role": "G", "x": 8, "y": 5},
+                         {"id": 3, "role": "N", "x": 2, "y": 5},
+                         {"id": 4, "role": "N", "x": 30, "y": 5}])
+        sim.nodes[3].alive = False
+        self.assertIsNone(sim.objetivo_repartido(sim.nodes[1]))
+        self.assertEqual(sim.objetivo_repartido(sim.nodes[2]).id, 4)
+
+    def test_el_wanderer_no_reserva_un_nodo(self):
+        sim = self._sim([{"id": 1, "role": "G", "x": 10, "y": 25},
+                         {"id": 2, "role": "G", "x": 14, "y": 25},
+                         {"id": 3, "role": "N", "x": 5, "y": 25}],
+                        events=[{"type": "wander", "node_id": 1, "until": 50}])
+        # G1 está más cerca de N3, pero mientras se aleja no participa
+        self.assertIsNone(sim.objetivo_repartido(sim.nodes[1]))
+        self.assertEqual(sim.objetivo_repartido(sim.nodes[2]).id, 3)
+        self._mover(sim)
+        self.assertLess(sim.nodes[2].x, 14.0)
+
+
 class IdentidadTests(unittest.TestCase):
     def test_etiqueta_por_rol_e_indice_local(self):
         sim = simulacion(roles=("G", "N", "G", "N"))

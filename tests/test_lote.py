@@ -105,7 +105,19 @@ class CargarLoteTests(unittest.TestCase):
         self.assertFalse(spec["figuras"])
         self.assertEqual(spec["escenarios"], [{
             "etiqueta": "base", "escenario": "base", "config": None,
-            "static": False, "semillas": [1, 2, 3], "duracion": 200.0}])
+            "static": False, "movilidad": None, "semillas": [1, 2, 3],
+            "duracion": 200.0}])
+
+    def test_movilidad_por_entrada_y_su_etiqueta(self):
+        spec, _ = self._cargar({"semillas": 1, "escenarios": [
+            {"escenario": "denso", "movilidad": "seguir"},
+            {"escenario": "denso", "movilidad": "repartir"},
+            {"escenario": "denso", "static": True, "movilidad": "repartir"},
+        ]})
+        self.assertEqual([e["etiqueta"] for e in spec["escenarios"]],
+                         ["denso_seguir", "denso_repartir",
+                          "denso_static_repartir"])
+        self.assertEqual(spec["escenarios"][1]["movilidad"], "repartir")
 
     def test_la_entrada_pisa_los_defaults_del_lote(self):
         spec, _ = self._cargar({
@@ -162,6 +174,8 @@ class CargarLoteTests(unittest.TestCase):
             ({"escenario": "no_existe"}, "escenario desconocido 'no_existe'"),
             ({"config": 5}, "'config' debe ser una ruta"),
             ({"escenario": "base", "static": "si"}, "'static' debe ser"),
+            ({"escenario": "base", "movilidad": "caotica"},
+             "'movilidad' debe ser una de seguir, repartir"),
             ({"escenario": "base", "etiqueta": "con espacio"}, "'etiqueta'"),
             ({"escenario": "base", "duracion": 0.5}, "'duracion'"),
             ({"escenario": "base", "duracion": "200"}, "'duracion'"),
@@ -335,6 +349,32 @@ class LotesDelRepoTests(unittest.TestCase):
                     main_mod.construir_simulacion(config, static=e["static"])
 
 
+class LoteConMovilidadTests(unittest.TestCase):
+    def test_el_lote_compara_seguir_y_repartir(self):
+        tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp)
+        ruta = os.path.join(tmp, "movilidad.json")
+        with open(ruta, "w", encoding="utf-8") as f:
+            json.dump({"duracion": 20, "semillas": [1], "escenarios": [
+                {"escenario": "denso", "movilidad": "seguir"},
+                {"escenario": "denso", "movilidad": "repartir"}]}, f)
+        out_dir = os.path.join(tmp, "salida")
+        with contextlib.redirect_stdout(io.StringIO()):
+            main_mod.ejecutar_lote(ruta, out_dir)
+        with open(os.path.join(out_dir, "resumen.csv"), newline="",
+                  encoding="utf-8") as f:
+            filas = {r["etiqueta"]: r for r in csv.DictReader(f)}
+        self.assertEqual(filas["denso_repartir"]["movilidad"], "repartir")
+        # cada corrida del lote es la misma que una suelta con esa movilidad
+        main_mod.fijar_semilla(1)
+        sim, _ = main_mod.construir_simulacion(
+            main_mod.ruta_escenario("denso"), movilidad="repartir")
+        main_mod.correr(sim, 20)
+        self.assertAlmostEqual(
+            float(filas["denso_repartir"]["tasa_entrega_media"]),
+            resumen_corrida(sim)["tasa_entrega"])
+
+
 class MainBatchTests(unittest.TestCase):
     def test_batch_desde_la_linea_de_comandos(self):
         cwd = os.getcwd()
@@ -355,7 +395,8 @@ class MainBatchTests(unittest.TestCase):
 
     def test_batch_no_se_combina_con_flags_del_lote(self):
         for extra in (["--escenario", "base"], ["--seed", "3"],
-                      ["--duracion", "50"], ["--static"], ["-n", "5"]):
+                      ["--duracion", "50"], ["--static"], ["-n", "5"],
+                      ["--movilidad", "repartir"]):
             with self.subTest(extra=extra), \
                     contextlib.redirect_stderr(io.StringIO()), \
                     self.assertRaises(SystemExit) as cm:

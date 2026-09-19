@@ -8,7 +8,7 @@ import time
 import numpy as np
 
 from sim.engine import Simulation
-from sim.config_loader import load_scenario
+from sim.config_loader import MOVILIDADES, load_scenario
 from analysis import lote
 from analysis.inspector import snapshot_red
 from analysis.metrics import METRICAS_CORRIDA, resumen_corrida
@@ -44,6 +44,7 @@ DEFAULTS = dict(
     battery_drain=0.030,      # % por segundo (Gateways)
     battery_drain_nodo=0.012, # % por segundo (Nodos de usuario)
     move_speed=0.32,     # m por paso de un Gateway
+    movilidad="seguir",  # "seguir" o "repartir" (ver docs/movimiento_nodos.md)
 )
 
 # Colores
@@ -66,12 +67,13 @@ def ruta_escenario(nombre):
 
 
 def construir_simulacion(config_path=None, n_nodes=2, n_gateways=1,
-                         static=False):
+                         static=False, movilidad=None):
     """Arma una Simulation lista para correr.
 
     Con `config_path` carga el escenario (.json o .txt) con
     sim.config_loader; sin él, usa `n_nodes`/`n_gateways` con posiciones
-    aleatorias. `static` fija los nodos (move_speed=0).
+    aleatorias. `static` fija los nodos (move_speed=0) y `movilidad`, si
+    se pasa, reemplaza la del escenario ("seguir" o "repartir").
 
     Devuelve (sim, info), donde `info` resume la configuración para el
     banner de inicio. Lanza ValueError si el archivo de escenario o los
@@ -136,6 +138,8 @@ def construir_simulacion(config_path=None, n_nodes=2, n_gateways=1,
 
     if static:
         sim_config["move_speed"] = 0
+    if movilidad is not None:
+        sim_config["movilidad"] = movilidad
 
     sim = Simulation(escenario=escenario_nombre, cfg=sim_config,DEFAULTS=DEFAULTS,DT=DT,N_PISOS=n_pisos,PISO_H=piso_h,STAIR_XY=stair_xy,STAIR_HALF_W=stair_half_w,ANCHO=ancho,ALTO=alto,C_GATEWAY=C_GATEWAY,C_NODO=C_NODO,C_DEAD=C_DEAD,C_OGM=C_OGM,C_BCN=C_BCN)
     sim.C_BG = C_BG
@@ -144,8 +148,11 @@ def construir_simulacion(config_path=None, n_nodes=2, n_gateways=1,
     sim.C_ALERT = C_ALERT
     sim.C_MSG = C_MSG
 
+    movimiento = ("nodos fijos" if sim.cfg.get("move_speed", 0) <= 0
+                  else sim.cfg["movilidad"])
     info = dict(origen=config_path, escenario=escenario_nombre,
-                n_total=n_total, n_gateways=n_gw, posiciones=posiciones)
+                n_total=n_total, n_gateways=n_gw, posiciones=posiciones,
+                movilidad=movimiento)
     return sim, info
 
 
@@ -217,7 +224,8 @@ def ejecutar_lote(ruta_lote, out_dir=None):
              for e in spec["escenarios"]}
     for e in spec["escenarios"]:
         try:
-            construir_simulacion(rutas[e["etiqueta"]], static=e["static"])
+            construir_simulacion(rutas[e["etiqueta"]], static=e["static"],
+                                 movilidad=e["movilidad"])
         except ValueError as err:
             raise ValueError(f"escenario '{e['etiqueta']}': {err}")
 
@@ -234,7 +242,8 @@ def ejecutar_lote(ruta_lote, out_dir=None):
         for semilla in e["semillas"]:
             fijar_semilla(semilla)
             sim, _ = construir_simulacion(rutas[e["etiqueta"]],
-                                          static=e["static"])
+                                          static=e["static"],
+                                          movilidad=e["movilidad"])
             correr(sim, e["duracion"])
             carpeta = os.path.join(e["etiqueta"], f"semilla_{semilla}")
             if spec["figuras"]:
@@ -269,6 +278,7 @@ def imprimir_banner(msg, info):
     print(f"  - Nodos totales: {info['n_total']}")
     print(f"  - Gateways:      {info['n_gateways']}")
     print(f"  - Escenario:     {info['escenario']} (posiciones {info['posiciones']})")
+    print(f"  - Movilidad:     {info['movilidad']}")
     print(f"{'='*60}\n")
 
 
@@ -320,6 +330,15 @@ def crear_parser():
         help="Los nodos no se mueven: quedan fijos en su posición inicial "
              "(equivale a move_speed=0)."
     )
+    parser.add_argument(
+        "--movilidad",
+        choices=MOVILIDADES,
+        default=None,
+        help="Cómo se mueven los Gateway: 'seguir' (cada uno hacia el Nodo "
+             "de usuario más cercano) o 'repartir' (un Gateway por Nodo de "
+             "usuario). Reemplaza la del escenario; si no se pasa, se usa "
+             "la del escenario ('seguir' por defecto)."
+    )
 
     # --- Ejecución sin ventana ---
     parser.add_argument(
@@ -364,8 +383,9 @@ def crear_parser():
 # Flags que el archivo de lote reemplaza: combinarlos con --batch es un error.
 FLAGS_DEL_LOTE = {"escenario": "--escenario", "config": "--config",
                   "nodes": "--nodes", "gateways": "--gateways",
-                  "static": "--static", "duracion": "--duracion",
-                  "seed": "--seed", "inspect": "--inspect"}
+                  "static": "--static", "movilidad": "--movilidad",
+                  "duracion": "--duracion", "seed": "--seed",
+                  "inspect": "--inspect"}
 
 
 def main(argv=None):
@@ -404,7 +424,8 @@ def main(argv=None):
 
     try:
         sim, info = construir_simulacion(config_path, args.nodes,
-                                         args.gateways, args.static)
+                                         args.gateways, args.static,
+                                         args.movilidad)
     except ValueError as e:
         if config_path:
             print(f"Error en archivo de escenario: {e}")
@@ -416,7 +437,8 @@ def main(argv=None):
 
     def cargar_escenario(nombre):
         return construir_simulacion(ruta_escenario(nombre),
-                                    static=args.static)[0]
+                                    static=args.static,
+                                    movilidad=args.movilidad)[0]
 
     try:
         if args.inspect:

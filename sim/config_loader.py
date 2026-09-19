@@ -3,6 +3,13 @@ import os
 
 VALID_ROLES = {"G", "N"}
 
+# Modelos de movilidad de los Gateway (clave "movilidad" de medium/protocol):
+#   seguir   -> cada Gateway camina hacia el Nodo de usuario más cercano
+#               (el de siempre, por defecto);
+#   repartir -> un Gateway por Nodo de usuario vivo, emparejando primero
+#               los pares más cercanos (ver docs/movimiento_nodos.md).
+MOVILIDADES = ("seguir", "repartir")
+
 # Claves de medium/protocol renombradas al pasar del vocabulario R/S al
 # G/N. El nombre viejo se sigue aceptando para no romper escenarios
 # escritos antes del cambio.
@@ -190,6 +197,14 @@ def _renombrar_claves_viejas(data):
 
 def _validate(data, path, default_building=None):
     _renombrar_claves_viejas(data)
+    for seccion in ("medium", "protocol"):
+        valores = data.get(seccion)
+        if isinstance(valores, dict) and "movilidad" in valores \
+                and valores["movilidad"] not in MOVILIDADES:
+            raise ValueError(
+                f"{path}: movilidad desconocida {valores['movilidad']!r} "
+                f"(válidas: {', '.join(MOVILIDADES)})"
+            )
     building = dict(default_building or {})
     building.update(data.get("building", {}))
     ancho = building.get("ancho", 40.0)

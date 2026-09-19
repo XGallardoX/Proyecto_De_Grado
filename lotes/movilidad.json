@@ -1,0 +1,17 @@
+{
+  "nombre": "movilidad",
+  "duracion": 200,
+  "semillas": 10,
+  "escenarios": [
+    { "escenario": "base", "movilidad": "seguir" },
+    { "escenario": "base", "movilidad": "repartir" },
+    { "escenario": "colapso_progresivo", "movilidad": "seguir" },
+    { "escenario": "colapso_progresivo", "movilidad": "repartir" },
+    { "escenario": "particion", "movilidad": "seguir" },
+    { "escenario": "particion", "movilidad": "repartir" },
+    { "escenario": "rescatista_perdido", "movilidad": "seguir" },
+    { "escenario": "rescatista_perdido", "movilidad": "repartir" },
+    { "escenario": "denso", "movilidad": "seguir" },
+    { "escenario": "denso", "movilidad": "repartir" }
+  ]
+}

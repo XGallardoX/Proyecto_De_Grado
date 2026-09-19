@@ -20,8 +20,9 @@ Formato del archivo de lote (JSON):
 Sólo "escenarios" es obligatorio. Cada entrada lleva exactamente uno de
 "escenario" (un predefinido, como --escenario) o "config" (una ruta, como
 --config); "semillas" es un entero N (semillas 1..N) o una lista
-explícita; "duracion", "semillas" y "static" de la entrada pisan los
-valores del lote. Detalle en el README.
+explícita; "duracion" y "semillas" de la entrada pisan los valores del
+lote, y "static"/"movilidad" hacen lo mismo que --static/--movilidad.
+Detalle en el README.
 """
 import csv
 import json
@@ -30,10 +31,11 @@ import re
 import statistics
 
 from analysis.metrics import METRICAS_CORRIDA
+from sim.config_loader import MOVILIDADES
 
 CLAVES_LOTE = ("nombre", "duracion", "semillas", "figuras", "escenarios")
 CLAVES_ENTRADA = ("escenario", "config", "etiqueta", "semillas", "duracion",
-                  "static")
+                  "static", "movilidad")
 PATRON_ETIQUETA = re.compile(r"^[\w.-]+$")
 
 
@@ -44,6 +46,7 @@ def cargar_lote(path, escenarios_disponibles, duracion_default, duracion_minima)
         {"nombre": str, "figuras": bool,
          "escenarios": [{"etiqueta": str, "escenario": str | None,
                          "config": str | None, "static": bool,
+                         "movilidad": str | None,
                          "semillas": [int, ...], "duracion": float}, ...]}
 
     Exactamente uno de "escenario"/"config" queda definido por entrada.
@@ -118,6 +121,11 @@ def _entrada(entrada, donde, escenarios_disponibles, duracion, semillas,
     if not isinstance(static, bool):
         raise ValueError(f"{donde}: 'static' debe ser true o false")
 
+    movilidad = entrada.get("movilidad")
+    if movilidad is not None and movilidad not in MOVILIDADES:
+        raise ValueError(f"{donde}: 'movilidad' debe ser una de "
+                         f"{', '.join(MOVILIDADES)}, se encontró {movilidad!r}")
+
     if "semillas" in entrada:
         semillas = _semillas(entrada["semillas"], donde)
     elif semillas is None:
@@ -130,13 +138,15 @@ def _entrada(entrada, donde, escenarios_disponibles, duracion, semillas,
     etiqueta = entrada.get("etiqueta")
     if etiqueta is None:
         base = escenario or os.path.splitext(os.path.basename(config))[0]
-        etiqueta = _a_etiqueta(base) + ("_static" if static else "")
+        etiqueta = (_a_etiqueta(base) + ("_static" if static else "")
+                    + (f"_{movilidad}" if movilidad else ""))
     elif not isinstance(etiqueta, str) or not PATRON_ETIQUETA.match(etiqueta):
         raise ValueError(f"{donde}: 'etiqueta' debe usar sólo letras, "
                          f"números, '_', '-' o '.', se encontró {etiqueta!r}")
 
     return {"etiqueta": etiqueta, "escenario": escenario, "config": config,
-            "static": static, "semillas": semillas, "duracion": duracion}
+            "static": static, "movilidad": movilidad, "semillas": semillas,
+            "duracion": duracion}
 
 
 def _claves_conocidas(d, validas, donde):
@@ -237,7 +247,8 @@ def formatear_resumen(lote, agregado, fecha):
     ]
     for e in lote["escenarios"]:
         origen = e["escenario"] or e["config"]
-        extra = ", nodos fijos" if e["static"] else ""
+        extra = (", nodos fijos" if e["static"] else "") + (
+            f", movilidad {e['movilidad']}" if e["movilidad"] else "")
         lineas += [
             "",
             f"{e['etiqueta']}  ({origen}{extra} · {e['duracion']:g} s "
@@ -277,12 +288,13 @@ def exportar_resumen(lote, corridas, agregado, out_dir, fecha, archivo=None):
     with open(rutas["csv"], "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow(["etiqueta", "escenario", "config", "static",
-                         "duracion_s", "corridas"]
+                         "movilidad", "duracion_s", "corridas"]
                         + [f"{c}_{s}" for c in claves
                            for s in ("media", "desv", "n")])
         for e in lote["escenarios"]:
             fila = [e["etiqueta"], _celda(e["escenario"]), _celda(e["config"]),
-                    e["static"], e["duracion"], len(e["semillas"])]
+                    e["static"], _celda(e["movilidad"]), e["duracion"],
+                    len(e["semillas"])]
             for c in claves:
                 r = agregado[e["etiqueta"]][c]
                 fila += [_celda(r["media"]), _celda(r["desv"]), r["n"]]

@@ -201,9 +201,18 @@ class SimNode:
                 if self._try_move(dx, dy):
                     break
         else:
-            # destino: esquina (wanderer) o Nodo de Usuario más cercano
+            # destino: esquina (wanderer), el Nodo de usuario asignado
+            # (movilidad "repartir") o el más cercano ("seguir")
             if self is self.sim.wanderer and now < self.sim.wander_until:
                 tx, ty = 38.0, 2.0
+            elif self.sim.cfg.get('movilidad', 'seguir') == 'repartir':
+                tgt = self.sim.objetivo_repartido(self)
+                if tgt is None:
+                    # sobra (más Gateway que Nodos de usuario): se queda
+                    # quieto, de relevo
+                    self._record_history()
+                    return
+                tx, ty = tgt.x, tgt.y
             else:
                 objetivos = [s for s in self.sim.nodes.values()
                              if s.role == 'N']

@@ -122,6 +122,15 @@ class ConfigLoaderTests(unittest.TestCase):
         scenario = load_scenario(path)
         self.assertEqual(scenario["medium"], {"battery_drain_nodo": 0.5})
 
+    def test_movilidad_valida_e_invalida(self):
+        path = self._write({"protocol": {"movilidad": "repartir"},
+                            "nodes": [{"id": 1, "role": "G", "x": 1, "y": 1}]})
+        self.assertEqual(load_scenario(path)["protocol"]["movilidad"], "repartir")
+        path = self._write({"medium": {"movilidad": "caotica"},
+                            "nodes": [{"id": 1, "role": "G", "x": 1, "y": 1}]})
+        with self.assertRaisesRegex(ValueError, "movilidad desconocida 'caotica'"):
+            load_scenario(path)
+
     def test_clave_nueva_gana_sobre_la_vieja(self):
         path = self._write({
             "protocol": {"battery_drain_surv": 0.5, "battery_drain_nodo": 0.2},
@@ -180,6 +189,10 @@ class ConfigLoaderTxtTests(unittest.TestCase):
         self.assertEqual(scenario["protocol"]["timeout"], 45)
         self.assertEqual(len(scenario["nodes"]), 2)
         self.assertEqual(scenario["nodes"][1]["battery"], 80.0)
+
+    def test_txt_movilidad(self):
+        path = self._write_txt("[protocol]\nmovilidad=repartir\n[nodes]\n1 G 1 1\n")
+        self.assertEqual(load_scenario(path)["protocol"]["movilidad"], "repartir")
 
     def test_txt_modo_random(self):
         path = self._write_txt("""

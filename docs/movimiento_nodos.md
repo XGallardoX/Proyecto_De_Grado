@@ -119,3 +119,47 @@ que diga el archivo de escenario, porque se aplica *después* de cargar
 la configuración (ver `main.py`) — puede forzar el modo estático
 aunque el archivo diga `static=false`, pero no puede forzar movimiento
 si el archivo ya puso `static=true`.
+
+## Otra opción: repartir los Gateway (`movilidad=repartir`)
+
+`--static` evita que los Gateway se junten quitándoles el movimiento. La
+movilidad `repartir` los deja moverse pero cambia la regla: **un Gateway
+por Nodo de usuario**. En cada paso se emparejan los Gateway y los Nodos
+de usuario vivos de forma voraz: primero el par más cercano de todos,
+después el más cercano entre los que quedan libres, y así sucesivamente.
+Cada Nodo de usuario queda con a lo sumo un Gateway yendo hacia él (lo
+hace `Simulation.objetivo_repartido()`, en
+[`sim/engine.py`](../sim/engine.py)).
+
+- Si hay más Gateway que Nodos de usuario, los que sobran se quedan
+  quietos donde están, de relevo.
+- Los Nodos de usuario caídos no se asignan: no hace falta cubrirlos.
+- El Gateway que está haciendo su `wander` no participa mientras dure,
+  así su nodo queda libre para otro.
+- El emparejamiento se recalcula en cada paso con las posiciones del
+  momento, así que se adapta si un nodo cae o si se agrega uno (tecla
+  `A`).
+
+`seguir` sigue siendo el valor por defecto, así que los resultados de
+siempre no cambian. Se elige de las mismas formas que el modo estático,
+y el flag tiene prioridad sobre el archivo:
+
+1. **Flag de `main.py`**: `python main.py --escenario denso --movilidad repartir`
+2. **Escenario JSON**: `"protocol": {"movilidad": "repartir"}`.
+3. **Escenario `.txt`**: `movilidad=repartir` en `[protocol]`.
+4. **Lote (`--batch`)**: `"movilidad": "repartir"` en una entrada.
+
+**Qué cambia.** El caso que lo motivó es `denso`: con `seguir`, los 8
+Gateway tienen a N5 como el nodo más cercano, a los 40 s están los 8
+encima de él y la mitad derecha del edificio queda sin cobertura (3.2 de
+los 6 Nodos de usuario alcanzables, de media). Con `repartir` se
+reparten y quedan cubiertos los 6 en todas las semillas. A cambio, la
+malla de Gateways se estira más allá del alcance de radio: en 7 de 10
+semillas termina partida en dos grupos, y la tasa de entrega del radio
+baja de 0.756 a 0.352, porque los enlaces son más largos. Es el
+compromiso entre cobertura y conectividad. Ninguno de los dos modelos es
+"el correcto": cuál usar depende de qué se quiera evaluar. Un tercer
+camino, todavía por diseñar, sería repartir sin que la malla se parta,
+por ejemplo usando a los Gateway que sobran como relevos entre grupos.
+La comparación en los 5 escenarios está en el caso 11 de la
+[guía de ejecución](guia_ejecucion.md).

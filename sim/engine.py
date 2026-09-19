@@ -49,6 +49,8 @@ class Simulation:
         self._prev_components = 1
         self._prev_gateways_vivos = None
         self._last_part_evt = -100.0
+        self._objetivos = {}          # movilidad "repartir": id G -> nodo N
+        self._objetivos_t = None      # instante en que se calculó
 
 
         explicit_nodes = self.cfg.get("nodes")
@@ -114,6 +116,32 @@ class Simulation:
     def is_gateway(self, nid):
         n = self.nodes.get(nid)
         return bool(n and n.role == 'G')
+
+    def objetivo_repartido(self, gateway):
+        """Movilidad "repartir": el Nodo de usuario asignado a `gateway`, o
+        None si no le tocó ninguno (hay más Gateway que Nodos de usuario).
+
+        El emparejamiento se calcula una vez por paso (con las posiciones
+        de antes de moverse) y es voraz: entre todos los pares Gateway-Nodo
+        de usuario vivos, primero el más cercano, y cada nodo a un solo
+        Gateway. El Gateway que está haciendo un `wander` no participa, así
+        su nodo no queda reservado mientras está lejos."""
+        if self._objetivos_t != self.t:
+            gateways = [n for n in self.nodes.values()
+                        if n.role == 'G' and n.alive
+                        and not (n is self.wanderer
+                                 and self.t < self.wander_until)]
+            usuarios = [n for n in self.nodes.values()
+                        if n.role == 'N' and n.alive]
+            pares = sorted((g.dist_to(u), g.id, u.id)
+                           for g in gateways for u in usuarios)
+            self._objetivos, tomados = {}, set()
+            for _, gid, uid in pares:
+                if gid not in self._objetivos and uid not in tomados:
+                    self._objetivos[gid] = self.nodes[uid]
+                    tomados.add(uid)
+            self._objetivos_t = self.t
+        return self._objetivos.get(gateway.id)
 
     # ── Mensajes personalizados entre cualquier par de nodos ──────────
     def send_unicast(self, from_id, to_id, texto):

@@ -51,11 +51,12 @@ python main.py --escenario base
 | `--config archivo.json` | Ruta a un escenario JSON propio (ver sección siguiente). Tiene prioridad sobre `--escenario` y sobre `-n`/`-g`. |
 | `--msg "texto"` | Mensaje de cabecera que se imprime al iniciar. |
 | `--static` | Los nodos no se mueven: quedan fijos en la posición inicial (`move_speed=0`). Sin esto, cada Gateway (`G`) camina hacia el Nodo de usuario (`N`) más cercano (ver [`docs/movimiento_nodos.md`](docs/movimiento_nodos.md)). |
+| `--movilidad {seguir,repartir}` | Cómo se mueven los Gateway: `seguir` (cada uno hacia el Nodo de usuario más cercano, el comportamiento por defecto) o `repartir` (un Gateway por Nodo de usuario, para cubrirlos a todos). Reemplaza la `movilidad` del escenario. Ver [`docs/movimiento_nodos.md`](docs/movimiento_nodos.md). |
 | `--headless` | Corre sin ventana durante `--duracion` segundos simulados y exporta la figura y los reportes a `reportes/<escenario>_<fecha_hora>/`. |
 | `--duracion N` | Segundos **simulados** en `--headless`/`--inspect` (default `200`, mínimo `1`). Sin uno de esos dos flags es un error. |
 | `--seed N` | Fija la semilla de `random` y `numpy`: misma semilla + misma configuración = misma corrida. Vale en cualquier modo. |
 | `--inspect` | Corre `--duracion` segundos sin ventana e imprime el estado interno de la red (vecinos, tabla de rutas BATMAN, componentes, enlaces). No genera archivos. |
-| `--batch LOTE.json` | Corre sin ventana un lote de escenarios × semillas y escribe un resumen agregado por escenario (ver [Archivo de lote](#archivo-de-lote---batch)). No se combina con `--escenario`/`--config`/`-n`/`-g`/`--static`/`--duracion`/`--seed`/`--inspect`: todo eso va en el archivo. |
+| `--batch LOTE.json` | Corre sin ventana un lote de escenarios × semillas y escribe un resumen agregado por escenario (ver [Archivo de lote](#archivo-de-lote---batch)). No se combina con `--escenario`/`--config`/`-n`/`-g`/`--static`/`--movilidad`/`--duracion`/`--seed`/`--inspect`: todo eso va en el archivo. |
 
 Tres formas de arrancar, de menor a mayor control sobre la topología:
 
@@ -183,6 +184,7 @@ mismos valores por defecto, así que da igual en cuál va cada clave):
 | `battery_drain` | `0.030` | % de batería por segundo que gasta un Gateway |
 | `battery_drain_nodo` | `0.012` | % de batería por segundo que gasta un Nodo de usuario (el nombre viejo `battery_drain_surv` se sigue aceptando) |
 | `move_speed` | `0.32` | Metros por paso de un Gateway (`0` = nodos fijos, ver `--static`) |
+| `movilidad` | `seguir` | Cómo eligen su destino los Gateway: `seguir` (el Nodo de usuario más cercano) o `repartir` (uno por Nodo de usuario). Ver `--movilidad` |
 
 En modo aleatorio desde la línea de comandos (`-n`/`-g`, sin archivo),
 `battery_drain` vale `0.02` en vez de `0.030`.
@@ -295,15 +297,16 @@ Claves de cada entrada:
 | `escenario` **o** `config` | Exactamente uno de los dos: un escenario predefinido (como `--escenario`) o la ruta a un archivo `.json`/`.txt` (como `--config`: relativa al directorio desde el que se corre `main.py`). |
 | `semillas`, `duracion` | Reemplazan los valores del lote para esta entrada. |
 | `static` | `true` para fijar los nodos (como `--static`). |
-| `etiqueta` | Nombre de la entrada en el resumen y en las carpetas. Por defecto, el del escenario (o del archivo) más `_static` si corresponde. Tiene que ser única: para repetir un escenario con otra configuración, hay que darle una. |
+| `movilidad` | `"seguir"` o `"repartir"` (como `--movilidad`); si falta, la del escenario. |
+| `etiqueta` | Nombre de la entrada en el resumen y en las carpetas. Por defecto, el del escenario (o del archivo), más `_static` y `_<movilidad>` si corresponden (p. ej. `denso_repartir`). Tiene que ser única: para repetir un escenario con otra configuración, hay que darle una. |
 
 Una clave mal escrita (p. ej. `semilla`), un escenario inexistente o un
 archivo de escenario inválido frenan el lote con un mensaje claro, antes
 de correr la primera corrida.
 
 Cada corrida es idéntica a `python main.py --headless --escenario <e>
---duracion <d> --seed <semilla>` (con `--static` si corresponde): misma
-semilla, misma simulación. Cualquier fila del resumen se puede
+--duracion <d> --seed <semilla>` (con `--static`/`--movilidad` si
+corresponden): misma semilla, misma simulación. Cualquier fila del resumen se puede
 reproducir suelta, o mirar en la ventana con `--seed`.
 
 Salida, en `reportes/lote_<nombre>_<fecha_hora>/`:
@@ -311,7 +314,7 @@ Salida, en `reportes/lote_<nombre>_<fecha_hora>/`:
 ```
 reportes/lote_ejemplo_<fecha_hora>/
 ├── resumen.txt       ← media ± desviación por escenario (también sale por pantalla)
-├── resumen.csv       ← una fila por escenario: <métrica>_media, <métrica>_desv, <métrica>_n
+├── resumen.csv       ← una fila por escenario (etiqueta, static, movilidad, …): <métrica>_media, _desv, _n
 ├── resumen.json      ← configuración del lote + agregado + todas las corridas
 ├── corridas.csv      ← una fila por corrida: etiqueta, semilla, carpeta y cada métrica
 └── <etiqueta>/semilla_<n>/   ← reporte.csv/json/txt de esa corrida (+ PNG si "figuras")

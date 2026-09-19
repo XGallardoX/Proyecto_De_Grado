@@ -27,6 +27,7 @@ algún día cambian, es que cambió el código, no el azar.
    8. [Movilidad contra nodos fijos](#caso-8--movilidad-contra-nodos-fijos)
    9. [Alcance de radio contra cobertura](#caso-9--alcance-de-radio-contra-cobertura)
    10. [Timeout: falsas alarmas contra rapidez de detección](#caso-10--timeout-falsas-alarmas-contra-rapidez-de-detección)
+   11. [Seguir contra repartir: cobertura contra conectividad](#caso-11--seguir-contra-repartir-cobertura-contra-conectividad)
 5. [Dónde quedan los resultados y cómo leerlos](#5-dónde-quedan-los-resultados-y-cómo-leerlos)
 6. [Problemas frecuentes](#6-problemas-frecuentes)
 
@@ -62,8 +63,10 @@ activarlo. Probado con Python 3.14.
 Para elegir la red hay tres opciones: `--escenario <nombre>` (uno de los
 5 predefinidos), `--config <archivo>` (un `.json` o `.txt` propio) o
 `-n N -g G` (N nodos al azar, G de ellos Gateways). Encima de cualquiera
-se puede agregar `--static` (los nodos no se mueven) y `--seed N` (la
-corrida se repite igual). `--duracion` fija los segundos simulados sin
+se puede agregar `--static` (los nodos no se mueven),
+`--movilidad repartir` (un Gateway por Nodo de usuario en vez de todos
+hacia el más cercano, ver el [caso 11](#caso-11--seguir-contra-repartir-cobertura-contra-conectividad))
+y `--seed N` (la corrida se repite igual). `--duracion` fija los segundos simulados sin
 ventana (200 por defecto). En `--batch` todo eso va dentro del archivo
 de lote.
 
@@ -113,8 +116,11 @@ semillas, 200 s, con movilidad; detalle en el [caso 7](#caso-7--los-5-escenarios
   interesante: al final se alcanzan los 3 nodos de usuario (más que en
   `base`), porque G4 queda cubriendo a N1 y N3 aunque esté separado de
   la malla. Es un ejemplo de cobertura contra conectividad.
-- **`denso`**: la malla nunca se parte; alcanza 3.2 de los 6 nodos de
-  usuario de media.
+- **`denso`**: la malla nunca se parte, pero alcanza sólo 3.2 de los 6
+  nodos de usuario de media, porque los 8 Gateway van al mismo nodo (N5)
+  y a los 40 s están todos encima de él. El
+  [caso 11](#caso-11--seguir-contra-repartir-cobertura-contra-conectividad)
+  explica por qué y muestra la alternativa.
 
 ---
 
@@ -123,9 +129,9 @@ semillas, 200 s, con movilidad; detalle en el [caso 7](#caso-7--los-5-escenarios
 Cada caso tiene un objetivo, el comando y lo que deberías ver. Los
 casos 1 y 2 son con la ventana; el resto, sin ella. Los archivos que
 usan los casos 4, 9 y 10 están en [`escenarios/casos/`](../escenarios/casos/)
-(cada uno explica en su cabecera de qué caso es), y
+(cada uno explica en su cabecera de qué caso es).
 [`lotes/casos.json`](../lotes/casos.json) corre los casos 9 y 10 de una
-vez.
+vez, y [`lotes/movilidad.json`](../lotes/movilidad.json), el caso 11.
 
 ### Caso 1 — Tumbar un Gateway y ver cómo lo detecta la malla
 
@@ -424,6 +430,65 @@ Con un timeout largo también hay menos alertas, porque algunas caídas
 ya no llega a detectarlas nadie. Con 60 s, G3 muere (124.5 s) antes de
 que le venza el timeout para G4, y la caída de G2 (173.5 s) se
 detectaría después de los 200 s que dura la corrida.
+
+### Caso 11 — Seguir contra repartir: cobertura contra conectividad
+
+**Objetivo:** comparar los dos modelos de movilidad de los Gateway.
+
+Con la movilidad de siempre (`seguir`), cada Gateway camina hacia el
+Nodo de usuario que tiene más cerca, sin coordinarse con los demás. En
+`denso`, N5 es el más cercano de los 8 Gateway, así que a los 40 s están
+los 8 encima de él y la mitad derecha del edificio queda sin cobertura.
+`repartir` asigna un Gateway por Nodo de usuario (detalle en
+[`movimiento_nodos.md`](movimiento_nodos.md)). Para verlo en vivo:
+
+```bash
+python main.py --escenario denso                        # los 8 van a N5
+python main.py --escenario denso --movilidad repartir   # se reparten
+```
+
+Para medirlo con 10 semillas en los 5 escenarios (100 simulaciones,
+unos 10 s):
+
+```bash
+python main.py --batch lotes/movilidad.json
+```
+
+En cada celda, `seguir` → `repartir`:
+
+| Escenario | N alcanzables al final | Componentes al final | Malla partida (s) | Entrega del radio |
+|---|---|---|---|---|
+| `base` | 1.20 ± 0.63 → **3** (de 3) | 1.10 ± 0.32 → 3.00 | 16.5 → 178.2 | 0.864 → 0.489 |
+| `colapso_progresivo` | 1.00 → 2.00 (de 3) | 1.00 → 1.00 | 4.9 → 102.2 | 0.799 → 0.467 |
+| `particion` | 2.00 → **3** (de 3) | 2.00 → 3.00 | 200 → 200 | 0.960 → 0.795 |
+| `rescatista_perdido` | 3.00 → 3.00 (de 3) | 2.00 → 2.00 | 159.2 → 158.7 | 0.742 → 0.480 |
+| `denso` | 3.20 ± 1.55 → **6** (de 6) | 1.00 → 1.70 ± 0.48 | 0.0 → 85.2 ± 52.7 | 0.756 → 0.352 |
+
+**Qué muestra:** `repartir` cubre todos, o casi todos, los Nodos de
+usuario. Para lograrlo, los Gateway se alejan entre sí más allá del
+alcance de radio y la malla de Gateways se parte: en `base` queda en 3
+grupos casi toda la corrida, y en `denso` termina en dos grupos en 7 de
+las 10 semillas (en las otras 3, los dos Gateway que sobran la mantienen
+unida). Los enlaces son más largos y la entrega cae casi a la mitad. Las
+alertas de gateway perdido se disparan (en `denso`, de 0 a 39 de media),
+porque cada separación se detecta como un Gateway que dejó de oírse. En
+`rescatista_perdido` casi no cambia nada: el Gateway que se aleja ya
+cubría la otra punta del edificio.
+
+**Reconvergencia.** `denso` con `repartir` es el único caso en el que la
+malla se parte y se vuelve a unir: 11.7 ± 9.2 episodios de partición por
+corrida, con una reconvergencia de 7.9 ± 10.0 s (en 9 de las 10
+corridas). Muchos de esos episodios son parpadeos, no reconexiones
+reales: un Gateway que ya llegó a su nodo sigue dando pasos de 0.32 m a
+su alrededor, y si otro Gateway queda justo en el borde de los 16 m de
+alcance, el enlace se prende y se apaga. Por ejemplo, la semilla 1 tiene
+22 episodios de 2.7 s de media.
+
+Ninguno de los dos modelos es "el correcto": es el compromiso entre
+cobertura y conectividad de una red de expansión de cobertura. Para
+compararlos en tus propios escenarios, agrega al lote la misma entrada
+dos veces, una con `"movilidad": "seguir"` y otra con
+`"movilidad": "repartir"`.
 
 ---
 
