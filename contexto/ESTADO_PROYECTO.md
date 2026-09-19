@@ -2,8 +2,9 @@
 
 > Para Jefferson: resumen de qué se hizo y qué falta. El trabajo va por
 > etapas (esto no es la versión final de nada), se va a seguir
-> completando. Detalle completo del plan en `PLAN_TRABAJO.md`, del
-> análisis del repo madre en `ANALISIS_REPO_MADRE.md`.
+> completando. El plan de trabajo y el análisis del repo madre de agosto
+> (`PLAN_TRABAJO.md`, `ANALISIS_REPO_MADRE.md`) ya no están en el repo;
+> quedan en el historial de git (commit `7acf40e`).
 
 Fecha: 2026-09-18
 
@@ -125,9 +126,10 @@ Todo esto ya está en `main` (commits `0348693`, `6a41861`, `3d6fb5c`).
   esperado. Los archivos de esos casos están en `escenarios/casos/` y
   `lotes/casos.json`.
 
-`ANALISIS_REPO_MADRE.md` y `PLAN_TRABAJO.md` ya están commiteados —
-antes existían sólo en la máquina local y por eso este documento los
-daba por perdidos.
+**Orden del repo (18 de septiembre):** este documento y `CLAUDE.md`
+pasan a la carpeta `contexto/`. `PLAN_TRABAJO.md` y
+`ANALISIS_REPO_MADRE.md` salen del repo y quedan en `.gitignore` (eran
+documentos de trabajo de agosto; siguen en el historial de git).
 
 ---
 
@@ -142,9 +144,10 @@ daba por perdidos.
    `hyperref` (que todavía dice `MIA-D.Martinez`) — porque hacen falta
    el título definitivo y el nombre del asesor. Además, con el framing
    ya decidido (punto 3), la sección "Redes ad-hoc en escenarios de
-   emergencia" del Estado del arte y los objetivos propuestos en
-   `PLAN_TRABAJO.md` (4.2–4.3) siguen hablando de búsqueda y rescate:
-   hay que llevarlos a la Red de Expansión de Cobertura.
+   emergencia" del Estado del arte y los objetivos que se habían
+   propuesto en el plan de trabajo (§4.2–4.3 de `PLAN_TRABAJO.md`, ya
+   fuera del repo) siguen hablando de búsqueda y rescate: hay que
+   llevarlos a la Red de Expansión de Cobertura.
 
 2. ~~Compilar el documento.~~ **Hecho.** Se instaló TeX Live en
    `~/texlive/2026` (sin root) y el documento compila limpio:
@@ -190,7 +193,7 @@ daba por perdidos.
 
 ---
 
-## Cronograma original (referencia, `PLAN_TRABAJO.md` §5)
+## Cronograma original (del plan de trabajo de agosto, §5)
 
 | Semana | Track A | Track B |
 |---|---|---|

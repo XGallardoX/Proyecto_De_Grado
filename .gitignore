@@ -24,3 +24,8 @@ Thumbs.db
 # (cada ejecución crea su propia carpeta con fecha/hora dentro de reportes/)
 reportes/
 *.csv#
+
+# Documentos de trabajo locales que no van al repo
+/ANALISIS_REPO_MADRE.md
+/PLAN_TRABAJO.md
+/prompt_nextstep.md
