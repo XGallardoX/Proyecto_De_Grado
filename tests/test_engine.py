@@ -113,6 +113,15 @@ class EngineBugFixRegressionTests(unittest.TestCase):
             sim.step()
         self.assertLess(sim.nodes[1].battery, sim.nodes[2].battery)
 
+    def test_add_node_tras_borrar_no_repite_etiquetas(self):
+        nodes = [{"id": 1, "role": "G", "x": 1, "y": 1}] + [
+            {"id": i, "role": "N", "x": 2 * i, "y": 2} for i in (2, 3, 4)]
+        sim = make_simulation(nodes)
+        sim.remove_node(2)                  # borra N1; quedan N2 y N3
+        sim.add_node()
+        etiquetas = sorted(n.label for n in sim.nodes.values())
+        self.assertEqual(etiquetas, ["G1", "N2", "N3", "N4"])
+
 
 class EscenariosMigradosRegressionTests(unittest.TestCase):
     """Corre los 5 escenarios migrados (parte 1.3) en modo headless (sin

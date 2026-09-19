@@ -322,7 +322,11 @@ class Simulation:
         x = random.uniform(5, 35)
         y = random.uniform(5, 25)
         n = SimNode(new_id, 'N', float(x), float(y), 1, self,self.DEFAULTS,self.N_PISOS,self.PISO_H,self.STAIR_XY,self.STAIR_HALF_W,self.DT)
-        self.local_index[new_id] = len([n for n in self.nodes.values() if n.role == 'N']) + 1
+        # siguiente índice libre (no la cantidad de N: tras borrar uno,
+        # contar repetiría la etiqueta del último)
+        self.local_index[new_id] = max(
+            (self.local_index[i] for i, m in self.nodes.items()
+             if m.role == 'N'), default=0) + 1
         self.nodes[new_id] = n
         self.log(f"Nodo {n.label} añadido", "info")
 

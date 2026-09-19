@@ -1,6 +1,7 @@
 
 import math
 import os
+import re
 import time
 import matplotlib
 import numpy as np
@@ -18,6 +19,30 @@ EVENT_STYLE = {
     'SCENARIO':  ('#555', '-'),
     'PARAM':     ('#999', ':'),
 }
+
+# Mensaje de la tecla M: "G1 > G3 texto", "N2>G1 texto" o "1>3 texto"
+# (sin prefijo = Gateway).
+PATRON_MENSAJE = re.compile(r"\s*([gGnN]?)(\d+)\s*>\s*([gGnN]?)(\d+)\s+(.+)")
+
+
+def interpretar_mensaje(raw):
+    """Devuelve (etiqueta_origen, etiqueta_destino, texto), p. ej.
+    ('N2', 'G1', 'hola'), o None si `raw` no respeta el formato."""
+    m = PATRON_MENSAJE.match(raw)
+    if not m:
+        return None
+    origen = f"{(m.group(1) or 'G').upper()}{int(m.group(2))}"
+    destino = f"{(m.group(3) or 'G').upper()}{int(m.group(4))}"
+    return origen, destino, m.group(5).strip()
+
+
+def siguiente_escenario(actual, escenarios):
+    """Escenario que sigue a `actual` en la lista, de forma cíclica. Si
+    `actual` no está (un --config propio o el modo aleatorio), el primero."""
+    if actual in escenarios:
+        return escenarios[(escenarios.index(actual) + 1) % len(escenarios)]
+    return escenarios[0]
+
 
 def _mark_events(ax, events, tipos):
     for (t, tipo, _txt) in events:
@@ -166,11 +191,15 @@ class Visualizer:
     WY0, WY1 = -3.0, 35.0
     STEP_DT = 1.0 / 18.0      # ritmo de simulación 
 
-    def __init__(self, sim):
+    def __init__(self, sim, escenarios=(), cargar_escenario=None):
+        """`escenarios` y `cargar_escenario(nombre) -> Simulation` habilitan
+        la tecla S (ciclar entre escenarios); sin ellos, S no hace nada."""
         global pygame
         import pygame as _pg
         pygame = _pg
         self.sim = sim
+        self.escenarios = list(escenarios)
+        self._cargar_escenario = cargar_escenario
         self.sel_idx = 0
         self._refresh_sel_ids()
         self._acc = 0.0
@@ -645,11 +674,7 @@ class Visualizer:
             if n:
                 sim.recover_node(n.id)
         elif k == pygame.K_s:
-            i = SCENARIOS.index(sim.escenario)
-            sim.escenario = SCENARIOS[(i + 1) % len(SCENARIOS)]
-            sim._build_world()
-            self._refresh_sel_ids()
-            self.messages.clear()
+            self._cambiar_escenario()
         elif k == pygame.K_m:
             self._open_input()
         elif k == pygame.K_p:
@@ -684,6 +709,22 @@ class Visualizer:
             if i < len(rs):
                 self.sel_idx = self.sel_ids.index(rs[i])
 
+    def _cambiar_escenario(self):
+        """Tecla S: reemplaza la simulación por la del siguiente escenario
+        predefinido (arranca de cero, como R)."""
+        if not self.escenarios or self._cargar_escenario is None:
+            self.sim.log("Cambio de escenario no disponible.", "warn")
+            return
+        nombre = siguiente_escenario(self.sim.escenario, self.escenarios)
+        try:
+            self.sim = self._cargar_escenario(nombre)
+        except ValueError as e:
+            self.sim.log(f"No se pudo cargar el escenario '{nombre}': {e}",
+                         "error")
+            return
+        self._refresh_sel_ids()
+        self.messages.clear()
+
     # ── composición de mensajes (entrada de texto en la propia ventana) ──
     def _open_input(self):
         if len(self.sim.nodes) < 2:
@@ -710,37 +751,23 @@ class Visualizer:
                 self.input_text += ch
 
     def _resolve_and_send(self, raw):
-        """Interpreta 'R1 > R3 texto' / 'S2 > R1 texto' / '1>3 texto' y
+        """Interpreta 'G1 > G3 texto' / 'N2 > G1 texto' / '1>3 texto' y
         manda el mensaje por la malla BATMAN."""
-        import re
-        resc_ids = sorted(n.id for n in self.sim.nodes.values()
-                          if n.role == 'G')
-        surv_ids = sorted(n.id for n in self.sim.nodes.values()
-                          if n.role == 'N')
-        m = re.match(r"\s*([rRsS]?)(\d+)\s*>\s*([rRsS]?)(\d+)\s+(.+)", raw)
-        if not m:
+        partes = interpretar_mensaje(raw)
+        if partes is None:
             self.sim.log(f"Formato inválido: '{raw}'. Usa "
-                         f"R1>R3 texto  o  S2>R1 texto", "warn")
+                         f"G1>G3 texto  o  N2>G1 texto", "warn")
             return
-        rol_from, idx_from = m.group(1).upper() or 'G', int(m.group(2))
-        rol_to = m.group(3).upper() or 'G'
-        idx_to, texto = int(m.group(4)), m.group(5)
-
-        def resolver(rol, idx):
-            lista = resc_ids if rol == 'G' else surv_ids
-            if not (1 <= idx <= len(lista)):
-                return None
-            return lista[idx - 1]
-
-        from_id = resolver(rol_from, idx_from)
-        to_id = resolver(rol_to, idx_to)
-        if from_id is None or to_id is None:
-            self.sim.log(f"Índice fuera de rango (R: {len(resc_ids)}, "
-                         f"S: {len(surv_ids)}).", "warn")
+        origen, destino, texto = partes
+        ids = {n.label: n.id for n in self.sim.nodes.values()}
+        faltan = [e for e in (origen, destino) if e not in ids]
+        if faltan:
+            self.sim.log(f"No existe el nodo {' ni '.join(faltan)}.", "warn")
             return
-        path = self.sim.send_unicast(from_id, to_id, texto.strip())
+        from_id, to_id = ids[origen], ids[destino]
+        path = self.sim.send_unicast(from_id, to_id, texto)
         if path and len(path) >= 2:
-            self._enqueue_message(path, texto.strip(),
+            self._enqueue_message(path, texto,
                                   self.sim.label_of(from_id),
                                   self.sim.label_of(to_id))
 
@@ -779,7 +806,7 @@ class Visualizer:
         if not self.messages:
             return
         now = pygame.time.get_ticks() / 1000.0
-        pulse = 3 if (pygame.time.get_ticks() // 250) % 2 == 0 else 0
+        pulso = 1 if (pygame.time.get_ticks() // 250) % 2 == 0 else 0
         alive = []
         for msg in self.messages:
             el = now - msg['start']
@@ -843,17 +870,17 @@ class Visualizer:
         box = pygame.Rect(bx, by, bw, bh)
         pygame.draw.rect(surf, (255, 255, 255), box, border_radius=8)
         pygame.draw.rect(surf, self.c_slab, box, 2, border_radius=8)
-        self._text(surf, self.f_title, "Mensaje personalizado (R o S)",
+        self._text(surf, self.f_title, "Mensaje personalizado (G o N)",
                    bx + 20, by + 16, self.c_ink)
-        resc = ", ".join(self.sim.label_of(i) for i in sorted(
+        gateways = ", ".join(self.sim.label_of(i) for i in sorted(
             n.id for n in self.sim.nodes.values() if n.role == 'G'))
-        surv = ", ".join(self.sim.label_of(i) for i in sorted(
+        nodos = ", ".join(self.sim.label_of(i) for i in sorted(
             n.id for n in self.sim.nodes.values() if n.role == 'N'))
-        info = [f"Rescatistas: {resc}",
-                f"Supervivientes: {surv}",
-                "Formato:  R1 > R3 cuidado con los escombros",
-                "          S2 > R1 estoy atrapado en el piso 2",
-                "(emisor > destino, espacio, texto)"]
+        info = [f"Gateways: {gateways}",
+                f"Nodos de usuario: {nodos}",
+                "Formato:  G1 > G3 prueba de enlace",
+                "          N2 > G1 hola desde el piso 2",
+                "(emisor > destino, espacio, texto; sin letra = Gateway)"]
         yy = by + 52
         for ln in info:
             self._text(surf, self.f_sm, ln, bx + 20, yy, self._rgb('#555555'))

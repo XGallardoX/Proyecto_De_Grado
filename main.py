@@ -223,8 +223,13 @@ def main(argv=None):
 
     imprimir_banner(args.msg, info)
 
+    def cargar_escenario(nombre):
+        return construir_simulacion(ruta_escenario(nombre),
+                                    static=args.static)[0]
+
     try:
-        viz = Visualizer(sim)
+        viz = Visualizer(sim, escenarios=ESCENARIOS_DISPONIBLES,
+                         cargar_escenario=cargar_escenario)
         viz.run()
 
     except KeyboardInterrupt:

@@ -199,9 +199,9 @@ más simples, para probar el formato.
 | `G` | El nodo seleccionado se recupera |
 | `A` | Añadir un nodo nuevo a la simulación |
 | `D` | Eliminar el nodo seleccionado |
-| `M` | Enviar un mensaje libre entre dos nodos (abre un cuadro de texto en la ventana: `1>3 cuidado con los escombros`, `Enter` envía, `Esc` cancela) |
+| `M` | Enviar un mensaje libre entre dos nodos: abre un cuadro de texto donde se escribe `emisor > destino texto`, p. ej. `G1>G3 prueba de enlace` o `N2>G1 hola` (sin letra se asume Gateway: `1>3` es `G1>G3`). `Enter` envía, `Esc` cancela |
 | `I` | Vuelca en la terminal el estado interno real de la red: vecinos (TQ, saltos, última vez oído), tabla de rutas BATMAN, componentes/particiones y enlaces de radio |
-| `S` | Cambiar de escenario (cicla entre los predefinidos) |
+| `S` | Pasar al siguiente escenario predefinido (cicla entre los 5; la simulación arranca de cero y respeta `--static`) |
 | `+`/`-` | Aumentar/reducir el rango de radio |
 | `[`/`]` | Reducir/aumentar el `falloff` (degradación con la distancia) |
 | `P` | Exportar ahora mismo el análisis y los reportes (sin cerrar la ventana) — ver sección siguiente |
