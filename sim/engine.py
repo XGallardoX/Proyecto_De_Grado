@@ -35,9 +35,8 @@ class Simulation:
 
         self.cfg = dict(self._base_cfg)
 
-        # aplicar el timeout pedido al CÓDIGO REAL (lo lee PeerInfo.is_lost
-        # y FaultManager.check desde el espacio de nombres de batman_node)
-        # bn.TIMEOUT_ALERT = self.cfg['timeout']
+        # el timeout de caída no es global: cada SimNode lo pasa a
+        # FaultManager.check(..., cfg['timeout']) en cada chequeo
 
         self.t = 0.0
         self.paused = False
@@ -105,7 +104,7 @@ class Simulation:
         self.log(f"Escenario '{self.escenario}' iniciado · {gi} gateways, "
                  f"{ni} nodos · timeout={self.cfg['timeout']:.0f}s",
                  "info")
-        self.log("Protocolo BATMAN: clases reales de batman "
+        self.log("Protocolo BATMAN: clases reales de mesh/ "
                  "(BatmanRouter + FaultManager).", "info")
 
     # ── utilidades ──
@@ -307,8 +306,6 @@ class Simulation:
 
     def set_param(self, clave, valor):
         self.cfg[clave] = valor
-        # if clave == 'timeout':
-        #     bn.TIMEOUT_ALERT = valor
         self.event('PARAM', f"{clave} = {valor}")
         self.log(f"Parámetro {clave} = {valor}", "warn")
 

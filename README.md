@@ -258,7 +258,3 @@ Ver [`docs/arquitectura.md`](docs/arquitectura.md) para el detalle de
 cómo se relacionan estas capas y por qué las métricas que se ven
 (TQ, rutas, particiones) las produce el código real del protocolo y no
 una maqueta.
-
-`batman_node.py` y `simulacion_batman_real.py` (raíz del repo) son el
-prototipo **anterior** a la migración a `mesh/`/`sim/`/`analysis/`.
-Ya no se usan — quedan en el repo sin mantenimiento, huérfanos.

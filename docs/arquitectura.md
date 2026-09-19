@@ -100,9 +100,9 @@ nodos. El simulador actual sólo ejercita la porción de enrutamiento +
 detección de fallos de ese stack (vía `SimNode`); memoria distribuida,
 scheduler y API de control no están conectados a `main.py` — quedan
 disponibles para un modo de despliegue real que hoy no existe en el
-repo (los antiguos `batman_node.py`/`simulacion_batman_real.py` en la
-raíz eran el intento anterior a la migración a `mesh/`/`sim/`, ya
-huérfanos).
+repo. (El prototipo monolítico anterior a la migración a
+`mesh/`/`sim/`/`analysis/`, `batman_node.py` + `simulacion_batman_real.py`,
+se retiró del repo; queda en el historial de git.)
 
 ## Gaps conocidos
 

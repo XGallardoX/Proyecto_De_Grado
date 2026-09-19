@@ -8,9 +8,9 @@ from mesh.fault_manager import FaultManager
 class SimNode:
     """
     Un dispositivo de la malla. Toda la lógica de enrutamiento y de
-    detección de fallos es de batman_node.py (código real). Esta clase
-    sólo aporta: posición física, batería, movilidad y el reemplazo de
-    los sockets por el RadioMedium.
+    detección de fallos es de mesh/router.py y mesh/fault_manager.py
+    (código real). Esta clase sólo aporta: posición física, batería,
+    movilidad y el reemplazo de los sockets por el RadioMedium.
     """
 
     def __init__(self, nid, role, x, y, piso, sim,DEFAULTS,N_PISOS,PISO_H,STAIR_XY,STAIR_HALF_W,DT):
@@ -130,7 +130,7 @@ class SimNode:
     def _drain_inbox(self, now):
         """Procesa los mensajes entregados por el medio.
 
-        Réplica fiel de MeshNode._handle_bcast de batman_node.py:
+        Réplica fiel de MeshNode._handle_bcast de mesh/node.py:
         usa router.receive_ogm(), reenvía si es nuevo y ttl>1, y
         actualiza/recupera pares con los beacons.
         """
