@@ -27,9 +27,8 @@ def make_simulation(nodes, building=None, medium=None, protocol=None,
     return Simulation(
         escenario=escenario, cfg=cfg, DEFAULTS=main_mod.DEFAULTS, DT=main_mod.DT,
         N_PISOS=n_pisos, PISO_H=piso_h, STAIR_XY=stair_xy, STAIR_HALF_W=stair_half_w,
-        ANCHO=ancho, ALTO=alto, C_RESC=main_mod.C_RESC, C_SURV=main_mod.C_SURV,
-        C_DEAD=main_mod.C_DEAD, C_OGM=main_mod.C_OGM,
-        C_BCN=main_mod.C_BCN, C_HB=main_mod.C_HB,
+        ANCHO=ancho, ALTO=alto, C_GATEWAY=main_mod.C_GATEWAY, C_NODO=main_mod.C_NODO,
+        C_DEAD=main_mod.C_DEAD, C_OGM=main_mod.C_OGM, C_BCN=main_mod.C_BCN,
     )
 
 
@@ -94,8 +93,8 @@ class BuildWorldExplicitConfigTests(unittest.TestCase):
             escenario="aleatorio", cfg=cfg, DEFAULTS=main_mod.DEFAULTS, DT=main_mod.DT,
             N_PISOS=main_mod.N_PISOS, PISO_H=main_mod.PISO_H, STAIR_XY=main_mod.STAIR_XY,
             STAIR_HALF_W=main_mod.STAIR_HALF_W, ANCHO=main_mod.ANCHO, ALTO=main_mod.ALTO,
-            C_RESC=main_mod.C_RESC, C_SURV=main_mod.C_SURV,
-            C_DEAD=main_mod.C_DEAD, C_OGM=main_mod.C_OGM, C_BCN=main_mod.C_BCN, C_HB=main_mod.C_HB,
+            C_GATEWAY=main_mod.C_GATEWAY, C_NODO=main_mod.C_NODO,
+            C_DEAD=main_mod.C_DEAD, C_OGM=main_mod.C_OGM, C_BCN=main_mod.C_BCN,
         )
         self.assertEqual(len(sim.nodes), 5)
         self.assertEqual(sum(1 for n in sim.nodes.values() if n.role == "G"), 2)
@@ -109,15 +108,10 @@ class EngineBugFixRegressionTests(unittest.TestCase):
             {"id": 1, "role": "G", "x": 1, "y": 1},
             {"id": 2, "role": "N", "x": 2, "y": 2},
         ]
-        sim = make_simulation(nodes, medium={"battery_drain": 1.0, "battery_drain_surv": 0.1})
+        sim = make_simulation(nodes, medium={"battery_drain": 1.0, "battery_drain_nodo": 0.1})
         for _ in range(5):
             sim.step()
         self.assertLess(sim.nodes[1].battery, sim.nodes[2].battery)
-
-    def test_collides_point_no_explota_sin_escombros(self):
-        nodes = [{"id": 1, "role": "G", "x": 1, "y": 1}]
-        sim = make_simulation(nodes)
-        self.assertFalse(sim.collides_point(20, 15))
 
 
 class EscenariosMigradosRegressionTests(unittest.TestCase):

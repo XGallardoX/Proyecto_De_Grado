@@ -3,6 +3,11 @@ import os
 
 VALID_ROLES = {"G", "N"}
 
+# Claves de medium/protocol renombradas al pasar del vocabulario R/S al
+# G/N. El nombre viejo se sigue aceptando para no romper escenarios
+# escritos antes del cambio.
+CLAVES_RENOMBRADAS = {"battery_drain_surv": "battery_drain_nodo"}
+
 
 def load_scenario(path, default_building=None):
     """Carga y valida un archivo de escenario, en JSON (.json) o texto
@@ -172,7 +177,19 @@ def _parse_txt(path):
     return data
 
 
+def _renombrar_claves_viejas(data):
+    for seccion in ("medium", "protocol"):
+        valores = data.get(seccion)
+        if not isinstance(valores, dict):
+            continue
+        for vieja, nueva in CLAVES_RENOMBRADAS.items():
+            if vieja in valores:
+                valor = valores.pop(vieja)
+                valores.setdefault(nueva, valor)
+
+
 def _validate(data, path, default_building=None):
+    _renombrar_claves_viejas(data)
     building = dict(default_building or {})
     building.update(data.get("building", {}))
     ancho = building.get("ancho", 40.0)

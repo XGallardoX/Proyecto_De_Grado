@@ -113,6 +113,22 @@ class ConfigLoaderTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "no existe"):
             load_scenario(path)
 
+    def test_clave_vieja_battery_drain_surv_se_sigue_aceptando(self):
+        path = self._write({
+            "medium": {"battery_drain_surv": 0.5},
+            "nodes": [{"id": 1, "role": "G", "x": 1, "y": 1}],
+        })
+        scenario = load_scenario(path)
+        self.assertEqual(scenario["medium"], {"battery_drain_nodo": 0.5})
+
+    def test_clave_nueva_gana_sobre_la_vieja(self):
+        path = self._write({
+            "protocol": {"battery_drain_surv": 0.5, "battery_drain_nodo": 0.2},
+            "nodes": [{"id": 1, "role": "G", "x": 1, "y": 1}],
+        })
+        scenario = load_scenario(path)
+        self.assertEqual(scenario["protocol"], {"battery_drain_nodo": 0.2})
+
 
 class ConfigLoaderTxtTests(unittest.TestCase):
     def _write_txt(self, content):

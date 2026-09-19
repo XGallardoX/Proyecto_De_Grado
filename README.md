@@ -103,6 +103,26 @@ Esquema:
   coordenadas fuera del edificio, campo faltante) frena la ejecución
   con un mensaje de error específico, antes de arrancar la simulación.
 
+Claves de `medium` y `protocol` (las dos secciones se mezclan sobre los
+mismos valores por defecto, así que da igual en cuál va cada clave):
+
+| Clave | Por defecto | Qué controla |
+|---|---|---|
+| `rango_comm` | `16` | Alcance máximo de radio (m) |
+| `perdida_base` | `0.02` | Probabilidad de perder un paquete incluso a 0 m |
+| `falloff` | `0.85` | Cuánto cae la fiabilidad del enlace con la distancia |
+| `floor_atten` | `0.55` | Factor de atenuación por cada piso de diferencia |
+| `timeout` | `30` | Segundos sin oír a otro Gateway antes de marcarlo caído |
+| `beacon_cada` | `2` | Segundos entre beacons de identificación |
+| `batman_cada` | `4` | Segundos entre OGMs propios |
+| `ttl` | `6` | Saltos máximos de un OGM |
+| `battery_drain` | `0.030` | % de batería por segundo que gasta un Gateway |
+| `battery_drain_nodo` | `0.012` | % de batería por segundo que gasta un Nodo de usuario (el nombre viejo `battery_drain_surv` se sigue aceptando) |
+| `move_speed` | `0.32` | Metros por paso de un Gateway (`0` = nodos fijos, ver `--static`) |
+
+En modo aleatorio desde la línea de comandos (`-n`/`-g`, sin archivo),
+`battery_drain` vale `0.02` en vez de `0.030`.
+
 ### Formato `.txt` (equivalente al JSON, más fácil de editar a mano)
 
 ```bash
@@ -153,7 +173,16 @@ Ver [escenarios/ejemplo.txt](escenarios/ejemplo.txt) para un ejemplo
 completo funcionando.
 
 Los 5 escenarios de `--escenario` son atajos a
-`escenarios/{base,colapso_progresivo,particion,rescatista_perdido,denso}.json`.
+`escenarios/{base,colapso_progresivo,particion,rescatista_perdido,denso}.json`:
+
+| Escenario | Qué plantea |
+|---|---|
+| `base` | 4 Gateway juntos en el piso 3 y 3 Nodos de usuario repartidos en los pisos 1 y 2. Caso de referencia. |
+| `colapso_progresivo` | Como `base`, pero los Gateway arrancan con baterías escalonadas (100/78/56/38 %) y gastan rápido (`battery_drain` 0.45): van cayendo uno tras otro. |
+| `particion` | Rango de radio reducido (11 m) y dos parejas de Gateway en esquinas opuestas del edificio: la malla de Gateways arranca partida. |
+| `rescatista_perdido` | Como `base`, pero el Gateway 4 se aleja hacia la esquina (38, 2) hasta t = 80 s (evento `wander`) y pierde contacto con el resto. El nombre viene del framing anterior de rescate; se conserva para no romper `--escenario`. |
+| `denso` | 8 Gateway y 6 Nodos de usuario: una malla más poblada. |
+
 `dos_nodos.json` y `edificio_3_pisos.json` son dos ejemplos adicionales,
 más simples, para probar el formato.
 

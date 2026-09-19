@@ -28,27 +28,24 @@ DEFAULTS = dict(
     perdida_base=0.02,   # prob. de pérdida incluso a 0 m
     falloff=0.85,        # cuánto degrada la fiabilidad con la distancia
     floor_atten=0.55,    # factor de atenuación extra por piso de diferencia
-    timeout=30.0,        # s sin señal de un compañero -> caído (regla pedida)
+    timeout=30.0,        # s sin oír a otro gateway -> se lo marca caído
     beacon_cada=2.0,     # s entre beacons de identificación
     batman_cada=4.0,     # s entre OGMs propios (BATMAN)
-    heartbeat_cada=8.0,  # s entre "estoy bien" de un rescatista
     ttl=6,   # saltos máximos de un OGM (del código real)
-    battery_drain=0.030,      # % por segundo (rescatistas)
-    battery_drain_surv=0.012, # % por segundo (celular de superviviente)
-    move_speed=0.32,     # m por paso de un rescatista
+    battery_drain=0.030,      # % por segundo (Gateways)
+    battery_drain_nodo=0.012, # % por segundo (Nodos de usuario)
+    move_speed=0.32,     # m por paso de un Gateway
 )
 
 # Colores
-C_RESC   = ["#378ADD", "#1D9E75", "#9B59B6", "#E8A838",
-            "#2E86C1", "#16A085", "#8E44AD", "#D4AC0D"]
-C_SURV   = "#E24B4A"
+C_GATEWAY = ["#378ADD", "#1D9E75", "#9B59B6", "#E8A838",
+             "#2E86C1", "#16A085", "#8E44AD", "#D4AC0D"]
+C_NODO   = "#E24B4A"
 C_DEAD   = "#8C8B85"
 C_ALERT  = "#C0392B"
 C_OGM    = "#F0A500"
 C_BCN    = "#5DADE2"
-C_HB     = "#27AE60"
-C_HELP   = "#E74C3C"
-C_MSG    = "#9B59B6"   # mensaje personalizado entre nodos (R o S)
+C_MSG    = "#9B59B6"   # mensaje personalizado entre nodos (G o N)
 C_BG     = "#F8F7F4"
 C_WALL   = "#D3D1C7"
 C_FLOOR  = "#E8E6E0"
@@ -194,7 +191,7 @@ def main():
     try:
         # . Instanciar el motor de simulación
 
-        sim = Simulation(escenario=escenario_nombre, cfg=sim_config,DEFAULTS=DEFAULTS,DT=DT,N_PISOS=n_pisos,PISO_H=piso_h,STAIR_XY=stair_xy,STAIR_HALF_W=stair_half_w,ANCHO=ancho,ALTO=alto,C_RESC=C_RESC,C_SURV=C_SURV,C_DEAD=C_DEAD,C_OGM=C_OGM,C_BCN=C_BCN,C_HB=C_HB)
+        sim = Simulation(escenario=escenario_nombre, cfg=sim_config,DEFAULTS=DEFAULTS,DT=DT,N_PISOS=n_pisos,PISO_H=piso_h,STAIR_XY=stair_xy,STAIR_HALF_W=stair_half_w,ANCHO=ancho,ALTO=alto,C_GATEWAY=C_GATEWAY,C_NODO=C_NODO,C_DEAD=C_DEAD,C_OGM=C_OGM,C_BCN=C_BCN)
         sim.C_BG = C_BG
         sim.C_WALL = C_WALL
         sim.C_FLOOR = C_FLOOR

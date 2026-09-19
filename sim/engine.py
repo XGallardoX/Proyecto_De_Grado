@@ -8,7 +8,7 @@ from sim.sim_node import SimNode
 
 
 class Simulation:
-    def __init__(self, escenario='base', cfg=None,DEFAULTS=None,DT=None,N_PISOS=None,PISO_H=None,STAIR_XY=None,STAIR_HALF_W=None,ANCHO=None,ALTO=None,C_RESC=None,C_SURV=None,C_DEAD=None,C_OGM=None,C_BCN=None,C_HB=None):
+    def __init__(self, escenario='base', cfg=None,DEFAULTS=None,DT=None,N_PISOS=None,PISO_H=None,STAIR_XY=None,STAIR_HALF_W=None,ANCHO=None,ALTO=None,C_GATEWAY=None,C_NODO=None,C_DEAD=None,C_OGM=None,C_BCN=None):
         self.escenario = escenario
         self.cfg = dict(DEFAULTS)
         self.DEFAULTS = DEFAULTS
@@ -19,12 +19,11 @@ class Simulation:
         self.STAIR_HALF_W = STAIR_HALF_W
         self.ANCHO = ANCHO
         self.ALTO = ALTO
-        self.C_RESC=C_RESC
-        self.C_SURV=C_SURV
+        self.C_GATEWAY=C_GATEWAY
+        self.C_NODO=C_NODO
         self.C_DEAD=C_DEAD
         self.C_OGM=C_OGM
         self.C_BCN=C_BCN
-        self.C_HB=C_HB
         if cfg:
             self.cfg.update(cfg)
         self._base_cfg = dict(self.cfg)
@@ -49,7 +48,6 @@ class Simulation:
         self.wander_until = -1.0
         self._prev_components = 1
         self._last_part_evt = -100.0
-        self.debris = []
 
 
         explicit_nodes = self.cfg.get("nodes")
@@ -116,19 +114,10 @@ class Simulation:
         n = self.nodes.get(nid)
         return bool(n and n.role == 'G')
 
-    
-
-    def collides_point(self, x, y):
-        """¿El punto (x,y) está dentro de un escombro?"""
-        for (cx, cy, r) in self.debris:
-            if (x - cx) ** 2 + (y - cy) ** 2 < r * r:
-                return True
-        return False
-
     # ── Mensajes personalizados entre cualquier par de nodos ──────────
     def send_unicast(self, from_id, to_id, texto):
-        """Envía un mensaje libre de un nodo a otro (rescatista o
-        superviviente). GARANTÍA: si existe ALGÚN camino por la malla
+        """Envía un mensaje libre de un nodo a otro (Gateway o Nodo de
+        usuario). GARANTÍA: si existe ALGÚN camino por la malla
         —directo o multi-salto a través de nodos intermedios— el mensaje
         llega. El camino se calcula con BFS sobre el grafo de conectividad
         actual (mismos enlaces que cuentan para el panel de conectividad),
@@ -232,7 +221,7 @@ class Simulation:
 
     def gateway_components(self):
         """Nº de componentes conexas considerando SÓLO gateways.
-        1 = el equipo está totalmente conectado; >1 = malla partida."""
+        1 = todos los gateways vivos se alcanzan; >1 = malla partida."""
         alive, find, idx = self._union_find()
         roots = {find(idx[n.id]) for n in alive if n.role == 'G'}
         return len(roots) if roots else 0
@@ -291,7 +280,7 @@ class Simulation:
         n.alive = False
         n.battery = 0.0
         self.event('FAIL', f"{n.label} caído (manual)")
-        self.log(f"ACCIDENTE: {n.label} dejó de responder", "error")
+        self.log(f"FALLO: {n.label} dejó de responder", "error")
 
     def recover_node(self, nid):
         n = self.nodes.get(nid)

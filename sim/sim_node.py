@@ -1,4 +1,5 @@
 
+import logging
 import math
 import random
 
@@ -32,6 +33,11 @@ class SimNode:
         # ── Estado del protocolo: clases REALES ──
         self.router = BatmanRouter(nid)
         self.fault = FaultManager(nid)
+        # FaultManager avisa por logging con el id crudo ("Fallo N4"), que
+        # en el simulador se confunde con el rol N. Esas caídas ya quedan
+        # como eventos ALERT_ON/ALERT_OFF con etiquetas G/N, así que el
+        # aviso interno se silencia para no duplicarlo en la terminal.
+        self.fault.log.setLevel(logging.ERROR)
 
         self._ogm_seq = 0
         self._inbox = []            # (msg, from_ip) entregados por el medio
@@ -39,7 +45,6 @@ class SimNode:
 
         self.t_beacon = -random.uniform(0, self.DEFAULTS['beacon_cada'])
         self.t_ogm = -random.uniform(0, self.DEFAULTS['batman_cada'])
-        self.t_hb = -random.uniform(0, self.DEFAULTS['heartbeat_cada'])
         self.t_fault = 0.0
 
         self.history = []
@@ -58,8 +63,8 @@ class SimNode:
         if not self.alive:
             return self.sim.C_DEAD
         if self.role == 'N':
-            return self.sim.C_SURV
-        return self.sim.C_RESC[(self.sim.local_index[self.id] - 1) % len(self.sim.C_RESC)]
+            return self.sim.C_NODO
+        return self.sim.C_GATEWAY[(self.sim.local_index[self.id] - 1) % len(self.sim.C_GATEWAY)]
 
     def dist_to(self, other):
         return math.hypot(self.x - other.x, self.y - other.y)
@@ -90,7 +95,7 @@ class SimNode:
         if not self.alive:
             return
         drain = (self.sim.cfg['battery_drain'] if self.role == 'G'
-                 else self.sim.cfg['battery_drain_surv'])
+                 else self.sim.cfg['battery_drain_nodo'])
         self.battery = max(0.0, self.battery - drain * self.DT)
         if self.battery <= 0:
             self.alive = False
@@ -124,7 +129,7 @@ class SimNode:
                 self.sim.event('ALERT_ON', f"{self.label} no oye a {lbl}")
                 self.sim.log(
                     f"⚠ {self.label}: sin señal de {lbl} > "
-                    f"{self.sim.cfg['timeout']:.0f}s — ¿necesita ayuda?",
+                    f"{self.sim.cfg['timeout']:.0f}s — se marca caído",
                     "error")
 
     def _drain_inbox(self, now):
@@ -179,7 +184,7 @@ class SimNode:
                 for aid in msg.get('alerts', []):
                     self.router.mark_alert(aid)
 
-    # ── movilidad con colisiones ──
+    # ── movilidad ──
     def move(self, now):
         if not self.alive:
             return
@@ -190,7 +195,7 @@ class SimNode:
             return
 
         if self.role == 'N':
-            # Nodos de usuario atrapados: micro-movimiento (sin chocar)
+            # Nodos de usuario: casi estáticos, micro-movimiento aleatorio
             for _ in range(3):
                 dx, dy = random.gauss(0, 0.05), random.gauss(0, 0.05)
                 if self._try_move(dx, dy):
@@ -234,7 +239,7 @@ class SimNode:
             self.history.pop(0)
 
     def _try_move(self, dx, dy):
-        """Intenta un paso: rechaza si sale del edificio o colisiona."""
+        """Intenta un paso: lo rechaza si sale del edificio."""
         nx = self.x + dx
         ny = self.y + dy
         if not (1.0 <= nx <= self.sim.ANCHO - 1.0): return False
@@ -244,10 +249,10 @@ class SimNode:
         return True
 
     def _move_avoiding(self, tx, ty):
-        """Mueve hacia (tx,ty) sorteando muros/escombros.
+        """Mueve hacia (tx,ty) sin salir del edificio.
 
         Si el paso recto no es válido se prueban ángulos de desvío;
-        si nada funciona el rescatista se queda quieto (atascado)."""
+        si nada funciona el nodo se queda quieto (atascado)."""
         sp = self.sim.cfg['move_speed']
         base = math.atan2(ty - self.y, tx - self.x)
         for k_deg in (0, 20, -20, 45, -45, 75, -75,

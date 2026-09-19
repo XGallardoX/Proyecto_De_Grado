@@ -47,7 +47,7 @@ def build_analysis_figure(sim):
     ax1.step(t, rec.alive_G, where='post', color='#378ADD',
              label='Gateways vivos', linewidth=1.8)
     ax1.step(t, rec.alive_N, where='post', color='#E24B4A',
-             label='Nodos de Usuario (nodo) vivos', linewidth=1.4)
+             label='Nodos de usuario vivos', linewidth=1.4)
     _mark_events(ax1, rec.events, {'FAIL', 'RECOVER'})
     ax1.set_title("1 · Nodos activos en el tiempo "
                   "(líneas: caída roja / recuperación verde)")
@@ -56,7 +56,7 @@ def build_analysis_figure(sim):
     ax1.legend(fontsize=8, loc='lower left')
     ax1.grid(alpha=0.25)
 
-    # 2) Conectividad de la malla de rescatistas + supervivientes
+    # 2) Conectividad de la malla de gateways + nodos de usuario
     #    alcanzables por la red
     ax2 = fig.add_subplot(gs[0, 1])
     comp = np.array(rec.comp_G)
@@ -70,7 +70,7 @@ def build_analysis_figure(sim):
              linewidth=1.3, label='Nodos de usuario alcanzables por la malla')
     _mark_events(ax2, rec.events, {'PARTITION', 'HEAL'})
     ax2.set_title("2 · Auto-reorganización de la malla "
-                  "(1 = equipo conectado; >1 = partición BATMAN)")
+                  "(1 = malla de gateways unida; >1 = partida)")
     ax2.set_ylabel("nº")
     ax2.set_xlabel("tiempo (s)")
     ax2.legend(fontsize=7, loc='upper left')
@@ -92,7 +92,7 @@ def build_analysis_figure(sim):
     ax3.set_title("3 · Enrutamiento BATMAN: calidad (TQ) y longitud de ruta")
     ax3.grid(alpha=0.25)
 
-    # 4) Silencio máximo entre rescatistas vs umbral de timeout
+    # 4) Silencio máximo entre gateways vs umbral de timeout
     ax4 = fig.add_subplot(gs[1, 1])
     ax4.plot(t, rec.max_silence, color='#C0392B', linewidth=1.5,
              label='Máx. s sin oír a un gateway')
@@ -103,7 +103,7 @@ def build_analysis_figure(sim):
     ax4.fill_between(t, 0, ax4.get_ylim()[1], where=alerts > 0,
                      color='#E67E22', alpha=0.15,
                      label='Alerta activa', step='post')
-    ax4.set_title("4 · Detección de gateway perdido (regla del heartbeat)")
+    ax4.set_title("4 · Detección de gateway perdido (regla de timeout)")
     ax4.set_ylabel("segundos")
     ax4.set_xlabel("tiempo (s)")
     ax4.legend(fontsize=8, loc='upper left')
@@ -200,7 +200,6 @@ class Visualizer:
         self.c_floor = self._rgb(sim.C_FLOOR)
         self.c_slab = self._rgb('#5F5E5A')
         self.c_stair = self._rgb('#1D9E75')
-        self.c_debris = self._rgb('#9C9A8E')
         self.c_alert = self._rgb(sim.C_ALERT)
         self.c_ink = self._rgb('#2C2C2A')
         self.c_dim = self._rgb('#888780')
@@ -367,13 +366,13 @@ class Visualizer:
 
     def _draw_legend(self, surf):
         items = [
-            ('o', '#378ADD', 'Rescatista'),
-            ('d', self.sim.C_SURV, 'Superviviente'),
+            ('o', self.sim.C_GATEWAY[0], 'Gateway'),
+            ('d', self.sim.C_NODO, 'Nodo de usuario'),
             ('o', self.sim.C_ALERT, 'Alerta'),
             ('l', '#1D9E75', 'Enlace bueno'),
             ('l', '#E24B4A', 'Enlace débil'),
             ('l', self.sim.C_OGM, 'OGM'),
-            ('l', self.sim.C_HB, '"estoy bien"'),
+            ('l', self.sim.C_BCN, 'Beacon'),
             ('l', self.sim.C_MSG, 'Mensaje (M)'),
         ]
         pad, lh, cols = 6, 16, 2
@@ -522,7 +521,7 @@ class Visualizer:
             y += 16
 
     def _draw_help(self, surf):
-        txt = ("ESPACIO pausa · TAB/←→ o clic seleccionar · 1-9 rescatista · "
+        txt = ("ESPACIO pausa · TAB/←→ o clic seleccionar · 1-9 gateway · "
                "F caer · G revivir · M mensaje · I inspeccionar (terminal) · "
                "S escenario · +/- rango · [ ] pérdida · P análisis · A añadir · D borrar · "
                "R reinicia · Q salir")
@@ -552,7 +551,7 @@ class Visualizer:
     def run(self):
         pygame.init()
         pygame.display.set_caption(
-            "Red Ad-Hoc BATMAN (código real) · Rescate en edificio")
+            "Red Ad-Hoc BATMAN (código real) · Red de Expansión de Cobertura")
         screen = pygame.display.set_mode((self.W, self.H))
         clock = pygame.time.Clock()
         self._setup_fonts()
