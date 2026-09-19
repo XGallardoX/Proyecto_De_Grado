@@ -51,7 +51,109 @@ C_WALL   = "#D3D1C7"
 C_FLOOR  = "#E8E6E0"
 
 
-def main():
+def ruta_escenario(nombre):
+    """Ruta del archivo de un escenario predefinido (--escenario)."""
+    return os.path.join(ESCENARIOS_DIR, f"{nombre}.json")
+
+
+def construir_simulacion(config_path=None, n_nodes=2, n_gateways=1,
+                         static=False):
+    """Arma una Simulation lista para correr.
+
+    Con `config_path` carga el escenario (.json o .txt) con
+    sim.config_loader; sin él, usa `n_nodes`/`n_gateways` con posiciones
+    aleatorias. `static` fija los nodos (move_speed=0).
+
+    Devuelve (sim, info), donde `info` resume la configuración para el
+    banner de inicio. Lanza ValueError si el archivo de escenario o los
+    parámetros son inválidos.
+    """
+    ancho, alto, piso_h, n_pisos = ANCHO, ALTO, PISO_H, N_PISOS
+    stair_xy, stair_half_w = STAIR_XY, STAIR_HALF_W
+
+    if config_path:
+        scenario = load_scenario(
+            config_path,
+            default_building=dict(ancho=ANCHO, alto=ALTO, piso_h=PISO_H,
+                                  n_pisos=N_PISOS)
+        )
+
+        building = scenario["building"]
+        ancho = building.get("ancho", ANCHO)
+        alto = building.get("alto", ALTO)
+        piso_h = building.get("piso_h", PISO_H)
+        n_pisos = building.get("n_pisos", N_PISOS)
+        stair_xy = tuple(building.get("stair_xy", STAIR_XY))
+        stair_half_w = building.get("stair_half_w", STAIR_HALF_W)
+        escenario_nombre = scenario.get("name", config_path)
+
+        sim_config = dict(DEFAULTS)
+        sim_config.update(scenario.get("medium", {}))
+        sim_config.update(scenario.get("protocol", {}))
+
+        if "random" in scenario:
+            n_total = scenario["random"]["n_nodes"]
+            n_gw = scenario["random"]["n_gateways"]
+            sim_config["n_nodes"] = n_total
+            sim_config["n_gateways"] = n_gw
+            posiciones = "aleatorias"
+        else:
+            n_total = len(scenario["nodes"])
+            n_gw = sum(1 for n in scenario["nodes"] if n["role"] == "G")
+            sim_config["nodes"] = scenario["nodes"]
+            sim_config["events"] = scenario.get("events", [])
+            sim_config["n_nodes"] = n_total
+            sim_config["n_gateways"] = n_gw
+            posiciones = "explícitas"
+    else:
+        if n_nodes <= 1:
+            raise ValueError("El número de nodos debe ser mayor a 1 para "
+                             "simular una red ad-hoc.")
+        if n_gateways >= n_nodes:
+            raise ValueError("La cantidad de Gateways debe ser menor que el "
+                             "total de nodos.")
+
+        escenario_nombre = "aleatorio"
+        n_total, n_gw = n_nodes, n_gateways
+        posiciones = "aleatorias"
+        sim_config = {
+            "n_nodes": n_nodes,
+            "n_gateways": n_gateways,
+            "rango_comm": 16.0,
+            "timeout": 30.0,
+            "battery_drain": 0.02,
+        }
+
+    if static:
+        sim_config["move_speed"] = 0
+
+    sim = Simulation(escenario=escenario_nombre, cfg=sim_config,DEFAULTS=DEFAULTS,DT=DT,N_PISOS=n_pisos,PISO_H=piso_h,STAIR_XY=stair_xy,STAIR_HALF_W=stair_half_w,ANCHO=ancho,ALTO=alto,C_GATEWAY=C_GATEWAY,C_NODO=C_NODO,C_DEAD=C_DEAD,C_OGM=C_OGM,C_BCN=C_BCN)
+    sim.C_BG = C_BG
+    sim.C_WALL = C_WALL
+    sim.C_FLOOR = C_FLOOR
+    sim.C_ALERT = C_ALERT
+    sim.C_MSG = C_MSG
+
+    info = dict(origen=config_path, escenario=escenario_nombre,
+                n_total=n_total, n_gateways=n_gw, posiciones=posiciones)
+    return sim, info
+
+
+def imprimir_banner(msg, info):
+    print(f"\n{'='*60}")
+    print(f" {msg}")
+    print(f"{'='*60}")
+    if info["origen"]:
+        print(f" Configuración (desde {info['origen']}):")
+    else:
+        print(" Configuración:")
+    print(f"  - Nodos totales: {info['n_total']}")
+    print(f"  - Gateways:      {info['n_gateways']}")
+    print(f"  - Escenario:     {info['escenario']} (posiciones {info['posiciones']})")
+    print(f"{'='*60}\n")
+
+
+def crear_parser():
     parser = argparse.ArgumentParser(
         description="Simulador BATMAN - Red de Expansión de Cobertura",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
@@ -99,104 +201,29 @@ def main():
         help="Los nodos no se mueven: quedan fijos en su posición inicial "
              "(equivale a move_speed=0)."
     )
+    return parser
 
-    args = parser.parse_args()
 
-    ancho, alto, piso_h, n_pisos = ANCHO, ALTO, PISO_H, N_PISOS
-    stair_xy, stair_half_w = STAIR_XY, STAIR_HALF_W
-    escenario_nombre = args.escenario
+def main(argv=None):
+    args = crear_parser().parse_args(argv)
 
     config_path = args.config
     if config_path is None and args.escenario is not None:
-        config_path = os.path.join(ESCENARIOS_DIR, f"{args.escenario}.json")
-
-    if config_path:
-        try:
-            scenario = load_scenario(
-                config_path,
-                default_building=dict(ancho=ANCHO, alto=ALTO, piso_h=PISO_H,
-                                       n_pisos=N_PISOS)
-            )
-        except ValueError as e:
-            print(f"Error en archivo de escenario: {e}")
-            sys.exit(1)
-
-        building = scenario["building"]
-        ancho = building.get("ancho", ANCHO)
-        alto = building.get("alto", ALTO)
-        piso_h = building.get("piso_h", PISO_H)
-        n_pisos = building.get("n_pisos", N_PISOS)
-        stair_xy = tuple(building.get("stair_xy", STAIR_XY))
-        stair_half_w = building.get("stair_half_w", STAIR_HALF_W)
-        escenario_nombre = scenario.get("name", config_path)
-
-        sim_config = dict(DEFAULTS)
-        sim_config.update(scenario.get("medium", {}))
-        sim_config.update(scenario.get("protocol", {}))
-
-        if "random" in scenario:
-            n_total = scenario["random"]["n_nodes"]
-            n_gw = scenario["random"]["n_gateways"]
-            sim_config["n_nodes"] = n_total
-            sim_config["n_gateways"] = n_gw
-            posiciones = "aleatorias"
-        else:
-            n_total = len(scenario["nodes"])
-            n_gw = sum(1 for n in scenario["nodes"] if n["role"] == "G")
-            sim_config["nodes"] = scenario["nodes"]
-            sim_config["events"] = scenario.get("events", [])
-            sim_config["n_nodes"] = n_total
-            sim_config["n_gateways"] = n_gw
-            posiciones = "explícitas"
-
-        print(f"\n{'='*60}")
-        print(f" {args.msg}")
-        print(f"{'='*60}")
-        print(f" Configuración (desde {config_path}):")
-        print(f"  - Nodos totales: {n_total}")
-        print(f"  - Gateways:      {n_gw}")
-        print(f"  - Escenario:     {escenario_nombre} (posiciones {posiciones})")
-        print(f"{'='*60}\n")
-    else:
-        if args.nodes <= 1:
-            print("Error: El número de nodos debe ser mayor a 1 para simular una red ad-hoc.")
-            sys.exit(1)
-
-        if args.gateways >= args.nodes:
-            print("Error: La cantidad de Gateways debe ser menor que el total de nodos.")
-            sys.exit(1)
-
-        escenario_nombre = "aleatorio"
-
-        print(f"\n{'='*60}")
-        print(f" {args.msg}")
-        print(f"{'='*60}")
-        print(f" Configuración:")
-        print(f"  - Nodos totales: {args.nodes}")
-        print(f"  - Gateways:      {args.gateways}")
-        print(f"  - Escenario:     {escenario_nombre} (posiciones aleatorias)")
-        print(f"{'='*60}\n")
-
-        sim_config = {
-            "n_nodes": args.nodes,
-            "n_gateways": args.gateways,
-            "rango_comm": 16.0,
-            "timeout": 30.0,
-            "battery_drain": 0.02,
-        }
-
-    if args.static:
-        sim_config["move_speed"] = 0
+        config_path = ruta_escenario(args.escenario)
 
     try:
-        # . Instanciar el motor de simulación
+        sim, info = construir_simulacion(config_path, args.nodes,
+                                         args.gateways, args.static)
+    except ValueError as e:
+        if config_path:
+            print(f"Error en archivo de escenario: {e}")
+        else:
+            print(f"Error: {e}")
+        sys.exit(1)
 
-        sim = Simulation(escenario=escenario_nombre, cfg=sim_config,DEFAULTS=DEFAULTS,DT=DT,N_PISOS=n_pisos,PISO_H=piso_h,STAIR_XY=stair_xy,STAIR_HALF_W=stair_half_w,ANCHO=ancho,ALTO=alto,C_GATEWAY=C_GATEWAY,C_NODO=C_NODO,C_DEAD=C_DEAD,C_OGM=C_OGM,C_BCN=C_BCN)
-        sim.C_BG = C_BG
-        sim.C_WALL = C_WALL
-        sim.C_FLOOR = C_FLOOR
-        sim.C_ALERT = C_ALERT
-        sim.C_MSG = C_MSG
+    imprimir_banner(args.msg, info)
+
+    try:
         viz = Visualizer(sim)
         viz.run()
 
