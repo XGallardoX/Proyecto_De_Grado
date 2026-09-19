@@ -9,8 +9,9 @@ maqueta simplificada.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  analysis/   métricas, visualización, reportes               │
-│    metrics.py, inspector.py, visualizer.py, reporter.py      │
+│  analysis/   métricas, visualización, reportes, lotes        │
+│    metrics.py, inspector.py, visualizer.py, reporter.py,     │
+│    lote.py                                                   │
 └───────────────────────────▲───────────────────────────────────┘
                              │ lee el estado de
 ┌───────────────────────────┴───────────────────────────────────┐
@@ -81,6 +82,11 @@ en vivo y construye la figura de 6 paneles con `matplotlib` al salir
 CSV/JSON/TXT. Desde la reorganización de `reportes/`, ambos (figura y
 reportes) comparten una sola carpeta con marca de tiempo por ejecución
 — ver el README para el detalle de qué contiene cada archivo.
+`analysis/lote.py` es la parte pura del runner de lote: valida el
+archivo de lote, agrega las métricas de varias corridas (media ±
+desviación estándar muestral por escenario, ignorando las corridas donde
+una métrica no aplica) y escribe el resumen; correr cada corrida lo
+hace `main.py`.
 
 ## `main.py`
 
@@ -91,12 +97,15 @@ protocolo BATMAN — sólo cablea las tres capas de arriba:
   partir de un archivo de escenario (`--config`/`--escenario`, vía
   `sim/config_loader.py`) o de `-n`/`-g`, con la geometría del edificio,
   los valores por defecto del medio (`DEFAULTS`) y los colores. Todos
-  los modos pasan por acá, así que una misma configuración produce la
+  los modos pasan por aquí, así que una misma configuración produce la
   misma simulación en la ventana y sin ella.
 - Después elige el modo: la ventana (`Visualizer`, por defecto),
   `--headless` (`correr()` + `build_analysis_figure()`, que exporta la
-  figura y los reportes, más el resumen de `resumen_corrida()`) o
-  `--inspect` (`correr()` + `snapshot_red()`).
+  figura y los reportes, más el resumen de `resumen_corrida()`),
+  `--inspect` (`correr()` + `snapshot_red()`) o `--batch`
+  (`ejecutar_lote()`: para cada escenario × semilla del archivo de lote
+  fija la semilla, construye, corre y exporta, igual que `--headless`;
+  después agrega con `analysis/lote.py`).
 - `--seed` llama a `fijar_semilla()` antes de construir la simulación.
   Todo el azar del simulador (posiciones aleatorias, desfase inicial de
   los temporizadores, pérdidas del medio, movilidad) sale del módulo
@@ -132,6 +141,22 @@ se retiró del repo; queda en el historial de git.)
   código de la capa del protocolo real (lo usa también `mesh/node.py`),
   así que corregirlo cambia el protocolo y todos los resultados: queda
   como decisión aparte.
+- **Con la movilidad por defecto, las particiones no se reunifican.**
+  En `lotes/ejemplo.json` (5 escenarios × 10 semillas, 200 s) ningún
+  episodio de partición terminó en reunificación: `particion` arranca
+  partida y sigue así; en `rescatista_perdido` el Gateway 4, pasado
+  `until`, sigue al Nodo de usuario más cercano (en la otra punta del
+  edificio) y no vuelve; en `base`, a veces un Gateway sigue a otro
+  nodo y se separa. El tiempo de reconvergencia sale "no aplica". Para
+  medirlo hacen falta escenarios donde la partición se deshaga (ver
+  [`movimiento_nodos.md`](movimiento_nodos.md) para la regla de
+  movilidad).
+- **No hay fallos programables en el escenario.** Sin ventana, los
+  únicos fallos posibles son la batería agotada (`battery`,
+  `battery_drain`) y el alejamiento (`wander`); la caída y la
+  recuperación manual de un nodo (teclas `F`/`G`) sólo existen en la
+  ventana. Un tipo de evento que haga caer o volver un nodo en un
+  instante dado permitiría experimentos de fallo controlados en lote.
 - **La conectividad se mide sobre los enlaces de radio.** Componentes,
   particiones, reunificaciones (eventos `PARTITION`/`HEAL`) y nodos
   alcanzables se calculan con union-find sobre los enlaces con

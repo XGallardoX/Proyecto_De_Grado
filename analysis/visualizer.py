@@ -50,7 +50,7 @@ def _mark_events(ax, events, tipos):
             col, ls = EVENT_STYLE.get(tipo, ('#888', ':'))
             ax.axvline(t, color=col, linestyle=ls, linewidth=1.0, alpha=0.55)
 
-def build_analysis_figure(sim, out_dir=None):
+def build_analysis_figure(sim, out_dir=None, verbose=True):
     """Construye la figura de 6 paneles que explica el comportamiento de
     la red a lo largo del tiempo, la guarda como PNG y exporta los
     reportes CSV/JSON/TXT en la misma carpeta.
@@ -178,7 +178,7 @@ def build_analysis_figure(sim, out_dir=None):
 
     try:
         from analysis.reporter import export_simulation_reports
-        export_simulation_reports(sim, out_dir)
+        export_simulation_reports(sim, out_dir, verbose=verbose)
     except Exception as e:
         print(f"[visualizer] Error al exportar reportes automáticos: {e}")
 

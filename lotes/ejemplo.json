@@ -1,0 +1,15 @@
+{
+  "nombre": "ejemplo",
+  "duracion": 200,
+  "semillas": 10,
+  "escenarios": [
+    { "escenario": "base" },
+    { "escenario": "colapso_progresivo" },
+    { "escenario": "particion" },
+    { "escenario": "rescatista_perdido" },
+    { "escenario": "denso" },
+    { "escenario": "base", "static": true },
+    { "config": "escenarios/edificio_3_pisos.json",
+      "semillas": [1, 2, 3], "duracion": 100, "etiqueta": "edificio_corto" }
+  ]
+}

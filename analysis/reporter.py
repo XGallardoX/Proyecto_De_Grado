@@ -29,13 +29,15 @@ def _fila_metricas(rec, i):
     return {col: getattr(rec, attr)[i] for col, attr in COLUMNAS_METRICAS}
 
 
-def export_simulation_reports(sim, out_dir=None):
+def export_simulation_reports(sim, out_dir=None, verbose=True):
     """
     Exporta los resultados de la simulación a CSV, JSON y texto plano.
 
     Si no se pasa `out_dir`, crea una carpeta propia por ejecución en
-    reportes/<escenario>_<timestamp>/.
+    reportes/<escenario>_<timestamp>/. Con verbose=False no avisa de cada
+    archivo escrito (los errores se imprimen igual).
     """
+    avisar = print if verbose else (lambda *_: None)
     escenario = getattr(sim, "escenario", "desconocido")
 
     if out_dir is None:
@@ -80,7 +82,7 @@ def export_simulation_reports(sim, out_dir=None):
                 writer.writerow(list(_fila_metricas(rec, i).values())
                                 + [event_type, event_desc])
                 
-        print(f"[reporter] Reporte exportado a CSV: {csv_fn}")
+        avisar(f"[reporter] Reporte exportado a CSV: {csv_fn}")
     except Exception as e:
         print(f"[reporter] Error exportando CSV: {e}")
 
@@ -134,7 +136,7 @@ def export_simulation_reports(sim, out_dir=None):
         
         with open(json_fn, 'w', encoding='utf-8') as f:
             json.dump(json_data, f, indent=2, ensure_ascii=False)
-        print(f"[reporter] Reporte exportado a JSON: {json_fn}")
+        avisar(f"[reporter] Reporte exportado a JSON: {json_fn}")
     except Exception as e:
         print(f"[reporter] Error exportando JSON: {e}")
 
@@ -192,7 +194,7 @@ def export_simulation_reports(sim, out_dir=None):
                 f.write("  (No se registraron eventos durante esta simulación)\n")
             f.write("=" * 60 + "\n")
             
-        print(f"[reporter] Reporte exportado a TEXTO: {text_fn}")
+        avisar(f"[reporter] Reporte exportado a TEXTO: {text_fn}")
     except Exception as e:
         print(f"[reporter] Error exportando reporte de texto: {e}")
 

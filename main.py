@@ -3,13 +3,16 @@ import argparse
 import os
 import random
 import sys
+import time
 
 import numpy as np
 
 from sim.engine import Simulation
 from sim.config_loader import load_scenario
+from analysis import lote
 from analysis.inspector import snapshot_red
 from analysis.metrics import METRICAS_CORRIDA, resumen_corrida
+from analysis.reporter import export_simulation_reports
 from analysis.visualizer import Visualizer, build_analysis_figure
 
 ESCENARIOS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "escenarios")
@@ -198,6 +201,63 @@ def modo_inspect(sim, duracion):
     print(snapshot_red(sim))
 
 
+def ejecutar_lote(ruta_lote, out_dir=None):
+    """Corre sin ventana todas las corridas de un archivo de lote
+    (escenario × semilla) y escribe el resumen agregado por escenario.
+
+    Cada corrida es idéntica a `--headless --seed <semilla>` del mismo
+    escenario: se fija la semilla y se construye la simulación de cero.
+    Sin `out_dir`: reportes/lote_<nombre>_<fecha_hora>/. Devuelve la
+    carpeta. Lanza ValueError si el lote o alguno de sus escenarios es
+    inválido, antes de correr nada.
+    """
+    spec = lote.cargar_lote(ruta_lote, ESCENARIOS_DISPONIBLES,
+                            DURACION_DEFAULT, 2 * DT)
+    rutas = {e["etiqueta"]: e["config"] or ruta_escenario(e["escenario"])
+             for e in spec["escenarios"]}
+    for e in spec["escenarios"]:
+        try:
+            construir_simulacion(rutas[e["etiqueta"]], static=e["static"])
+        except ValueError as err:
+            raise ValueError(f"escenario '{e['etiqueta']}': {err}")
+
+    fecha = time.strftime('%Y-%m-%d %H:%M:%S')
+    if out_dir is None:
+        out_dir = os.path.join(
+            "reportes", f"lote_{spec['nombre']}_{time.strftime('%Y%m%d_%H%M%S')}")
+    total = sum(len(e["semillas"]) for e in spec["escenarios"])
+    print(f"Lote '{spec['nombre']}': {len(spec['escenarios'])} escenarios, "
+          f"{total} corridas -> {out_dir}{os.sep}")
+
+    corridas = []
+    for e in spec["escenarios"]:
+        for semilla in e["semillas"]:
+            fijar_semilla(semilla)
+            sim, _ = construir_simulacion(rutas[e["etiqueta"]],
+                                          static=e["static"])
+            correr(sim, e["duracion"])
+            carpeta = os.path.join(e["etiqueta"], f"semilla_{semilla}")
+            if spec["figuras"]:
+                build_analysis_figure(sim, os.path.join(out_dir, carpeta),
+                                      verbose=False)
+            else:
+                export_simulation_reports(sim, os.path.join(out_dir, carpeta),
+                                          verbose=False)
+            corridas.append({"etiqueta": e["etiqueta"], "semilla": semilla,
+                             "carpeta": carpeta,
+                             "metricas": resumen_corrida(sim)})
+            print(f"  [{len(corridas)}/{total}] {e['etiqueta']} · "
+                  f"semilla {semilla}")
+
+    agregado = lote.agregar(corridas)
+    lote.exportar_resumen(spec, corridas, agregado, out_dir, fecha,
+                          archivo=ruta_lote)
+    print()
+    print(lote.formatear_resumen(spec, agregado, fecha))
+    print(f"Resumen en {out_dir}{os.sep} (resumen.txt/csv/json, corridas.csv)")
+    return out_dir
+
+
 def imprimir_banner(msg, info):
     print(f"\n{'='*60}")
     print(f" {msg}")
@@ -289,12 +349,46 @@ def crear_parser():
              "interno de la red (vecinos, rutas BATMAN, conectividad). No "
              "genera archivos."
     )
+    parser.add_argument(
+        "--batch",
+        metavar="LOTE.json",
+        default=None,
+        help="Corre sin ventana un lote de escenarios × semillas definido en "
+             "un archivo JSON (ver README) y genera un resumen agregado por "
+             "escenario (media ± desviación estándar) en "
+             "reportes/lote_<nombre>_<fecha_hora>/."
+    )
     return parser
+
+
+# Flags que el archivo de lote reemplaza: combinarlos con --batch es un error.
+FLAGS_DEL_LOTE = {"escenario": "--escenario", "config": "--config",
+                  "nodes": "--nodes", "gateways": "--gateways",
+                  "static": "--static", "duracion": "--duracion",
+                  "seed": "--seed", "inspect": "--inspect"}
 
 
 def main(argv=None):
     parser = crear_parser()
     args = parser.parse_args(argv)
+
+    if args.batch:
+        conflictos = [flag for dest, flag in FLAGS_DEL_LOTE.items()
+                      if getattr(args, dest) != parser.get_default(dest)]
+        if conflictos:
+            parser.error(f"--batch no se combina con {', '.join(conflictos)}: "
+                         f"escenarios, semillas, duración y static se definen "
+                         f"en el archivo de lote")
+        try:
+            ejecutar_lote(args.batch)
+        except ValueError as e:
+            print(f"Error en archivo de lote: {e}")
+            sys.exit(1)
+        except KeyboardInterrupt:
+            print("\nLote interrumpido por el usuario.")
+            sys.exit(1)
+        return
+
     sin_ventana = args.headless or args.inspect
     if args.duracion != DURACION_DEFAULT and not sin_ventana:
         parser.error("--duracion sólo aplica con --headless o --inspect")

@@ -26,7 +26,9 @@ Dependencias: `numpy`, `matplotlib`, `pygame`/`pygame-ce`.
 
 Punto de entrada único: `main.py`. Por defecto abre una ventana
 `pygame` con la simulación en vivo; con `--headless` o `--inspect` corre
-sin ventana (ver [Sin ventana](#sin-ventana---headless-e---inspect)).
+sin ventana (ver [Sin ventana](#sin-ventana---headless-e---inspect)), y
+con `--batch` corre un lote de escenarios × semillas y resume los
+resultados (ver [Lote de experimentos](#lote-de-experimentos---batch)).
 
 ```bash
 python main.py --escenario base
@@ -46,6 +48,7 @@ python main.py --escenario base
 | `--duracion N` | Segundos **simulados** en `--headless`/`--inspect` (default `200`, mínimo `1`). Sin uno de esos dos flags es un error. |
 | `--seed N` | Fija la semilla de `random` y `numpy`: misma semilla + misma configuración = misma corrida. Vale en cualquier modo. |
 | `--inspect` | Corre `--duracion` segundos sin ventana e imprime el estado interno de la red (vecinos, tabla de rutas BATMAN, componentes, enlaces). No genera archivos. |
+| `--batch LOTE.json` | Corre sin ventana un lote de escenarios × semillas y escribe un resumen agregado por escenario (ver [Archivo de lote](#archivo-de-lote---batch)). No se combina con `--escenario`/`--config`/`-n`/`-g`/`--static`/`--duracion`/`--seed`/`--inspect`: todo eso va en el archivo. |
 
 Tres formas de arrancar, de menor a mayor control sobre la topología:
 
@@ -91,6 +94,21 @@ imprime, para cada nodo, sus vecinos (TQ, saltos, hace cuánto se lo
 oyó), su tabla de rutas BATMAN y a quién da por caído, más los grupos
 conexos de la malla y la fiabilidad de cada enlace de radio — lo mismo
 que la tecla `I` de la ventana.
+
+### Lote de experimentos: `--batch`
+
+Una corrida suelta depende de su semilla. Para poder decir "se
+corrieron N semillas por escenario y estos son los resultados",
+`--batch` corre sin ventana una lista de escenarios × semillas y genera
+un resumen con la media ± desviación estándar de cada métrica por
+escenario:
+
+```bash
+python main.py --batch lotes/ejemplo.json
+```
+
+El formato del archivo y lo que produce están en [Archivo de
+lote](#archivo-de-lote---batch).
 
 ---
 
@@ -222,6 +240,81 @@ más simples, para probar el formato.
 
 ---
 
+## Archivo de lote (`--batch`)
+
+Un JSON con la lista de escenarios a correr y las semillas de cada uno.
+[`lotes/ejemplo.json`](lotes/ejemplo.json) corre los 5 escenarios
+predefinidos con 10 semillas, `base` además con los nodos fijos, y un
+archivo propio con 3 semillas y menos duración (63 corridas, unos
+segundos):
+
+```json
+{
+  "nombre": "ejemplo",
+  "duracion": 200,
+  "semillas": 10,
+  "escenarios": [
+    { "escenario": "base" },
+    { "escenario": "colapso_progresivo" },
+    { "escenario": "particion" },
+    { "escenario": "rescatista_perdido" },
+    { "escenario": "denso" },
+    { "escenario": "base", "static": true },
+    { "config": "escenarios/edificio_3_pisos.json",
+      "semillas": [1, 2, 3], "duracion": 100, "etiqueta": "edificio_corto" }
+  ]
+}
+```
+
+Claves del lote (sólo `escenarios` es obligatoria):
+
+| Clave | Por defecto | Qué hace |
+|---|---|---|
+| `escenarios` | — | Lista de entradas a correr (tabla siguiente). |
+| `semillas` | — | Semillas de las entradas que no digan las suyas: un entero `N` (semillas `1..N`) o una lista (`[3, 7, 11]`). |
+| `duracion` | `200` | Segundos simulados por corrida (mínimo `1`). |
+| `nombre` | el del archivo | Nombre del lote; va en la carpeta de salida. |
+| `figuras` | `false` | Con `true`, cada corrida guarda también su `analisis_red.png` (unas 10 veces más lento). |
+
+Claves de cada entrada:
+
+| Clave | Qué hace |
+|---|---|
+| `escenario` **o** `config` | Exactamente uno de los dos: un escenario predefinido (como `--escenario`) o la ruta a un archivo `.json`/`.txt` (como `--config`: relativa al directorio desde el que se corre `main.py`). |
+| `semillas`, `duracion` | Reemplazan los valores del lote para esta entrada. |
+| `static` | `true` para fijar los nodos (como `--static`). |
+| `etiqueta` | Nombre de la entrada en el resumen y en las carpetas. Por defecto, el del escenario (o del archivo) más `_static` si corresponde. Tiene que ser única: para repetir un escenario con otra configuración, hay que darle una. |
+
+Una clave mal escrita (p. ej. `semilla`), un escenario inexistente o un
+archivo de escenario inválido frenan el lote con un mensaje claro, antes
+de correr la primera corrida.
+
+Cada corrida es idéntica a `python main.py --headless --escenario <e>
+--duracion <d> --seed <semilla>` (con `--static` si corresponde): misma
+semilla, misma simulación. Cualquier fila del resumen se puede
+reproducir suelta, o mirar en la ventana con `--seed`.
+
+Salida, en `reportes/lote_<nombre>_<fecha_hora>/`:
+
+```
+reportes/lote_ejemplo_<fecha_hora>/
+├── resumen.txt       ← media ± desviación por escenario (también sale por pantalla)
+├── resumen.csv       ← una fila por escenario: <métrica>_media, <métrica>_desv, <métrica>_n
+├── resumen.json      ← configuración del lote + agregado + todas las corridas
+├── corridas.csv      ← una fila por corrida: etiqueta, semilla, carpeta y cada métrica
+└── <etiqueta>/semilla_<n>/   ← reporte.csv/json/txt de esa corrida (+ PNG si "figuras")
+```
+
+Las métricas son las de [Métricas de una
+corrida](#métricas-de-una-corrida), con sus advertencias. La desviación
+es la muestral (n − 1). Si una métrica no aplica en alguna corrida (el
+tiempo de reconvergencia cuando la malla nunca se reunificó, la
+primera alerta cuando no hubo alertas), esa corrida no cuenta: al lado
+de cada valor se indica en cuántas aplicó (`n=3 de 10`), y "no aplica"
+si no aplicó en ninguna. En los CSV, "no aplica" es una celda vacía.
+
+---
+
 ## Controles en la ventana en vivo
 
 | Tecla / acción | Efecto |
@@ -296,9 +389,9 @@ promedios de rendimiento y cronología de eventos.
 
 ### Métricas de una corrida
 
-El resumen que imprime `--headless` sale de la serie temporal que ya
-registra `analysis/metrics.py` (`resumen_corrida()`), sin
-instrumentación aparte:
+El resumen que imprime `--headless` (y que `--batch` promedia por
+escenario) sale de la serie temporal que ya registra
+`analysis/metrics.py` (`resumen_corrida()`), sin instrumentación aparte:
 
 | Métrica | Cómo se calcula |
 |---|---|
@@ -340,9 +433,9 @@ python -m unittest discover -s tests -v
 Cubre `sim/` (carga y validación de escenarios, medio radio, motor y
 ciclo de vida de `SimNode`: tick, inbox, batería, detección de caídas,
 movilidad), `analysis/` (columnas y campos de los reportes, resumen por
-corrida, funciones puras de la ventana) y `main.py` sin ventana
-(`--headless`, `--inspect`, `--seed`), incluida la regresión de los 5
-escenarios migrados. No abre la ventana `pygame` ni necesita pantalla;
+corrida, funciones puras de la ventana, validación y agregación del
+runner de lote) y `main.py` sin ventana (`--headless`, `--inspect`,
+`--seed`, `--batch`), incluida la regresión de los 5 escenarios migrados. No abre la ventana `pygame` ni necesita pantalla;
 sí necesita el entorno con las dependencias de `requirements.txt`.
 
 ---
@@ -350,12 +443,14 @@ sí necesita el entorno con las dependencias de `requirements.txt`.
 ## Estructura del proyecto
 
 ```
-main.py                  ← punto de entrada (CLI)
+main.py                   ← punto de entrada (CLI): ventana, --headless, --inspect, --batch
 mesh/                     ← protocolo BATMAN real (router, fault manager, ...)
 sim/                      ← motor de simulación + medio radio + carga de escenarios
-analysis/                 ← métricas, visualizador pygame, reportes
-escenarios/*.json         ← escenarios predefinidos
-tests/                     ← pruebas unitarias
+analysis/                 ← métricas, visualizador pygame, reportes, runner de lote
+escenarios/*.json, *.txt  ← escenarios predefinidos y de ejemplo
+lotes/*.json              ← lotes de experimentos para --batch
+tests/                    ← pruebas unitarias
+docs/                     ← arquitectura y notas de diseño
 ```
 
 Ver [`docs/arquitectura.md`](docs/arquitectura.md) para el detalle de
