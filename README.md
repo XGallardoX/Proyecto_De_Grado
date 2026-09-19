@@ -24,8 +24,9 @@ Dependencias: `numpy`, `matplotlib`, `pygame`/`pygame-ce`.
 
 ## Cómo ejecutar
 
-Punto de entrada único: `main.py`. Abre una ventana `pygame` con la
-simulación en vivo.
+Punto de entrada único: `main.py`. Por defecto abre una ventana
+`pygame` con la simulación en vivo; con `--headless` o `--inspect` corre
+sin ventana (ver [Sin ventana](#sin-ventana---headless-e---inspect)).
 
 ```bash
 python main.py --escenario base
@@ -41,6 +42,10 @@ python main.py --escenario base
 | `--config archivo.json` | Ruta a un escenario JSON propio (ver sección siguiente). Tiene prioridad sobre `--escenario` y sobre `-n`/`-g`. |
 | `--msg "texto"` | Mensaje de cabecera que se imprime al iniciar. |
 | `--static` | Los nodos no se mueven: quedan fijos en la posición inicial (`move_speed=0`). Sin esto, cada Gateway (`G`) camina hacia el Nodo de usuario (`N`) más cercano (ver [`docs/movimiento_nodos.md`](docs/movimiento_nodos.md)). |
+| `--headless` | Corre sin ventana durante `--duracion` segundos simulados y exporta la figura y los reportes a `reportes/<escenario>_<fecha_hora>/`. |
+| `--duracion N` | Segundos **simulados** en `--headless`/`--inspect` (default `200`, mínimo `1`). Sin uno de esos dos flags es un error. |
+| `--seed N` | Fija la semilla de `random` y `numpy`: misma semilla + misma configuración = misma corrida. Vale en cualquier modo. |
+| `--inspect` | Corre `--duracion` segundos sin ventana e imprime el estado interno de la red (vecinos, tabla de rutas BATMAN, componentes, enlaces). No genera archivos. |
 
 Tres formas de arrancar, de menor a mayor control sobre la topología:
 
@@ -55,8 +60,37 @@ python main.py --escenario colapso_progresivo
 python main.py --config escenarios/dos_nodos.json
 ```
 
-No hay modo `--headless`/`--inspect` en `main.py` todavía — siempre
-abre la ventana `pygame` (ver "Gaps conocidos" en `docs/arquitectura.md`).
+### Sin ventana: `--headless` e `--inspect`
+
+Para correr sin pantalla (un servidor, o para generar resultados sin
+interactuar), las mismas tres formas de arrancar aceptan `--headless`:
+
+```bash
+# 50 s simulados del escenario base, reproducible con la semilla 1
+python main.py --headless --escenario base --duracion 50 --seed 1
+
+# Un archivo propio, con los nodos fijos
+python main.py --headless --config escenarios/edificio_3_pisos.json --static
+```
+
+Al terminar imprime un resumen de la corrida (TQ medio, tasa de
+entrega, componentes y nodos alcanzables al final, particiones,
+reconvergencia, alertas; ver [Métricas de una
+corrida](#métricas-de-una-corrida)) y deja en
+`reportes/<escenario>_<fecha_hora>/` los mismos cuatro archivos que la
+ventana (ver [Qué genera cada ejecución](#qué-genera-cada-ejecución-reportes)).
+
+`--inspect` sirve para mirar por dentro el estado del protocolo en un
+instante dado, sin generar archivos:
+
+```bash
+python main.py --inspect --escenario particion --duracion 30
+```
+
+imprime, para cada nodo, sus vecinos (TQ, saltos, hace cuánto se lo
+oyó), su tabla de rutas BATMAN y a quién da por caído, más los grupos
+conexos de la malla y la fiabilidad de cada enlace de radio — lo mismo
+que la tecla `I` de la ventana.
 
 ---
 
@@ -217,8 +251,8 @@ destino está caído.
 
 ## Qué genera cada ejecución (`reportes/`)
 
-Al salir de la ventana (`Q`/`Esc`/cerrar), o cada vez que presionas
-`P`, se crea una carpeta nueva:
+Al salir de la ventana (`Q`/`Esc`/cerrar), cada vez que presionas `P`,
+o al terminar una corrida `--headless`, se crea una carpeta nueva:
 
 ```
 reportes/<escenario>_<fecha_hora>/
@@ -260,6 +294,41 @@ paquetes transmitidos/recibidos, tasa de entrega), `serie_temporal_metricas`
 un informe: parámetros de configuración, estadísticas finales,
 promedios de rendimiento y cronología de eventos.
 
+### Métricas de una corrida
+
+El resumen que imprime `--headless` sale de la serie temporal que ya
+registra `analysis/metrics.py` (`resumen_corrida()`), sin
+instrumentación aparte:
+
+| Métrica | Cómo se calcula |
+|---|---|
+| TQ medio de rutas | Promedio en el tiempo del TQ medio de todas las rutas de todos los nodos vivos (el mismo valor que "Calidad de Ruta Promedio" de `reporte.txt`). Ver la advertencia de abajo. |
+| Saltos medios por ruta | Ídem, con la cantidad de saltos de cada ruta. |
+| Tasa de entrega del radio | Paquetes entregados / intentados por el medio en toda la corrida. |
+| Componentes de la malla al final | Grupos conexos de Gateways vivos en el último instante (1 = malla unida). |
+| Nodos de usuario alcanzables al final | Nodos `N` vivos que comparten grupo con algún Gateway en el último instante: la cobertura que da la malla. |
+| Gateways vivos al final | Gateways con batería y sin fallo en el último instante. |
+| Episodios de partición | Veces que la malla de Gateways pasó de un componente a más de uno. |
+| Tiempo con la malla partida (s) | Tiempo total con más de un componente. |
+| Tiempo de reconvergencia (s) | Duración media de los episodios de partición que se cerraron (la malla volvió a un solo componente, el mismo criterio que el evento `HEAL`). "No aplica" si ninguno se cerró. |
+| Alertas de gateway perdido | Eventos `ALERT_ON`: un Gateway dejó de oír a otro durante más de `timeout` segundos (cada Gateway que lo detecta cuenta una). |
+| Primera alerta (s) | Instante de la primera de esas alertas; "no aplica" si no hubo. |
+
+Dos advertencias para interpretarlas:
+
+- **El TQ vale 1.0 en toda ruta que existe.** `BatmanRouter`
+  (`mesh/router.py`) sólo agrega un `1` a su ventana deslizante cuando
+  recibe un OGM y nunca registra los que se pierden, así que la calidad
+  de enlace no baja de 1.0 aunque el medio pierda paquetes. El "TQ
+  medio" termina midiendo durante cuánto tiempo hubo rutas (vale 0
+  hasta que llega el primer OGM), no la calidad de los enlaces. Ver
+  "Limitaciones conocidas" en [`docs/arquitectura.md`](docs/arquitectura.md).
+- **Particiones y reconvergencia miden conectividad de radio, no
+  tablas de rutas.** Dos Gateways están en el mismo componente si hay un
+  camino de enlaces en rango entre ellos (lo mismo que el panel 2 de la
+  figura y los eventos `PARTITION`/`HEAL`). El tiempo que tarda BATMAN
+  en volver a tener rutas hacia todos no se mide aparte.
+
 ---
 
 ## Tests
@@ -268,9 +337,13 @@ promedios de rendimiento y cronología de eventos.
 python -m unittest discover -s tests -v
 ```
 
-Corre sobre `sim/config_loader.py`, `sim/radio.py` y `sim/engine.py`
-directamente (sin `Visualizer`/pygame, no necesita pantalla), incluida
-la regresión de los 5 escenarios migrados.
+Cubre `sim/` (carga y validación de escenarios, medio radio, motor y
+ciclo de vida de `SimNode`: tick, inbox, batería, detección de caídas,
+movilidad), `analysis/` (columnas y campos de los reportes, resumen por
+corrida, funciones puras de la ventana) y `main.py` sin ventana
+(`--headless`, `--inspect`, `--seed`), incluida la regresión de los 5
+escenarios migrados. No abre la ventana `pygame` ni necesita pantalla;
+sí necesita el entorno con las dependencias de `requirements.txt`.
 
 ---
 

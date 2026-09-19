@@ -50,9 +50,13 @@ def _mark_events(ax, events, tipos):
             col, ls = EVENT_STYLE.get(tipo, ('#888', ':'))
             ax.axvline(t, color=col, linestyle=ls, linewidth=1.0, alpha=0.55)
 
-def build_analysis_figure(sim):
+def build_analysis_figure(sim, out_dir=None):
     """Construye la figura de 6 paneles que explica el comportamiento de
-    la red a lo largo del tiempo y la guarda como PNG."""
+    la red a lo largo del tiempo, la guarda como PNG y exporta los
+    reportes CSV/JSON/TXT en la misma carpeta.
+
+    Sin `out_dir` usa una carpeta nueva reportes/<escenario>_<fecha_hora>/.
+    Devuelve la ruta del PNG, o None si hay menos de 2 muestras."""
     rec = sim.recorder
     t = np.array(rec.t)
     if len(t) < 2:
@@ -164,11 +168,13 @@ def build_analysis_figure(sim):
     ax6.legend(fontsize=8, loc='upper left')
     ax6.grid(alpha=0.25)
 
-    ts = time.strftime('%Y%m%d_%H%M%S')
-    out_dir = os.path.join("reportes", f"{sim.escenario}_{ts}")
+    if out_dir is None:
+        ts = time.strftime('%Y%m%d_%H%M%S')
+        out_dir = os.path.join("reportes", f"{sim.escenario}_{ts}")
     os.makedirs(out_dir, exist_ok=True)
     fname = os.path.join(out_dir, "analisis_red.png")
     fig.savefig(fname, dpi=110)
+    plt.close(fig)
 
     try:
         from analysis.reporter import export_simulation_reports
@@ -894,77 +900,3 @@ class Visualizer:
         self._text(surf, self.f_xs, "Enter envía · Esc cancela",
                    inp.right, inp.bottom + 4, self.c_dim, right=True)
 
-
-# ══════════════════════════════════════════════════════════════════════════
-#  MAIN
-# ══════════════════════════════════════════════════════════════════════════
-def main():
-    p = argparse.ArgumentParser(
-        description="Simulación de red ad-hoc con BATMAN real (rescate).")
-    p.add_argument('--escenario', default='base', choices=SCENARIOS)
-    p.add_argument('--headless', action='store_true',
-                   help="Sin ventana: corre y guarda el análisis en PNG")
-    p.add_argument('--duracion', type=float, default=200.0,
-                   help="Segundos simulados en modo headless")
-    p.add_argument('--timeout', type=float, default=DEFAULTS['timeout'],
-                   help="Segundos sin señal para marcar rescatista caído")
-    p.add_argument('--rango', type=float, default=DEFAULTS['rango_comm'],
-                   help="Alcance de radio en metros")
-    p.add_argument('--falloff', type=float, default=DEFAULTS['falloff'],
-                   help="Degradación de fiabilidad con la distancia (0-1.5)")
-    p.add_argument('--seed', type=int, default=None,
-                   help="Semilla aleatoria (reproducibilidad)")
-    p.add_argument('--inspect', action='store_true',
-                   help="Imprime en TEXTO el estado interno de la red "
-                        "(tabla de rutas, vecinos, conectividad) y sale. "
-                        "Corre --duracion segundos antes del volcado.")
-    args = p.parse_args()
-
-    if args.seed is not None:
-        random.seed(args.seed)
-        np.random.seed(args.seed)
-
-    cfg = dict(timeout=args.timeout, rango_comm=args.rango,
-               falloff=args.falloff)
-    sim = Simulation(escenario=args.escenario, cfg=cfg)
-
-    print("=" * 68)
-    print("  Red Ad-Hoc · BATMAN REAL (batman_node.py) en simulación")
-    print(f"  Escenario: {args.escenario}  ·  timeout={args.timeout:.0f}s  "
-          f"·  rango={args.rango:.0f}m")
-    print("=" * 68)
-
-    if args.inspect:
-        pasos = int(args.duracion / DT)
-        for _ in range(pasos):
-            sim.step()
-        print(snapshot_red(sim))
-        return
-
-    if args.headless:
-        pasos = int(args.duracion / DT)
-        for _ in range(pasos):
-            sim.step()
-        fn = build_analysis_figure(sim)
-        s = sim.summary()
-        print(f"\n  Tiempo simulado     : {s['t']:.0f} s")
-        print(f"  Gateways activos : {s['aliveG']}/{s['totG']}")
-        print(f"  Nodos      : {s['aliveN']}/{s['totN']}")
-        print(f"  Componentes finales : {s['comps']}")
-        print(f"  Eventos registrados : {len(sim.recorder.events)}")
-        print(f"  Paquetes radio      : {sim.medium.delivered}/"
-              f"{sim.medium.attempted} entregados")
-        print(f"\n  Figura de análisis  : {fn}\n")
-        for (et, tipo, txt) in sim.recorder.events:
-            print(f"    [{et:6.1f}s] {tipo:10s} {txt}")
-    else:
-        viz = Visualizer(sim)
-        viz.run()
-        s = sim.summary()
-        print(f"\n  Resumen: t={s['t']:.0f}s · "
-              f"gateways {s['aliveG']}/{s['totG']} · "
-              f"nodos {s['aliveN']}/{s['totN']}")
-
-
-if __name__ == "__main__":
-    main()

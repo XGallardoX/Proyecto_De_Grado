@@ -72,7 +72,9 @@ parámetros de radio en caliente).
 
 `analysis/metrics.py` (`Recorder`) muestrea la serie temporal en cada
 paso (nodos vivos, componentes de la malla, TQ medio, ratio de
-entrega, etc.). `analysis/inspector.py` vuelca ese estado interno como
+entrega, etc.), y `resumen_corrida()` la condensa en las métricas
+escalares de una corrida completa (las que imprime `--headless`).
+`analysis/inspector.py` vuelca ese estado interno como
 texto (tecla `I`). `analysis/visualizer.py` dibuja la ventana `pygame`
 en vivo y construye la figura de 6 paneles con `matplotlib` al salir
 (o con `P`). `analysis/reporter.py` exporta esa misma información a
@@ -82,11 +84,23 @@ reportes) comparten una sola carpeta con marca de tiempo por ejecución
 
 ## `main.py`
 
-Es la única pieza que no vive en un paquete: parsea los argumentos
-(`-n`/`-g`, `--escenario`, `--config`, `--msg`), arma la configuración
-del edificio y de la simulación, instancia `Simulation` y arranca
-`Visualizer`. No conoce nada del protocolo BATMAN — sólo cablea las
-tres capas de arriba.
+Es la única pieza que no vive en un paquete. No conoce nada del
+protocolo BATMAN — sólo cablea las tres capas de arriba:
+
+- `construir_simulacion()` arma una `Simulation` lista para correr a
+  partir de un archivo de escenario (`--config`/`--escenario`, vía
+  `sim/config_loader.py`) o de `-n`/`-g`, con la geometría del edificio,
+  los valores por defecto del medio (`DEFAULTS`) y los colores. Todos
+  los modos pasan por acá, así que una misma configuración produce la
+  misma simulación en la ventana y sin ella.
+- Después elige el modo: la ventana (`Visualizer`, por defecto),
+  `--headless` (`correr()` + `build_analysis_figure()`, que exporta la
+  figura y los reportes, más el resumen de `resumen_corrida()`) o
+  `--inspect` (`correr()` + `snapshot_red()`).
+- `--seed` llama a `fijar_semilla()` antes de construir la simulación.
+  Todo el azar del simulador (posiciones aleatorias, desfase inicial de
+  los temporizadores, pérdidas del medio, movilidad) sale del módulo
+  `random`, así que misma semilla + misma configuración = misma corrida.
 
 ## Qué NO usa el simulador (y por qué existe igual)
 
@@ -104,17 +118,26 @@ repo. (El prototipo monolítico anterior a la migración a
 `mesh/`/`sim/`/`analysis/`, `batman_node.py` + `simulacion_batman_real.py`,
 se retiró del repo; queda en el historial de git.)
 
-## Gaps conocidos
+## Limitaciones conocidas
 
-- **No hay modo headless.** `main.py` siempre abre la ventana
-  `pygame`. Existe un bloque `if __name__ == "__main__"` al final de
-  `analysis/visualizer.py` con flags `--headless`/`--inspect`/`--seed`
-  que sugiere que hubo un intento de portarlo, pero está roto: llama a
-  `Simulation(escenario=..., cfg=cfg)` sin los parámetros
-  (`DEFAULTS`, `DT`, dimensiones del edificio, colores) que
-  `Simulation.__init__` requiere, así que revienta con `TypeError` al
-  primer uso. Si se retoma el headless, ese bloque es más un punto de
-  partida a corregir que código funcional a reutilizar tal cual.
+- **El TQ de `BatmanRouter` no refleja pérdidas.** `receive_ogm()`
+  (`mesh/router.py`) agrega un `1` a la ventana deslizante de cada
+  (origen, vecino) por cada OGM que recibe, pero nunca un `0` por los
+  que se pierden; `link_quality()` promedia esa ventana. Resultado:
+  toda ruta existente tiene TQ = 1.0, aunque el medio pierda entre un 5
+  y un 25 % de los paquetes según el escenario (verificado en los 5
+  escenarios predefinidos). El prototipo original (`batman_node.py`)
+  hacía lo mismo. Mientras no se corrija, el "TQ medio" de la figura y
+  de los reportes mide cuánto tiempo hubo rutas, no su calidad. Es
+  código de la capa del protocolo real (lo usa también `mesh/node.py`),
+  así que corregirlo cambia el protocolo y todos los resultados: queda
+  como decisión aparte.
+- **La conectividad se mide sobre los enlaces de radio.** Componentes,
+  particiones, reunificaciones (eventos `PARTITION`/`HEAL`) y nodos
+  alcanzables se calculan con union-find sobre los enlaces con
+  fiabilidad > 0, no sobre las tablas de rutas. No hay una métrica de
+  cuánto tarda BATMAN en volver a tener rutas hacia todos tras un
+  cambio de topología.
 - **Resto del framing de rescate en `mesh/`.** Los OGM del nodo real
   (`mesh/node.py`) y `PeerInfo` (`mesh/router.py`) conservan un campo
   `survivors`, que el nodo real emite siempre vacío. El simulador ya no

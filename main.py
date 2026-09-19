@@ -1,11 +1,16 @@
 
 import argparse
 import os
+import random
 import sys
+
+import numpy as np
 
 from sim.engine import Simulation
 from sim.config_loader import load_scenario
-from analysis.visualizer import Visualizer
+from analysis.inspector import snapshot_red
+from analysis.metrics import METRICAS_CORRIDA, resumen_corrida
+from analysis.visualizer import Visualizer, build_analysis_figure
 
 ESCENARIOS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "escenarios")
 ESCENARIOS_DISPONIBLES = ["base", "colapso_progresivo", "particion",
@@ -21,6 +26,7 @@ STAIR_HALF_W = 1.7        # mitad del ancho del hueco de escalera (m)
 
 # Tiempo de simulación
 DT = 0.5  # segundos de tiempo simulado por paso
+DURACION_DEFAULT = 200.0  # segundos simulados en --headless/--inspect
 
 # Radio / medio 
 DEFAULTS = dict(
@@ -85,7 +91,8 @@ def construir_simulacion(config_path=None, n_nodes=2, n_gateways=1,
         n_pisos = building.get("n_pisos", N_PISOS)
         stair_xy = tuple(building.get("stair_xy", STAIR_XY))
         stair_half_w = building.get("stair_half_w", STAIR_HALF_W)
-        escenario_nombre = scenario.get("name", config_path)
+        escenario_nombre = (scenario.get("name") or
+                            os.path.splitext(os.path.basename(config_path))[0])
 
         sim_config = dict(DEFAULTS)
         sim_config.update(scenario.get("medium", {}))
@@ -137,6 +144,58 @@ def construir_simulacion(config_path=None, n_nodes=2, n_gateways=1,
     info = dict(origen=config_path, escenario=escenario_nombre,
                 n_total=n_total, n_gateways=n_gw, posiciones=posiciones)
     return sim, info
+
+
+def fijar_semilla(semilla):
+    """Fija random y numpy: misma semilla y misma configuración, misma
+    corrida."""
+    random.seed(semilla)
+    np.random.seed(semilla)
+
+
+def correr(sim, duracion):
+    """Avanza la simulación `duracion` segundos simulados, sin ventana."""
+    for _ in range(int(duracion / DT)):
+        sim.step()
+
+
+def _formatear(valor, decimales):
+    if valor is None:
+        return "no aplica"
+    if isinstance(valor, int):
+        return str(valor)
+    return f"{valor:.{decimales}f}"
+
+
+def modo_headless(sim, duracion, out_dir=None):
+    """Corre sin ventana, exporta figura + reportes y devuelve la carpeta
+    donde quedaron. Sin `out_dir`: reportes/<escenario>_<fecha_hora>/."""
+    correr(sim, duracion)
+    png = build_analysis_figure(sim, out_dir)
+    if png is None:
+        raise ValueError(f"corrida demasiado corta: hacen falta al menos "
+                         f"{2 * DT:g} s simulados")
+    carpeta = os.path.dirname(png)
+
+    metricas = resumen_corrida(sim)
+    print(f"{'='*60}")
+    print(f" Corrida headless · escenario '{sim.escenario}' · "
+          f"{sim.t:.0f} s simulados")
+    print(f"{'='*60}")
+    for clave, etiqueta, decimales in METRICAS_CORRIDA:
+        print(f"  {etiqueta:<38}: {_formatear(metricas[clave], decimales)}")
+    print(f"  {'Eventos registrados':<38}: {len(sim.recorder.events)}")
+    print(f"{'-'*60}")
+    print(f" Figura y reportes en {carpeta}{os.sep}")
+    print(f"{'='*60}")
+    return carpeta
+
+
+def modo_inspect(sim, duracion):
+    """Corre sin ventana e imprime el estado interno de la red, sin
+    generar archivos."""
+    correr(sim, duracion)
+    print(snapshot_red(sim))
 
 
 def imprimir_banner(msg, info):
@@ -201,11 +260,49 @@ def crear_parser():
         help="Los nodos no se mueven: quedan fijos en su posición inicial "
              "(equivale a move_speed=0)."
     )
+
+    # --- Ejecución sin ventana ---
+    parser.add_argument(
+        "--headless",
+        action="store_true",
+        help="Corre sin ventana durante --duracion segundos simulados y "
+             "exporta la figura de análisis y los reportes CSV/JSON/TXT a "
+             "reportes/<escenario>_<fecha_hora>/."
+    )
+    parser.add_argument(
+        "--duracion",
+        type=float,
+        default=DURACION_DEFAULT,
+        help="Segundos simulados en --headless/--inspect."
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=None,
+        help="Semilla de random y numpy para reproducir una corrida "
+             "(vale en cualquier modo)."
+    )
+    parser.add_argument(
+        "--inspect",
+        action="store_true",
+        help="Corre --duracion segundos sin ventana e imprime el estado "
+             "interno de la red (vecinos, rutas BATMAN, conectividad). No "
+             "genera archivos."
+    )
     return parser
 
 
 def main(argv=None):
-    args = crear_parser().parse_args(argv)
+    parser = crear_parser()
+    args = parser.parse_args(argv)
+    sin_ventana = args.headless or args.inspect
+    if args.duracion != DURACION_DEFAULT and not sin_ventana:
+        parser.error("--duracion sólo aplica con --headless o --inspect")
+    if args.duracion < 2 * DT:
+        parser.error(f"--duracion debe ser de al menos {2 * DT:g} s")
+
+    if args.seed is not None:
+        fijar_semilla(args.seed)
 
     config_path = args.config
     if config_path is None and args.escenario is not None:
@@ -228,9 +325,14 @@ def main(argv=None):
                                     static=args.static)[0]
 
     try:
-        viz = Visualizer(sim, escenarios=ESCENARIOS_DISPONIBLES,
-                         cargar_escenario=cargar_escenario)
-        viz.run()
+        if args.inspect:
+            modo_inspect(sim, args.duracion)
+        elif args.headless:
+            modo_headless(sim, args.duracion)
+        else:
+            viz = Visualizer(sim, escenarios=ESCENARIOS_DISPONIBLES,
+                             cargar_escenario=cargar_escenario)
+            viz.run()
 
     except KeyboardInterrupt:
         print("\nSimulación finalizada por el usuario.")
