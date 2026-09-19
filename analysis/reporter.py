@@ -49,7 +49,6 @@ def export_simulation_reports(sim, out_dir=None):
             "tasa_entrega_paquetes",
             "alertas_activas",
             "ancho_banda_total_mbps",
-            "supervivientes_hallados_acumulado",
             "tipo_evento",
             "descripcion_evento"
         ]
@@ -81,10 +80,7 @@ def export_simulation_reports(sim, out_dir=None):
                 deliver_ratio = rec.deliver_ratio[i] if hasattr(rec, 'deliver_ratio') and i < len(rec.deliver_ratio) else 1.0
                 alerts_active = rec.alerts_active[i] if hasattr(rec, 'alerts_active') and i < len(rec.alerts_active) else 0
                 bandwidth = rec.bandwidth[i] if hasattr(rec, 'bandwidth') and i < len(rec.bandwidth) else 0.0
-                found_cum = rec.found_cum[i] if hasattr(rec, 'found_cum') and i < len(rec.found_cum) else (
-                    len(sim.found_ids) if hasattr(sim, 'found_ids') else 0
-                )
-                
+
                 evts = events_by_time.get(round(t_val, 3), [])
                 if evts:
                     event_type = " | ".join(e[0] for e in evts)
@@ -105,7 +101,6 @@ def export_simulation_reports(sim, out_dir=None):
                     deliver_ratio,
                     alerts_active,
                     bandwidth,
-                    found_cum,
                     event_type,
                     event_desc
                 ])
@@ -140,13 +135,6 @@ def export_simulation_reports(sim, out_dir=None):
             summary_data["tasa_entrega_paquetes"] = summary_data["paquetes_recibidos"] / summary_data["paquetes_transmitidos"]
         else:
             summary_data["tasa_entrega_paquetes"] = 1.0
-            
-        if hasattr(sim, "found_ids"):
-            summary_data["supervivientes_hallados"] = len(sim.found_ids)
-            
-        surv_nodes = [n for n in sim.nodes.values() if n.role == 'N']
-        if surv_nodes:
-            summary_data["total_supervivientes"] = len(surv_nodes)
 
         metrics_list = []
         for i in range(t_len):
@@ -168,9 +156,6 @@ def export_simulation_reports(sim, out_dir=None):
             deliver_ratio = rec.deliver_ratio[i] if hasattr(rec, 'deliver_ratio') and i < len(rec.deliver_ratio) else 1.0
             alerts_active = rec.alerts_active[i] if hasattr(rec, 'alerts_active') and i < len(rec.alerts_active) else 0
             bandwidth = rec.bandwidth[i] if hasattr(rec, 'bandwidth') and i < len(rec.bandwidth) else 0.0
-            found_cum = rec.found_cum[i] if hasattr(rec, 'found_cum') and i < len(rec.found_cum) else (
-                len(sim.found_ids) if hasattr(sim, 'found_ids') else 0
-            )
 
             metrics_list.append({
                 "tiempo_s": rec.t[i],
@@ -183,8 +168,7 @@ def export_simulation_reports(sim, out_dir=None):
                 "silencio_maximo_s": max_silence,
                 "tasa_entrega_paquetes": deliver_ratio,
                 "alertas_activas": alerts_active,
-                "ancho_banda_total_mbps": bandwidth,
-                "supervivientes_hallados_acumulado": found_cum
+                "ancho_banda_total_mbps": bandwidth
             })
 
         events_list = []
@@ -250,9 +234,6 @@ def export_simulation_reports(sim, out_dir=None):
             f.write(f"  - Paquetes Radio Recibidos    : {summary_data['paquetes_recibidos']}\n")
             pct = summary_data['tasa_entrega_paquetes'] * 100
             f.write(f"  - Eficiencia del Canal Radio  : {pct:.2f}%\n")
-            
-            if "supervivientes_hallados" in summary_data:
-                f.write(f"  - Supervivientes Encontrados  : {summary_data['supervivientes_hallados']} / {summary_data.get('total_supervivientes', 0)}\n")
             f.write("-" * 60 + "\n")
             
             if len(rec.t) > 0:

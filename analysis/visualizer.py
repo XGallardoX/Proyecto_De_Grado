@@ -13,7 +13,6 @@ EVENT_STYLE = {
     'RECOVER':   ('#1D9E75', '-'),
     'ALERT_ON':  ('#E67E22', ':'),
     'ALERT_OFF': ('#2ECC71', ':'),
-    'FOUND':     ('#2980B9', '--'),
     'PARTITION': ('#8E44AD', '-.'),
     'HEAL':      ('#16A085', '-.'),
     'SCENARIO':  ('#555', '-'),
@@ -134,11 +133,6 @@ def build_analysis_figure(sim):
              linewidth=2.0, label='Ancho de banda total')
     _mark_events(ax6, rec.events,
                  {'FAIL', 'RECOVER', 'SCENARIO'})
-    for (et, tipo, txt) in rec.events:
-        if tipo == 'FOUND':
-            ax6.annotate(txt.split(' hallado')[0], (et, 0),
-                         rotation=90, fontsize=6, color='#2980B9',
-                         va='bottom', ha='right')
     ax6.set_title("6 · Ancho de banda total de la red")
     ax6.set_ylabel("Ancho de banda")
     ax6.set_xlabel("tiempo (s)")
@@ -375,7 +369,6 @@ class Visualizer:
         items = [
             ('o', '#378ADD', 'Rescatista'),
             ('d', self.sim.C_SURV, 'Superviviente'),
-            ('d', self.sim.C_SURV_OK, 'Superv. hallado'),
             ('o', self.sim.C_ALERT, 'Alerta'),
             ('l', '#1D9E75', 'Enlace bueno'),
             ('l', '#E24B4A', 'Enlace débil'),

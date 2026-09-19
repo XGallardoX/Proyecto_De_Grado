@@ -115,8 +115,9 @@ huérfanos).
   `Simulation.__init__` requiere, así que revienta con `TypeError` al
   primer uso. Si se retoma el headless, ese bloque es más un punto de
   partida a corregir que código funcional a reutilizar tal cual.
-- **`register_found()`/`my_survivors` es código muerto.** Nada llena
-  `my_survivors` en el motor nuevo — la detección por proximidad
-  (`rango_deteccion`) del prototipo viejo nunca se portó. Antes de
-  documentar esto como una capacidad, hay que decidir si se implementa
-  o se retira (ver `ESTADO_PROYECTO.md`).
+- **Resto del framing de rescate en `mesh/`.** Los OGM del nodo real
+  (`mesh/node.py`) y `PeerInfo` (`mesh/router.py`) conservan un campo
+  `survivors`, que el nodo real emite siempre vacío. El simulador ya no
+  lo emite ni lo lee (el mecanismo de "hallar supervivientes" se
+  retiró); se deja porque es parte del formato de mensaje del nodo
+  real, que queda fuera del alcance de esta fase.

@@ -42,8 +42,6 @@ class SimNode:
         self.t_hb = -random.uniform(0, self.DEFAULTS['heartbeat_cada'])
         self.t_fault = 0.0
 
-
-        self.my_survivors = []
         self.history = []
         self.last_msg = ""          
 
@@ -60,7 +58,7 @@ class SimNode:
         if not self.alive:
             return self.sim.C_DEAD
         if self.role == 'N':
-            return self.sim.C_SURV_OK if self.id in self.sim.found_ids else self.sim.C_SURV
+            return self.sim.C_SURV
         return self.sim.C_RESC[(self.sim.local_index[self.id] - 1) % len(self.sim.C_RESC)]
 
     def dist_to(self, other):
@@ -76,7 +74,6 @@ class SimNode:
             'ttl': self.sim.cfg['ttl'], 'path': [self.id],
             'battery': self.battery, 'load': 0,
             'reputation': 1.0, 'tq': 1.0,
-            'survivors': list(self.my_survivors),
             'alerts': list(self.fault.failed),
             'ts': self.sim.t,
         }
@@ -179,8 +176,6 @@ class SimNode:
                     fwd['tq'] = msg.get('tq', 1.0) * \
                         self.router.link_quality(from_ip)
                     self.sim.medium.broadcast(self, fwd, self.sim.C_OGM)
-                for sid in msg.get('survivors', []):
-                    self.sim.register_found(sid, msg['origin_id'])
                 for aid in msg.get('alerts', []):
                     self.router.mark_alert(aid)
 
@@ -206,8 +201,7 @@ class SimNode:
                 tx, ty = 38.0, 2.0
             else:
                 objetivos = [s for s in self.sim.nodes.values()
-                             if s.role == 'N'
-                             and s.id not in self.sim.found_ids]
+                             if s.role == 'N']
                 if objetivos:
                     tgt = min(objetivos,
                               key=lambda s: self.dist_xy(s.x, s.y))

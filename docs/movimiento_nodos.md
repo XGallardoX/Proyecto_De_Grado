@@ -3,9 +3,8 @@
 Este documento explica un comportamiento que se observó al correr el
 simulador: los nodos (sobre todo los Gateway) parecían converger todos
 hacia el mismo punto en vez de quedarse en su posición inicial. No era
-un bug — es el modelo de movimiento tipo "rescate" que trae el
-simulador por defecto — pero no estaba documentado en ningún lado, así
-que quedaba la duda.
+un bug — es el modelo de movimiento que trae el simulador por defecto —
+pero no estaba documentado en ningún lado, así que quedaba la duda.
 
 ## Qué se observaba
 
@@ -19,52 +18,55 @@ habían arrancado.
 El modelo de movimiento vive en [`sim/sim_node.py`](../sim/sim_node.py),
 método `SimNode.move()`. Ahí cada nodo se mueve según su `role`:
 
-- **`role == "N"`** (Nodo de usuario): representa a alguien atrapado.
-  Solo hace un micro-movimiento aleatorio (`random.gauss(0, 0.05)`) —
-  se queda prácticamente en el mismo sitio.
-- **`role == "G"`** (Gateway): el simulador lo trata como un
-  **rescatista**. En cada paso busca el nodo `N` más cercano que
-  todavía no haya sido "encontrado" y camina hacia él con
-  `_move_avoiding()`.
+- **`role == "N"`** (Nodo de usuario): casi estático. Solo hace un
+  micro-movimiento aleatorio (`random.gauss(0, 0.05)`) — se queda
+  prácticamente en el mismo sitio.
+- **`role == "G"`** (Gateway): en cada paso busca el nodo `N` más
+  cercano y camina hacia él con `_move_avoiding()`, acercándole
+  cobertura.
 
 Es decir, el movimiento de los `G` nunca fue aleatorio ni un bug de
-física — es lógica de búsqueda-y-rescate: los rescatistas van a buscar
-supervivientes.
+física — es una regla de seguimiento: cada Gateway se desplaza hacia
+el Nodo de usuario que tiene más cerca.
 
-## Cómo decidía cada Gateway a cuál nodo ir
+La regla viene del prototipo anterior, pensado como búsqueda y rescate
+(los Gateway eran "rescatistas" que iban a "hallar supervivientes" y,
+al hallar uno, pasaban al siguiente). Con el enfoque actual de Red de
+Expansión de Cobertura ese mecanismo de hallazgo se retiró del código;
+la regla de seguimiento quedó tal cual.
+
+## Cómo decide cada Gateway a cuál nodo ir
 
 La selección del objetivo está en este fragmento de `move()`:
 
 ```python
 objetivos = [s for s in self.sim.nodes.values()
-             if s.role == 'N'
-             and s.id not in self.sim.found_ids]
+             if s.role == 'N']
 if objetivos:
     tgt = min(objetivos, key=lambda s: self.dist_xy(s.x, s.y))
     tx, ty = tgt.x, tgt.y
 ```
 
-Regla simple: de todos los nodos `N` que **aún no han sido
-encontrados** (`found_ids`), cada Gateway elige el **más cercano a sí
-mismo** en distancia euclidiana (`dist_xy`). No hay coordinación entre
-Gateways ni reparto de objetivos — cada uno corre este cálculo de
-forma independiente.
+Regla simple: de todos los nodos `N` (vivos o caídos), cada Gateway
+elige el **más cercano a sí mismo** en distancia euclidiana
+(`dist_xy`). No hay coordinación entre Gateways ni reparto de
+objetivos — cada uno corre este cálculo de forma independiente.
 
 Esto explica por qué "se unían": si dos o más Gateways tienen el mismo
 nodo `N` como el más cercano (típico cuando hay pocos `N` respecto a
 `G`, como con `-n 3 -g 2`, donde solo hay un `N`), **todos** caminan
-hacia ese mismo punto y terminan agrupados ahí. Una vez que ese `N` se
-marca como encontrado (`register_found`), los Gateways libres pasan a
-perseguir el siguiente `N` más cercano no encontrado; si ya no queda
-ninguno, patrullan con pasos aleatorios pequeños.
+hacia ese mismo punto y terminan agrupados ahí — y ahí se quedan,
+porque el objetivo no cambia mientras ese `N` siga siendo el más
+cercano. Solo si no existe ningún `N` los Gateways patrullan con pasos
+aleatorios pequeños.
 
 ## Cómo se solucionó: la flag `--static`
 
-La solución no fue "arreglar" el movimiento (es el comportamiento
-querido para simular rescate), sino agregar una forma explícita de
-**desactivarlo** cuando lo que se quiere es una topología fija — por
-ejemplo, para probar solo el enrutamiento BATMAN sin que la posición
-cambie con el tiempo.
+La solución no fue "arreglar" el movimiento (es el modelo de movilidad
+por defecto), sino agregar una forma explícita de **desactivarlo**
+cuando lo que se quiere es una topología fija — por ejemplo, para
+probar solo el enrutamiento BATMAN sin que la posición cambie con el
+tiempo.
 
 Se agregó un corte temprano en `move()`:
 

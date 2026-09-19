@@ -8,7 +8,7 @@ from sim.sim_node import SimNode
 
 
 class Simulation:
-    def __init__(self, escenario='base', cfg=None,DEFAULTS=None,DT=None,N_PISOS=None,PISO_H=None,STAIR_XY=None,STAIR_HALF_W=None,ANCHO=None,ALTO=None,C_RESC=None,C_SURV=None,C_SURV_OK=None,C_DEAD=None,C_OGM=None,C_BCN=None,C_HB=None):
+    def __init__(self, escenario='base', cfg=None,DEFAULTS=None,DT=None,N_PISOS=None,PISO_H=None,STAIR_XY=None,STAIR_HALF_W=None,ANCHO=None,ALTO=None,C_RESC=None,C_SURV=None,C_DEAD=None,C_OGM=None,C_BCN=None,C_HB=None):
         self.escenario = escenario
         self.cfg = dict(DEFAULTS)
         self.DEFAULTS = DEFAULTS
@@ -21,7 +21,6 @@ class Simulation:
         self.ALTO = ALTO
         self.C_RESC=C_RESC
         self.C_SURV=C_SURV
-        self.C_SURV_OK=C_SURV_OK
         self.C_DEAD=C_DEAD
         self.C_OGM=C_OGM
         self.C_BCN=C_BCN
@@ -44,8 +43,6 @@ class Simulation:
         self.paused = False
         self.nodes = {}
         self.local_index = {}     # id global -> índice local por rol (1..n)
-        self.found_ids = set()    # ids de supervivientes ya hallados
-        self.found_by = {}
         self.log_lines = []
         self.recorder = Recorder()
         self.medium = RadioMedium(self, self.cfg)
@@ -128,19 +125,6 @@ class Simulation:
             if (x - cx) ** 2 + (y - cy) ** 2 < r * r:
                 return True
         return False
-
-    
-
-    def register_found(self, sid, by_id):
-        if sid in self.nodes and self.nodes[sid].role == 'N' \
-                and sid not in self.found_ids:
-            self.found_ids.add(sid)
-            self.found_by[sid] = by_id
-            self.event('FOUND',
-                       f"{self.label_of(sid)} hallado por "
-                       f"{self.label_of(by_id)}")
-            self.log(f"Superviviente {self.label_of(sid)} hallado por "
-                     f"{self.label_of(by_id)} — propagado por OGM", "ok")
 
     # ── Mensajes personalizados entre cualquier par de nodos ──────────
     def send_unicast(self, from_id, to_id, texto):

@@ -35,7 +35,6 @@ DEFAULTS = dict(
     ttl=6,   # saltos máximos de un OGM (del código real)
     battery_drain=0.030,      # % por segundo (rescatistas)
     battery_drain_surv=0.012, # % por segundo (celular de superviviente)
-    rango_deteccion=7.0, # m: contacto físico con un superviviente
     move_speed=0.32,     # m por paso de un rescatista
 )
 
@@ -43,7 +42,6 @@ DEFAULTS = dict(
 C_RESC   = ["#378ADD", "#1D9E75", "#9B59B6", "#E8A838",
             "#2E86C1", "#16A085", "#8E44AD", "#D4AC0D"]
 C_SURV   = "#E24B4A"
-C_SURV_OK = "#1D9E75"
 C_DEAD   = "#8C8B85"
 C_ALERT  = "#C0392B"
 C_OGM    = "#F0A500"
@@ -196,7 +194,7 @@ def main():
     try:
         # . Instanciar el motor de simulación
 
-        sim = Simulation(escenario=escenario_nombre, cfg=sim_config,DEFAULTS=DEFAULTS,DT=DT,N_PISOS=n_pisos,PISO_H=piso_h,STAIR_XY=stair_xy,STAIR_HALF_W=stair_half_w,ANCHO=ancho,ALTO=alto,C_RESC=C_RESC,C_SURV=C_SURV,C_SURV_OK=C_SURV_OK,C_DEAD=C_DEAD,C_OGM=C_OGM,C_BCN=C_BCN,C_HB=C_HB)
+        sim = Simulation(escenario=escenario_nombre, cfg=sim_config,DEFAULTS=DEFAULTS,DT=DT,N_PISOS=n_pisos,PISO_H=piso_h,STAIR_XY=stair_xy,STAIR_HALF_W=stair_half_w,ANCHO=ancho,ALTO=alto,C_RESC=C_RESC,C_SURV=C_SURV,C_DEAD=C_DEAD,C_OGM=C_OGM,C_BCN=C_BCN,C_HB=C_HB)
         sim.C_BG = C_BG
         sim.C_WALL = C_WALL
         sim.C_FLOOR = C_FLOOR

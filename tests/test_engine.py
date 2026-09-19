@@ -28,7 +28,7 @@ def make_simulation(nodes, building=None, medium=None, protocol=None,
         escenario=escenario, cfg=cfg, DEFAULTS=main_mod.DEFAULTS, DT=main_mod.DT,
         N_PISOS=n_pisos, PISO_H=piso_h, STAIR_XY=stair_xy, STAIR_HALF_W=stair_half_w,
         ANCHO=ancho, ALTO=alto, C_RESC=main_mod.C_RESC, C_SURV=main_mod.C_SURV,
-        C_SURV_OK=main_mod.C_SURV_OK, C_DEAD=main_mod.C_DEAD, C_OGM=main_mod.C_OGM,
+        C_DEAD=main_mod.C_DEAD, C_OGM=main_mod.C_OGM,
         C_BCN=main_mod.C_BCN, C_HB=main_mod.C_HB,
     )
 
@@ -94,7 +94,7 @@ class BuildWorldExplicitConfigTests(unittest.TestCase):
             escenario="aleatorio", cfg=cfg, DEFAULTS=main_mod.DEFAULTS, DT=main_mod.DT,
             N_PISOS=main_mod.N_PISOS, PISO_H=main_mod.PISO_H, STAIR_XY=main_mod.STAIR_XY,
             STAIR_HALF_W=main_mod.STAIR_HALF_W, ANCHO=main_mod.ANCHO, ALTO=main_mod.ALTO,
-            C_RESC=main_mod.C_RESC, C_SURV=main_mod.C_SURV, C_SURV_OK=main_mod.C_SURV_OK,
+            C_RESC=main_mod.C_RESC, C_SURV=main_mod.C_SURV,
             C_DEAD=main_mod.C_DEAD, C_OGM=main_mod.C_OGM, C_BCN=main_mod.C_BCN, C_HB=main_mod.C_HB,
         )
         self.assertEqual(len(sim.nodes), 5)
@@ -103,19 +103,6 @@ class BuildWorldExplicitConfigTests(unittest.TestCase):
 
 class EngineBugFixRegressionTests(unittest.TestCase):
     """Regresión de los bugs de migración R/S -> G/N ya corregidos."""
-
-    def test_register_found_solo_marca_nodos_rol_N(self):
-        nodes = [
-            {"id": 1, "role": "G", "x": 1, "y": 1},
-            {"id": 2, "role": "N", "x": 2, "y": 2},
-        ]
-        sim = make_simulation(nodes)
-        sim.register_found(2, 1)
-        self.assertIn(2, sim.found_ids)
-
-        sim2 = make_simulation(nodes)
-        sim2.register_found(1, 2)  # 1 es 'G', no debe registrarse
-        self.assertNotIn(1, sim2.found_ids)
 
     def test_gateway_drena_bateria_mas_rapido_que_nodo(self):
         nodes = [

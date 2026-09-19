@@ -40,7 +40,7 @@ python main.py --escenario base
 | `--escenario {base,colapso_progresivo,particion,rescatista_perdido,denso}` | Atajo a `--config escenarios/<nombre>.json` — carga nodos y posiciones **explícitas**, tiene prioridad sobre `-n`/`-g`. |
 | `--config archivo.json` | Ruta a un escenario JSON propio (ver sección siguiente). Tiene prioridad sobre `--escenario` y sobre `-n`/`-g`. |
 | `--msg "texto"` | Mensaje de cabecera que se imprime al iniciar. |
-| `--static` | Los nodos no se mueven: quedan fijos en la posición inicial (`move_speed=0`). Sin esto, los Gateway (`G`) se comportan como rescatistas y caminan hacia el Nodo de usuario (`N`) más cercano aún no encontrado. |
+| `--static` | Los nodos no se mueven: quedan fijos en la posición inicial (`move_speed=0`). Sin esto, cada Gateway (`G`) camina hacia el Nodo de usuario (`N`) más cercano (ver [`docs/movimiento_nodos.md`](docs/movimiento_nodos.md)). |
 
 Tres formas de arrancar, de menor a mayor control sobre la topología:
 
@@ -217,8 +217,8 @@ La carpeta `reportes/` está en `.gitignore` — no se commitea.
 **`reporte.csv`** — una fila por paso registrado, columnas: tiempo,
 gateways/nodos activos, componentes de malla, nodos alcanzables, TQ
 promedio, saltos promedio, silencio máximo, tasa de entrega, alertas
-activas, ancho de banda, hallazgos acumulados, tipo y descripción de
-evento (si hubo alguno en ese instante).
+activas, ancho de banda, tipo y descripción de evento (si hubo alguno
+en ese instante).
 
 **`reporte.json`** — `metadatos` (escenario, fecha, configuración
 usada), `resumen` (estado final: nodos por rol, componentes finales,
