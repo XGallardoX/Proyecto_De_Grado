@@ -243,16 +243,18 @@ La carpeta `reportes/` está en `.gitignore` — no se commitea.
 5. Calidad del medio radio: ratio de paquetes entregados/intentados.
 6. Ancho de banda total de la red, con eventos marcados.
 
-**`reporte.csv`** — una fila por paso registrado, columnas: tiempo,
-gateways/nodos activos, componentes de malla, nodos alcanzables, TQ
-promedio, saltos promedio, silencio máximo, tasa de entrega, alertas
-activas, ancho de banda, tipo y descripción de evento (si hubo alguno
-en ese instante).
+**`reporte.csv`** — una fila por paso registrado (un paso = 0.5 s
+simulados). Columnas: `tiempo_s`, `gateways_activos`, `nodos_activos`,
+`componentes_malla`, `nodos_alcanzables`, `calidad_ruta_promedio_tq`,
+`saltos_promedio`, `silencio_maximo_s`, `tasa_entrega_paquetes`,
+`alertas_activas`, `ancho_banda_total_mbps`, y `tipo_evento` /
+`descripcion_evento` (si hubo algún evento en ese instante).
 
 **`reporte.json`** — `metadatos` (escenario, fecha, configuración
 usada), `resumen` (estado final: nodos por rol, componentes finales,
-paquetes transmitidos/recibidos), `serie_temporal_metricas` (igual que
-el CSV pero en JSON) y `eventos` (lista cronológica).
+paquetes transmitidos/recibidos, tasa de entrega), `serie_temporal_metricas`
+(las mismas columnas de métricas que el CSV, con los mismos nombres) y
+`eventos` (lista cronológica).
 
 **`reporte.txt`** — el mismo resumen en formato legible para pegar en
 un informe: parámetros de configuración, estadísticas finales,

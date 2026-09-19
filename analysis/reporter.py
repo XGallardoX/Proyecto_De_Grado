@@ -4,9 +4,34 @@ import os
 import time
 from collections import defaultdict
 
+# Métricas por paso, en el orden de las columnas del CSV: (columna, lista
+# del mismo paso en analysis.metrics.Recorder). El JSON usa las mismas
+# claves en "serie_temporal_metricas".
+COLUMNAS_METRICAS = [
+    ("tiempo_s", "t"),
+    ("gateways_activos", "alive_G"),
+    ("nodos_activos", "alive_N"),
+    ("componentes_malla", "comp_G"),
+    ("nodos_alcanzables", "node_reach"),
+    ("calidad_ruta_promedio_tq", "avg_tq"),
+    ("saltos_promedio", "avg_hops"),
+    ("silencio_maximo_s", "max_silence"),
+    ("tasa_entrega_paquetes", "deliver_ratio"),
+    ("alertas_activas", "alerts_active"),
+    ("ancho_banda_total_mbps", "bandwidth"),
+]
+COLUMNAS_EVENTO = ["tipo_evento", "descripcion_evento"]
+
+NOMBRES_ROL = {"G": "Gateway (G)", "N": "Nodo de Usuario (N)"}
+
+
+def _fila_metricas(rec, i):
+    return {col: getattr(rec, attr)[i] for col, attr in COLUMNAS_METRICAS}
+
+
 def export_simulation_reports(sim, out_dir=None):
     """
-    Exports simulation results to CSV, JSON, and TEXT files in Spanish.
+    Exporta los resultados de la simulación a CSV, JSON y texto plano.
 
     Si no se pasa `out_dir`, crea una carpeta propia por ejecución en
     reportes/<escenario>_<timestamp>/.
@@ -37,51 +62,14 @@ def export_simulation_reports(sim, out_dir=None):
     # 1. GENERAR REPORTE CSV
     # -------------------------------
     try:
-        headers = [
-            "tiempo_s",
-            "gateways_o_rescatistas_activos",
-            "nodos_o_supervivientes_activos",
-            "componentes_de_malla",
-            "nodos_o_supervivientes_alcanzables",
-            "calidad_ruta_promedio_tq",
-            "saltos_promedio",
-            "silencio_maximo_s",
-            "tasa_entrega_paquetes",
-            "alertas_activas",
-            "ancho_banda_total_mbps",
-            "tipo_evento",
-            "descripcion_evento"
-        ]
+        headers = [col for col, _ in COLUMNAS_METRICAS] + COLUMNAS_EVENTO
         
         with open(csv_fn, 'w', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
             writer.writerow(headers)
             
             for i in range(t_len):
-                t_val = rec.t[i]
-                
-                # Extraer valores adaptativos con hasattr
-                alive_1 = rec.alive_G[i] if hasattr(rec, 'alive_G') and i < len(rec.alive_G) else (
-                    rec.alive_R[i] if hasattr(rec, 'alive_R') and i < len(rec.alive_R) else 0
-                )
-                alive_2 = rec.alive_N[i] if hasattr(rec, 'alive_N') and i < len(rec.alive_N) else (
-                    rec.alive_S[i] if hasattr(rec, 'alive_S') and i < len(rec.alive_S) else 0
-                )
-                comp = rec.comp_G[i] if hasattr(rec, 'comp_G') and i < len(rec.comp_G) else (
-                    rec.comp_R[i] if hasattr(rec, 'comp_R') and i < len(rec.comp_R) else 0
-                )
-                reach = rec.node_reach[i] if hasattr(rec, 'node_reach') and i < len(rec.node_reach) else (
-                    rec.surv_reach[i] if hasattr(rec, 'surv_reach') and i < len(rec.surv_reach) else 0
-                )
-                
-                avg_tq = rec.avg_tq[i] if hasattr(rec, 'avg_tq') and i < len(rec.avg_tq) else 0.0
-                avg_hops = rec.avg_hops[i] if hasattr(rec, 'avg_hops') and i < len(rec.avg_hops) else 0.0
-                max_silence = rec.max_silence[i] if hasattr(rec, 'max_silence') and i < len(rec.max_silence) else 0.0
-                deliver_ratio = rec.deliver_ratio[i] if hasattr(rec, 'deliver_ratio') and i < len(rec.deliver_ratio) else 1.0
-                alerts_active = rec.alerts_active[i] if hasattr(rec, 'alerts_active') and i < len(rec.alerts_active) else 0
-                bandwidth = rec.bandwidth[i] if hasattr(rec, 'bandwidth') and i < len(rec.bandwidth) else 0.0
-
-                evts = events_by_time.get(round(t_val, 3), [])
+                evts = events_by_time.get(round(rec.t[i], 3), [])
                 if evts:
                     event_type = " | ".join(e[0] for e in evts)
                     event_desc = " | ".join(e[1] for e in evts)
@@ -89,21 +77,8 @@ def export_simulation_reports(sim, out_dir=None):
                     event_type = ""
                     event_desc = ""
                 
-                writer.writerow([
-                    t_val,
-                    alive_1,
-                    alive_2,
-                    comp,
-                    reach,
-                    avg_tq,
-                    avg_hops,
-                    max_silence,
-                    deliver_ratio,
-                    alerts_active,
-                    bandwidth,
-                    event_type,
-                    event_desc
-                ])
+                writer.writerow(list(_fila_metricas(rec, i).values())
+                                + [event_type, event_desc])
                 
         print(f"[reporter] Reporte exportado a CSV: {csv_fn}")
     except Exception as e:
@@ -136,40 +111,7 @@ def export_simulation_reports(sim, out_dir=None):
         else:
             summary_data["tasa_entrega_paquetes"] = 1.0
 
-        metrics_list = []
-        for i in range(t_len):
-            alive_1 = rec.alive_G[i] if hasattr(rec, 'alive_G') and i < len(rec.alive_G) else (
-                rec.alive_R[i] if hasattr(rec, 'alive_R') and i < len(rec.alive_R) else 0
-            )
-            alive_2 = rec.alive_N[i] if hasattr(rec, 'alive_N') and i < len(rec.alive_N) else (
-                rec.alive_S[i] if hasattr(rec, 'alive_S') and i < len(rec.alive_S) else 0
-            )
-            comp = rec.comp_G[i] if hasattr(rec, 'comp_G') and i < len(rec.comp_G) else (
-                rec.comp_R[i] if hasattr(rec, 'comp_R') and i < len(rec.comp_R) else 0
-            )
-            reach = rec.node_reach[i] if hasattr(rec, 'node_reach') and i < len(rec.node_reach) else (
-                rec.surv_reach[i] if hasattr(rec, 'surv_reach') and i < len(rec.surv_reach) else 0
-            )
-            avg_tq = rec.avg_tq[i] if hasattr(rec, 'avg_tq') and i < len(rec.avg_tq) else 0.0
-            avg_hops = rec.avg_hops[i] if hasattr(rec, 'avg_hops') and i < len(rec.avg_hops) else 0.0
-            max_silence = rec.max_silence[i] if hasattr(rec, 'max_silence') and i < len(rec.max_silence) else 0.0
-            deliver_ratio = rec.deliver_ratio[i] if hasattr(rec, 'deliver_ratio') and i < len(rec.deliver_ratio) else 1.0
-            alerts_active = rec.alerts_active[i] if hasattr(rec, 'alerts_active') and i < len(rec.alerts_active) else 0
-            bandwidth = rec.bandwidth[i] if hasattr(rec, 'bandwidth') and i < len(rec.bandwidth) else 0.0
-
-            metrics_list.append({
-                "tiempo_s": rec.t[i],
-                "gateways_o_rescatistas_activos": alive_1,
-                "nodos_o_supervivientes_activos": alive_2,
-                "componentes_malla": comp,
-                "nodos_o_supervivientes_alcanzables": reach,
-                "calidad_ruta_promedio_tq": avg_tq,
-                "saltos_promedio": avg_hops,
-                "silencio_maximo_s": max_silence,
-                "tasa_entrega_paquetes": deliver_ratio,
-                "alertas_activas": alerts_active,
-                "ancho_banda_total_mbps": bandwidth
-            })
+        metrics_list = [_fila_metricas(rec, i) for i in range(t_len)]
 
         events_list = []
         for t_evt, tipo, txt in rec.events:
@@ -217,15 +159,7 @@ def export_simulation_reports(sim, out_dir=None):
             
             f.write("ESTADÍSTICAS FINALES:\n")
             for role, counts in node_roles.items():
-                role_name = f"Rol '{role}'"
-                if role == 'G':
-                    role_name = "Gateway (G)"
-                elif role == 'N':
-                    role_name = "Nodo de Usuario (N)"
-                elif role == 'R':
-                    role_name = "Rescatista (R)"
-                elif role == 'S':
-                    role_name = "Superviviente (S)"
+                role_name = NOMBRES_ROL.get(role, f"Rol '{role}'")
                 f.write(f"  - Nodos {role_name:<23}: {counts['activos']} activos / {counts['total']} totales\n")
                 
             f.write(f"  - Componentes de Red (Malla)  : {summary_data['componentes_finales']}\n")
