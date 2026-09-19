@@ -54,8 +54,9 @@ del algoritmo BATMAN real, no de un cálculo simulado aparte.
 
 Lo único que sim/radio.py aporta —y lo único no real del sistema— es
 decidir **qué OGMs/beacons llegan**: `RadioMedium.reliability(a, b)`
-calcula una probabilidad de entrega a partir de la distancia 3D, el
-rango de radio (`rango_comm`), una degradación con la distancia
+calcula una probabilidad de entrega a partir de la distancia entre los
+nodos (euclídea en el corte vertical del edificio: `x` horizontal, `y`
+altura), el rango de radio (`rango_comm`), una degradación con la distancia
 (`falloff`), pérdida base y una atenuación extra si los nodos están en
 pisos distintos (`floor_atten`). `broadcast()` tira un dado por cada
 receptor en rango y sólo entrega el paquete si "gana"; lleva la cuenta

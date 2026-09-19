@@ -60,6 +60,13 @@ porque el objetivo no cambia mientras ese `N` siga siendo el más
 cercano. Solo si no existe ningún `N` los Gateways patrullan con pasos
 aleatorios pequeños.
 
+La única excepción es el evento `wander` de un escenario (lo usa
+`rescatista_perdido`): el Gateway indicado camina hacia la esquina
+(38, 2) del edificio hasta el segundo `until`, y a partir de ahí vuelve
+a la regla de seguimiento — o sea, va hacia el `N` que le quede más
+cerca *desde donde terminó*, que no tiene por qué ser el del grupo del
+que se alejó.
+
 ## Cómo se solucionó: la flag `--static`
 
 La solución no fue "arreglar" el movimiento (es el modelo de movilidad
@@ -92,7 +99,7 @@ caminara más lento hacia el objetivo, pero el "jitter" aleatorio de
 pequeña caminata aleatoria (un paseo browniano), no quedándose quieto
 de verdad.
 
-Esto se expone de tres formas, todas equivalentes por debajo (todas
+Esto se expone de cuatro formas, todas equivalentes por debajo (todas
 terminan poniendo `move_speed=0`):
 
 1. **Flag de `main.py`**: `--static` en la línea de comandos.
@@ -104,6 +111,8 @@ terminan poniendo `move_speed=0`):
 3. **Escenario `.txt`**: `static=true` dentro de la sección
    `[protocol]` (ver el [README](../README.md#formato-txt-equivalente-al-json-más-fácil-de-editar-a-mano)
    para el formato `.txt` completo).
+4. **Lote (`--batch`)**: `"static": true` en una entrada del archivo
+   de lote (ver el [README](../README.md#archivo-de-lote---batch)).
 
 La flag `--static` de la línea de comandos tiene prioridad sobre lo
 que diga el archivo de escenario, porque se aplica *después* de cargar

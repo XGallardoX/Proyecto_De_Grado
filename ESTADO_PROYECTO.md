@@ -5,7 +5,7 @@
 > completando. Detalle completo del plan en `PLAN_TRABAJO.md`, del
 > análisis del repo madre en `ANALISIS_REPO_MADRE.md`.
 
-Fecha: 2026-09-08
+Fecha: 2026-09-18
 
 ---
 
@@ -92,6 +92,32 @@ Todo esto ya está en `main` (commits `0348693`, `6a41861`, `3d6fb5c`).
   contra la fuente primaria). De paso desaparecen las 8 citas rotas que
   traía la plantilla y que habrían salido como `[?]` al compilar.
 
+**Simulador, versión de cierre (18 de septiembre):**
+- **Framing decidido: Red de Expansión de Cobertura.** Se retiró el
+  mecanismo muerto de "hallar supervivientes" (`register_found`,
+  `found_ids`, `my_survivors`, `rango_deteccion`) y el vocabulario R/S
+  que quedaba en código, logs, ventana y reportes. Ojo, cambian nombres:
+  las columnas de `reporte.csv`/`.json` pasan a `gateways_activos`,
+  `nodos_activos`, `nodos_alcanzables` y `componentes_malla` (ya no
+  existe `supervivientes_hallados_acumulado`), y la clave
+  `battery_drain_surv` pasa a `battery_drain_nodo` (la vieja se sigue
+  aceptando en los escenarios).
+- Se borró el prototipo monolítico (`batman_node.py`,
+  `simulacion_batman_real.py`); queda en el historial de git.
+- **Sin ventana:** `--headless`, `--duracion`, `--seed` (misma semilla =
+  misma corrida) e `--inspect` en `main.py`.
+- **Lotes:** `python main.py --batch lotes/ejemplo.json` corre
+  escenarios × semillas y resume cada métrica por escenario (media ±
+  desviación estándar). Es lo que conviene usar para los resultados del
+  documento (Cap. 5). Formato y salida en el README.
+- Ventana: se arreglaron dos caídas (tecla `M` al mandar un mensaje y
+  tecla `S`), el diálogo de mensajes usa ahora `G1>N2` (antes `R1>R3`,
+  que además apuntaba a nodos N) y `A` ya no repite etiquetas.
+- El evento `HEAL` y la métrica de reconvergencia ya no cuentan como
+  reunificación que la partición desaparezca porque se cayó el Gateway
+  aislado (pasaba en `colapso_progresivo`).
+- Pruebas: de 40 a 130 (`SimNode`, reportes, modos sin ventana, lotes).
+
 `ANALISIS_REPO_MADRE.md` y `PLAN_TRABAJO.md` ya están commiteados —
 antes existían sólo en la máquina local y por eso este documento los
 daba por perdidos.
@@ -107,7 +133,11 @@ daba por perdidos.
    conclusiones (Cap9). La portada sigue con los placeholders de la
    plantilla — `\title`, `\author`, `\advisor` y el `pdfauthor` del
    `hyperref` (que todavía dice `MIA-D.Martinez`) — porque hacen falta
-   el título definitivo y el nombre del asesor.
+   el título definitivo y el nombre del asesor. Además, con el framing
+   ya decidido (punto 3), la sección "Redes ad-hoc en escenarios de
+   emergencia" del Estado del arte y los objetivos propuestos en
+   `PLAN_TRABAJO.md` (4.2–4.3) siguen hablando de búsqueda y rescate:
+   hay que llevarlos a la Red de Expansión de Cobertura.
 
 2. ~~Compilar el documento.~~ **Hecho.** Se instaló TeX Live en
    `~/texlive/2026` (sin root) y el documento compila limpio:
@@ -124,24 +154,32 @@ daba por perdidos.
    `textwidth` de 15.6cm) y salen en los 8 capítulos por igual — son
    de la plantilla, no del contenido nuevo.
 
-3. **Pregunta abierta — framing del proyecto (necesita que la
-   resuelvan entre los dos):** `register_found()`/`my_survivors`
-   ("hallar" un nodo) es código muerto — nada llena `my_survivors`, la
-   mecánica de detección por proximidad (`rango_deteccion`) nunca se
-   portó al motor nuevo. Y el `main.py` nuevo ya no habla de "rescate"
-   sino de "Red de Expansión de Cobertura". Antes de escribir la
-   Parte 4 del documento de grado (problemática, objetivos) hay que
-   decidir: ¿se implementa la detección y se mantiene el framing de
-   rescate, o se reemplaza por una métrica de cobertura/conectividad?
-   Esto cambia el objetivo general y los objetivos específicos del
-   documento (ver sección 4.2–4.3 de `PLAN_TRABAJO.md`).
+3. ~~Pregunta abierta — framing del proyecto.~~ **Resuelta:** Red de
+   Expansión de Cobertura (evaluar la resiliencia y la conectividad de
+   la malla ante fallos de nodos). El código ya está alineado (ver
+   "Hecho"); falta el documento (punto 1).
 
-4. **Gaps menores conocidos:** no hay modo `--headless`/`--duracion`
-   en `main.py` — existía en el `simulacion_batman_real.py` viejo y
-   hay un intento de portarlo al final de `analysis/visualizer.py`,
-   pero está roto (revienta con `TypeError` al primer uso, ver
-   "Gaps conocidos" en `docs/arquitectura.md`). El modo gráfico
-   (`pygame`) sí se probó manualmente y corre sin errores.
+4. **Decisiones abiertas sobre las métricas** (salieron al correr el
+   primer lote; detalle en "Limitaciones conocidas" de
+   `docs/arquitectura.md`):
+   - **El TQ vale siempre 1.0.** `BatmanRouter` (`mesh/router.py`)
+     nunca registra en su ventana deslizante los OGMs que se pierden,
+     así que el "TQ medio" mide cuánto tiempo hubo rutas, no la calidad
+     de los enlaces (el prototipo original hacía lo mismo). Corregirlo
+     es tocar el protocolo "real" (también lo usa `mesh/node.py`) y
+     cambia todos los resultados. ¿Se corrige, o se reporta así y la
+     calidad del medio se mide con la tasa de entrega del radio?
+   - **La reconvergencia no se observa.** Con la movilidad actual,
+     ninguna partición se reunificó en las 50 corridas de los 5
+     escenarios (`particion` arranca partida y sigue así; en
+     `rescatista_perdido` el Gateway que se aleja no vuelve). Para
+     medirla hacen falta escenarios donde la partición se deshaga, o
+     eventos de caída/recuperación programables en el escenario (hoy
+     la caída y recuperación manual, teclas `F`/`G`, sólo existen en la
+     ventana).
+   - En modo `-n`/`-g` desde la línea de comandos, `battery_drain` vale
+     0.02 en vez del 0.030 por defecto (viene del repo madre, commit
+     `bf98d2f`): confirmar si es a propósito.
 
 ---
 

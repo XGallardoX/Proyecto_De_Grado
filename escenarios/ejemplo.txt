@@ -21,4 +21,4 @@ timeout=30
 
 [events]
 # type    node_id  until
-# wander  2        60
+# wander  1        60

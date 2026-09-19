@@ -5,7 +5,8 @@ Simulador de una red mesh ad-hoc que enruta con el protocolo
 usa las mismas clases (`BatmanRouter`, `FaultManager`, `RouteEntry`,
 `PeerInfo`) que correrían en un dispositivo real. Lo único simulado es
 el **medio radio** — en vez de sockets UDP reales, un `RadioMedium`
-decide qué paquetes llegan según distancia 3D y piso. Detalle completo
+decide qué paquetes llegan según la distancia entre nodos y la
+diferencia de piso. Detalle completo
 de cómo encajan las piezas en [`docs/arquitectura.md`](docs/arquitectura.md).
 
 ---
@@ -145,12 +146,17 @@ Esquema:
   usuario) — se requiere al menos un `"G"`. `x`/`y`: posición en metros,
   debe caer dentro de `[0, ancho] x [0, alto]`. `battery` (opcional):
   batería inicial 0–100, por defecto 100.
-- El **piso** de cada nodo se deriva de `y` (`y // piso_h`), no se
-  declara aparte — para ubicarlo en el piso 2 de un edificio de
-  `piso_h: 10`, usar `y` entre 10 y 20.
+- El edificio se modela como un **corte vertical**: `x` es la posición
+  horizontal e `y` la altura, así que el **piso** de cada nodo se deriva
+  de `y` (`y // piso_h`) y no se declara aparte — para ubicarlo en el
+  piso 2 de un edificio de `piso_h: 10`, usar `y` entre 10 y 20. La
+  distancia entre dos nodos es la euclídea en ese plano.
 - `events` (opcional): lista de eventos del escenario. Por ahora sólo
-  existe `{"type": "wander", "node_id": <id>, "until": <t>}` — el nodo
-  se interna lejos hasta el segundo `until` y deja de dar señal.
+  existe `{"type": "wander", "node_id": <id>, "until": <t>}` — ese
+  Gateway camina hacia la esquina (38, 2) del edificio hasta el segundo
+  `until` (sigue emitiendo, pero se aleja del alcance del resto) y
+  después vuelve a la regla de movilidad normal. Sólo tiene efecto
+  sobre un Gateway: los Nodos de usuario no se desplazan.
 - Config inválido (id duplicado, rol desconocido, sin gateway,
   coordenadas fuera del edificio, campo faltante) frena la ejecución
   con un mensaje de error específico, antes de arrancar la simulación.
@@ -205,7 +211,7 @@ static=true      # equivale a move_speed=0 (nodos fijos, ver --static)
 
 [events]
 # type    node_id  until
-wander    2        60
+wander    1        60
 ```
 
 - `#` marca comentarios (línea completa o al final de una línea).

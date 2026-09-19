@@ -6,7 +6,8 @@ import random
 class RadioMedium:
     """
     Único componente "no real": entrega los mensajes broadcast entre
-    nodos según la distancia 3D y el piso. La pérdida de paquetes hace
+    nodos según la distancia (euclídea en el corte vertical del edificio:
+    x horizontal, y altura) y la diferencia de piso. La pérdida de paquetes hace
     que la calidad de enlace y el TQ de BATMAN se comporten como en la
     realidad.  Lleva la cuenta de paquetes intentados/entregados para
     el análisis posterior.
