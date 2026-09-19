@@ -1,0 +1,15 @@
+# Caso "ruta multi-salto": un Gateway y tres Nodos de usuario en fila,
+# a 10 m entre sí sobre el piso 1. Con el alcance por defecto (16 m) cada
+# nodo sólo oye a sus vecinos inmediatos, así que para llegar de G1 a N3
+# hay que pasar por N1 y N2. Ver docs/guia_ejecucion.md.
+
+name: cadena
+
+[protocol]
+static=true
+
+[nodes]
+1    G  2   5
+101  N  12  5
+102  N  22  5
+103  N  32  5

@@ -1,0 +1,28 @@
+# Caso "alcance de radio vs. cobertura": escenarios/base.txt (nodos fijos)
+# con rango_comm=24 en vez de 16.
+# Ver docs/guia_ejecucion.md.
+
+name: base_rango24
+
+[building]
+ancho=40
+alto=30
+piso_h=10
+n_pisos=3
+stair_xy=20,15
+stair_half_w=1.7
+
+[medium]
+rango_comm=24
+
+[protocol]
+static=true
+
+[nodes]
+1    G  7   27
+2    G  11  27
+3    G  9   24
+4    G  13  25
+101  N  34  3
+102  N  5   5
+103  N  33  15

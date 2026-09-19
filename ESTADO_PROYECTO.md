@@ -116,7 +116,14 @@ Todo esto ya está en `main` (commits `0348693`, `6a41861`, `3d6fb5c`).
 - El evento `HEAL` y la métrica de reconvergencia ya no cuentan como
   reunificación que la partición desaparezca porque se cayó el Gateway
   aislado (pasaba en `colapso_progresivo`).
-- Pruebas: de 40 a 130 (`SimNode`, reportes, modos sin ventana, lotes).
+- Pruebas: de 40 a 132 (`SimNode`, reportes, modos sin ventana, lotes,
+  y que los escenarios y lotes del repo sigan cargando).
+- **Guía de ejecución** en `docs/guia_ejecucion.md`: cómo correr cada
+  escenario y 10 casos (tumbar un Gateway, mensajes, ruta multi-salto,
+  escenario propio, lote de referencia, movilidad contra nodos fijos,
+  barridos de alcance y de timeout), con el comando y el resultado
+  esperado. Los archivos de esos casos están en `escenarios/casos/` y
+  `lotes/casos.json`.
 
 `ANALISIS_REPO_MADRE.md` y `PLAN_TRABAJO.md` ya están commiteados —
 antes existían sólo en la máquina local y por eso este documento los

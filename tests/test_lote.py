@@ -3,6 +3,7 @@ sintéticos), validación del archivo de lote y la corrida de punta a punta
 desde main.py."""
 import contextlib
 import csv
+import glob
 import io
 import json
 import math
@@ -311,6 +312,27 @@ class EjecutarLoteTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "escenario 'existe'.*no encontrado"):
             main_mod.ejecutar_lote(ruta, os.path.join(tmp, "salida"))
         self.assertFalse(os.path.exists(os.path.join(tmp, "salida")))
+
+
+class LotesDelRepoTests(unittest.TestCase):
+    """Los lotes que trae el repo (lotes/ejemplo.json y lotes/casos.json,
+    los de docs/guia_ejecucion.md) tienen que seguir siendo válidos, y
+    cada escenario que nombran tiene que poder construirse."""
+
+    def test_lotes_del_repo_son_validos(self):
+        raiz = os.path.dirname(os.path.abspath(main_mod.__file__))
+        rutas = sorted(glob.glob(os.path.join(raiz, "lotes", "*.json")))
+        self.assertGreaterEqual(len(rutas), 2)
+        for ruta in rutas:
+            spec = lote.cargar_lote(ruta, main_mod.ESCENARIOS_DISPONIBLES,
+                                    main_mod.DURACION_DEFAULT, 2 * main_mod.DT)
+            for e in spec["escenarios"]:
+                # las rutas "config" son relativas a la raíz del repo
+                config = (os.path.join(raiz, e["config"]) if e["config"]
+                          else main_mod.ruta_escenario(e["escenario"]))
+                with self.subTest(lote=os.path.basename(ruta),
+                                  etiqueta=e["etiqueta"]):
+                    main_mod.construir_simulacion(config, static=e["static"])
 
 
 class MainBatchTests(unittest.TestCase):

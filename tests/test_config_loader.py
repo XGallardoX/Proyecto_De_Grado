@@ -1,3 +1,4 @@
+import glob
 import json
 import os
 import tempfile
@@ -128,6 +129,23 @@ class ConfigLoaderTests(unittest.TestCase):
         })
         scenario = load_scenario(path)
         self.assertEqual(scenario["protocol"], {"battery_drain_nodo": 0.2})
+
+
+class EscenariosDelRepoTests(unittest.TestCase):
+    """Los escenarios que trae el repo (predefinidos, de ejemplo y los de
+    los casos de docs/guia_ejecucion.md) tienen que seguir cargando."""
+
+    def test_todos_los_escenarios_del_repo_cargan(self):
+        carpeta = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               os.pardir, "escenarios")
+        rutas = sorted(glob.glob(os.path.join(carpeta, "*.json"))
+                       + glob.glob(os.path.join(carpeta, "*.txt"))
+                       + glob.glob(os.path.join(carpeta, "casos", "*.txt")))
+        self.assertGreaterEqual(len(rutas), 16)
+        for ruta in rutas:
+            with self.subTest(escenario=os.path.basename(ruta)):
+                scenario = load_scenario(ruta)
+                self.assertTrue(scenario.get("nodes") or scenario.get("random"))
 
 
 class ConfigLoaderTxtTests(unittest.TestCase):

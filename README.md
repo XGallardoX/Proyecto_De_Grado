@@ -9,6 +9,12 @@ decide qué paquetes llegan según la distancia entre nodos y la
 diferencia de piso. Detalle completo
 de cómo encajan las piezas en [`docs/arquitectura.md`](docs/arquitectura.md).
 
+**Para empezar:** [`docs/guia_ejecucion.md`](docs/guia_ejecucion.md) es
+una guía paso a paso con los escenarios y una serie de casos (tumbar un
+Gateway, mandar mensajes, lotes con varias semillas, barridos de
+alcance y de timeout), cada uno con el comando exacto y el resultado que
+deberías ver. Este README es la referencia completa.
+
 ---
 
 ## Instalación
@@ -454,9 +460,10 @@ mesh/                     ← protocolo BATMAN real (router, fault manager, ...)
 sim/                      ← motor de simulación + medio radio + carga de escenarios
 analysis/                 ← métricas, visualizador pygame, reportes, runner de lote
 escenarios/*.json, *.txt  ← escenarios predefinidos y de ejemplo
-lotes/*.json              ← lotes de experimentos para --batch
+escenarios/casos/         ← variantes usadas por los casos de la guía
+lotes/*.json              ← lotes para --batch (ejemplo.json, casos.json)
 tests/                    ← pruebas unitarias
-docs/                     ← arquitectura y notas de diseño
+docs/                     ← guía de ejecución, arquitectura y notas de diseño
 ```
 
 Ver [`docs/arquitectura.md`](docs/arquitectura.md) para el detalle de

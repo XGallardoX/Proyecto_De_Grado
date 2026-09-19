@@ -1,0 +1,20 @@
+{
+  "nombre": "casos",
+  "duracion": 200,
+  "semillas": 10,
+  "escenarios": [
+    { "config": "escenarios/base.txt", "etiqueta": "alcance_16m" },
+    { "config": "escenarios/casos/base_rango20.txt", "etiqueta": "alcance_20m" },
+    { "config": "escenarios/casos/base_rango24.txt", "etiqueta": "alcance_24m" },
+
+    { "config": "escenarios/casos/base_timeout4.txt", "etiqueta": "falsas_alarmas_timeout4" },
+    { "config": "escenarios/casos/base_timeout8.txt", "etiqueta": "falsas_alarmas_timeout8" },
+    { "config": "escenarios/base.txt", "etiqueta": "falsas_alarmas_timeout30" },
+
+    { "config": "escenarios/casos/colapso_timeout15.txt", "etiqueta": "deteccion_timeout15" },
+    { "escenario": "colapso_progresivo", "etiqueta": "deteccion_timeout30" },
+    { "config": "escenarios/casos/colapso_timeout60.txt", "etiqueta": "deteccion_timeout60" },
+
+    { "config": "escenarios/casos/cadena.txt", "etiqueta": "cadena_multisalto", "duracion": 60 }
+  ]
+}

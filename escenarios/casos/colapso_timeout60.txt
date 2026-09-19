@@ -1,0 +1,29 @@
+# Caso "timeout y latencia de detección": igual que
+# escenarios/colapso_progresivo.json, con timeout=60 en vez de 30.
+# Ver docs/guia_ejecucion.md.
+
+name: colapso_timeout60
+
+[building]
+ancho=40
+alto=30
+piso_h=10
+n_pisos=3
+stair_xy=20,15
+stair_half_w=1.7
+
+[medium]
+battery_drain=0.45
+
+[protocol]
+timeout=60
+
+[nodes]
+# id  role  x   y   battery
+1    G  7   27  100
+2    G  11  27  78
+3    G  9   24  56
+4    G  13  25  38
+101  N  34  3
+102  N  5   5
+103  N  33  15
