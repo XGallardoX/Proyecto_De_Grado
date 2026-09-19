@@ -123,6 +123,42 @@ class EngineBugFixRegressionTests(unittest.TestCase):
         self.assertEqual(etiquetas, ["G1", "N2", "N3", "N4"])
 
 
+class ParticionYReunificacionTests(unittest.TestCase):
+    """Eventos PARTITION/HEAL: una partición que desaparece porque cayó un
+    gateway no es una reunificación."""
+
+    def _sim_partida(self):
+        # G1 y G2 juntos, G3 a 25 m (fuera de rango): 2 componentes
+        return make_simulation([
+            {"id": 1, "role": "G", "x": 5, "y": 5},
+            {"id": 2, "role": "G", "x": 10, "y": 5},
+            {"id": 3, "role": "G", "x": 35, "y": 5},
+        ], protocol={"move_speed": 0})
+
+    def _tipos(self, sim):
+        return [tipo for (_t, tipo, _txt) in sim.recorder.events]
+
+    def _pasar_antirrebote(self, sim):
+        for _ in range(14):                 # 7 s > 6 s de anti-rebote
+            sim.step()
+
+    def test_reconectar_al_gateway_aislado_emite_heal(self):
+        sim = self._sim_partida()
+        self._pasar_antirrebote(sim)
+        self.assertEqual(self._tipos(sim), ["PARTITION"])
+        sim.nodes[3].x = 14.0               # vuelve a estar en rango
+        sim.step()
+        self.assertEqual(self._tipos(sim), ["PARTITION", "HEAL"])
+
+    def test_si_el_aislado_se_queda_sin_bateria_no_hay_heal(self):
+        sim = self._sim_partida()
+        self._pasar_antirrebote(sim)
+        sim.nodes[3].battery = 0.001        # cae en el próximo paso
+        sim.step()
+        self.assertEqual(sim.gateway_components(), 1)
+        self.assertEqual(self._tipos(sim), ["PARTITION", "FAIL"])
+
+
 class EscenariosMigradosRegressionTests(unittest.TestCase):
     """Corre los 5 escenarios migrados (parte 1.3) en modo headless (sin
     Visualizer/pygame) y verifica que el motor no explota y que cada

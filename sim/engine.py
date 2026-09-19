@@ -47,6 +47,7 @@ class Simulation:
         self.wanderer = None
         self.wander_until = -1.0
         self._prev_components = 1
+        self._prev_gateways_vivos = None
         self._last_part_evt = -100.0
 
 
@@ -249,6 +250,12 @@ class Simulation:
         # detectar particiones / reunificaciones de la malla de
         # gateways (esto es lo que BATMAN "ve" y reorganiza)
         comps = self.gateway_components()
+        gateways_vivos = sum(1 for n in self.nodes.values()
+                             if n.role == 'G' and n.alive)
+        # si la partición desaparece porque un gateway cayó (p. ej. el
+        # que estaba aislado se quedó sin batería), no es una reunificación
+        perdio_gateways = (self._prev_gateways_vivos is not None and
+                           gateways_vivos < self._prev_gateways_vivos)
         # anti-rebote: no registrar transiciones más seguido que cada 6 s
         if self.t - self._last_part_evt >= 6.0:
             if comps > self._prev_components and comps > 1:
@@ -257,12 +264,14 @@ class Simulation:
                            f"Malla de gateways partida en {comps} grupos")
                 self.log(f"⚠ La malla de gateways se partió "
                          f"en {comps} grupos", "error")
-            elif comps < self._prev_components and comps == 1:
+            elif (comps < self._prev_components and comps == 1
+                    and not perdio_gateways):
                 self._last_part_evt = self.t
                 self.event('HEAL', "Malla de gateways reunificada")
                 self.log("La malla de gateways se reunificó "
                          "(BATMAN reconvergió)", "ok")
         self._prev_components = comps
+        self._prev_gateways_vivos = gateways_vivos
 
         # envejecer paquetes visuales
         pv = self.medium.packets_visual

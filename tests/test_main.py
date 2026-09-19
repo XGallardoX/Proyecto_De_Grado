@@ -44,25 +44,38 @@ def escenario(nombre, static=False):
 
 class EpisodiosParticionTests(unittest.TestCase):
     def test_sin_particiones(self):
-        self.assertEqual(episodios_particion([0.5, 1.0, 1.5], [1, 1, 1]), [])
+        self.assertEqual(
+            episodios_particion([0.5, 1.0, 1.5], [1, 1, 1], [3, 3, 3]), [])
 
-    def test_episodio_que_se_cierra(self):
+    def test_episodio_que_se_reunifica(self):
         t = [0.5, 1.0, 1.5, 2.0, 2.5]
-        self.assertEqual(episodios_particion(t, [1, 2, 3, 1, 1]), [(1.0, 2.0)])
+        self.assertEqual(
+            episodios_particion(t, [1, 2, 3, 1, 1], [4, 4, 4, 4, 4]),
+            [(1.0, 2.0, True)])
 
     def test_episodio_abierto_al_final(self):
-        self.assertEqual(episodios_particion([0.5, 1.0, 1.5], [2, 2, 2]),
-                         [(0.5, None)])
+        self.assertEqual(
+            episodios_particion([0.5, 1.0, 1.5], [2, 2, 2], [4, 4, 4]),
+            [(0.5, None, False)])
 
-    def test_quedarse_sin_gateways_no_cuenta_como_reunificacion(self):
-        self.assertEqual(episodios_particion([0.5, 1.0, 1.5], [1, 2, 0]),
-                         [(1.0, None)])
+    def test_si_cae_el_gateway_aislado_no_es_reunificacion(self):
+        # la malla vuelve a 1 componente en t=1.5, pero porque se perdió
+        # un gateway en ese mismo paso
+        self.assertEqual(
+            episodios_particion([0.5, 1.0, 1.5], [1, 2, 1], [4, 4, 3]),
+            [(1.0, 1.5, False)])
+
+    def test_quedarse_sin_gateways_no_es_reunificacion(self):
+        self.assertEqual(
+            episodios_particion([0.5, 1.0, 1.5], [1, 2, 0], [2, 2, 0]),
+            [(1.0, 1.5, False)])
 
     def test_varios_episodios(self):
         t = [1, 2, 3, 4, 5, 6, 7]
         comps = [2, 1, 1, 3, 2, 1, 2]
-        self.assertEqual(episodios_particion(t, comps),
-                         [(1, 2), (4, 6), (7, None)])
+        vivos = [5, 5, 5, 5, 5, 5, 5]
+        self.assertEqual(episodios_particion(t, comps, vivos),
+                         [(1, 2, True), (4, 6, True), (7, None, False)])
 
 
 class ResumenCorridaTests(unittest.TestCase):
@@ -76,9 +89,9 @@ class ResumenCorridaTests(unittest.TestCase):
             t=[0.5, 1.0, 1.5, 2.0],
             avg_tq=[0.0, 1.0, 1.0, 1.0], avg_hops=[0, 1, 2, 1],
             comp_G=[1, 2, 1, 2], node_reach=[0, 1, 2, 3],
-            alive_G=[4, 4, 3, 3],
+            alive_G=[4, 4, 4, 3],
             events=[(1.0, "ALERT_ON", "G1 no oye a G4"),
-                    (1.5, "FAIL", "G4 sin batería"),
+                    (2.0, "FAIL", "G4 sin batería"),
                     (2.0, "ALERT_ON", "G2 no oye a G4")])
         r = resumen_corrida(sim)
         self.assertEqual(r, {
@@ -89,6 +102,15 @@ class ResumenCorridaTests(unittest.TestCase):
             "tiempo_reconvergencia_s": 0.5,    # sólo se cerró 1.0 -> 1.5
             "alertas_gateway": 2, "t_primera_alerta_s": 1.0,
         })
+
+    def test_particion_resuelta_por_perdida_no_da_reconvergencia(self):
+        sim = self._sim(
+            t=[0.5, 1.0, 1.5], avg_tq=[1, 1, 1], avg_hops=[1, 1, 1],
+            comp_G=[1, 2, 1], node_reach=[1, 1, 1], alive_G=[3, 3, 2])
+        r = resumen_corrida(sim)
+        self.assertEqual(r["particiones"], 1)
+        self.assertEqual(r["tiempo_particionado_s"], 0.5)
+        self.assertIsNone(r["tiempo_reconvergencia_s"])
 
     def test_sin_datos_las_metricas_no_aplican(self):
         sim = self._sim(t=[], delivered=0, attempted=0, avg_tq=[],

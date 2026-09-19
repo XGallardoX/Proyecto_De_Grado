@@ -95,25 +95,30 @@ METRICAS_CORRIDA = [
 ]
 
 
-def episodios_particion(t, comps):
+def episodios_particion(t, comps, gateways_vivos):
     """Episodios en que la malla de gateways estuvo partida (comps > 1).
 
-    Devuelve [(inicio, fin), ...]: `fin` es el primer instante en que volvió
-    a haber un solo componente (el mismo criterio que el evento HEAL), o
-    None si el episodio no se cerró (siguió partida hasta el final, o se
-    quedó sin gateways vivos: comps == 0).
+    Devuelve [(inicio, fin, reunificada), ...]: `fin` es el primer instante
+    en que dejó de estar partida (None si siguió partida hasta el final), y
+    `reunificada` dice si ese cierre fue una reunificación de verdad: volvió
+    a un solo componente sin perder gateways en ese paso (el mismo criterio
+    que el evento HEAL). Si la partición desaparece porque cayó un gateway
+    (p. ej. el aislado se quedó sin batería) o porque no queda ninguno
+    (comps == 0), el episodio se cierra sin reunificación.
     """
     episodios = []
     inicio = None
-    for ti, c in zip(t, comps):
+    for i, (ti, c) in enumerate(zip(t, comps)):
         if inicio is None:
             if c > 1:
                 inicio = ti
         elif c <= 1:
-            episodios.append((inicio, ti if c == 1 else None))
+            reunificada = (c == 1 and
+                           gateways_vivos[i] >= gateways_vivos[i - 1])
+            episodios.append((inicio, ti, reunificada))
             inicio = None
     if inicio is not None:
-        episodios.append((inicio, None))
+        episodios.append((inicio, None, False))
     return episodios
 
 
@@ -128,15 +133,17 @@ def resumen_corrida(sim):
     - particiones: episodios con la malla de gateways partida.
     - tiempo_particionado_s: muestras con comp_G > 1, por DT.
     - tiempo_reconvergencia_s: duración media de los episodios que se
-      cerraron (volvió a 1 componente); None si ninguno se cerró.
+      cerraron con una reunificación (ver episodios_particion); None si
+      ninguno.
     - alertas_gateway / t_primera_alerta_s: cantidad de eventos ALERT_ON
       (un gateway deja de oír a otro más allá del timeout) y el instante
       del primero; None si no hubo.
     """
     rec = sim.recorder
     n = len(rec.t)
-    episodios = episodios_particion(rec.t, rec.comp_G)
-    cerrados = [fin - ini for ini, fin in episodios if fin is not None]
+    episodios = episodios_particion(rec.t, rec.comp_G, rec.alive_G)
+    cerrados = [fin - ini for ini, fin, reunificada in episodios
+                if reunificada]
     alertas = [t for (t, tipo, _txt) in rec.events if tipo == 'ALERT_ON']
     medio = sim.medium
     return {

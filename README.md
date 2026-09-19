@@ -310,7 +310,7 @@ instrumentación aparte:
 | Gateways vivos al final | Gateways con batería y sin fallo en el último instante. |
 | Episodios de partición | Veces que la malla de Gateways pasó de un componente a más de uno. |
 | Tiempo con la malla partida (s) | Tiempo total con más de un componente. |
-| Tiempo de reconvergencia (s) | Duración media de los episodios de partición que se cerraron (la malla volvió a un solo componente, el mismo criterio que el evento `HEAL`). "No aplica" si ninguno se cerró. |
+| Tiempo de reconvergencia (s) | Duración media de los episodios de partición que terminaron en una reunificación: la malla volvió a un solo componente sin perder Gateways en ese paso (el mismo criterio que el evento `HEAL`). Si la partición desaparece porque el Gateway aislado cayó, no cuenta. "No aplica" si ningún episodio se reunificó. |
 | Alertas de gateway perdido | Eventos `ALERT_ON`: un Gateway dejó de oír a otro durante más de `timeout` segundos (cada Gateway que lo detecta cuenta una). |
 | Primera alerta (s) | Instante de la primera de esas alertas; "no aplica" si no hubo. |
 
