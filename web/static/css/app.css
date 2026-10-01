@@ -159,6 +159,7 @@ tr.obsoleta td { color: var(--alerta); }
 .m-sin_converger { background: #E6B64C; }
 .m-sin_conexion { background: var(--piso); }
 .m-muerto { opacity: 0.35; }
+#matriz td.m-sin-radio { outline: 2px dashed var(--tinta); outline-offset: -3px; }
 .leyenda-matriz { display: flex; flex-wrap: wrap; gap: 0.3rem 0.9rem; font-size: 0.78em; }
 .leyenda-matriz i { display: inline-block; width: 11px; height: 11px; border-radius: 2px;
                     margin-right: 0.3rem; vertical-align: -1px; }

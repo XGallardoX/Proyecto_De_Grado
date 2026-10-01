@@ -62,6 +62,21 @@ class MatrizTests(unittest.TestCase):
         estados = {c["estado"] for f in m["filas"] for c in f["celdas"]}
         self.assertIn("sin_conexion", estados)
 
+    def test_ruta_vigente_sin_radio_tras_la_particion(self):
+        """rescatista_perdido: G4 se separa a los 41 s; hasta que vence el
+        timeout sigue teniendo rutas vigentes hacia el otro grupo, que la
+        radio ya no conecta."""
+        sim = _sim("rescatista_perdido", 120)
+        m = estado.matriz_conocimiento(sim)
+        ids = [n["id"] for n in m["nodos"]]
+        g4 = next(n.id for n in sim.nodes.values() if n.label == "G4")
+        g1 = next(n.id for n in sim.nodes.values() if n.label == "G1")
+        fila = next(f for f in m["filas"] if f["id"] == g4)
+        celda = fila["celdas"][ids.index(g1)]
+        self.assertEqual(sim.gateway_components(), 2)
+        self.assertEqual(celda["estado"], "vigente")
+        self.assertFalse(celda["fisico"])
+
     def test_al_principio_nada_convergio(self):
         sim = _sim("base", 0)
         m = estado.matriz_conocimiento(sim)

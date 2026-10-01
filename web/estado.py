@@ -352,8 +352,10 @@ def matriz_conocimiento(sim):
             if r is not None:
                 p = peers.get(b.id)
                 obsoleta = bool(p and (p.in_alert or p.is_lost(sim.t, timeout)))
+                # `fisico` falso: el nodo todavía tiene la ruta, pero la
+                # radio ya no los conecta (lo que cree contra lo que hay)
                 celda = {"estado": "obsoleta" if obsoleta else "vigente",
-                         "hops": r.hops}
+                         "hops": r.hops, "fisico": fisico}
             elif fisico:
                 celda = {"estado": "sin_converger"}
             else:

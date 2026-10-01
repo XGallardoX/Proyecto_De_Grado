@@ -17,9 +17,11 @@ export function pintarMatriz(contenedor, indicador, m, alElegirFila) {
   const filas = m.filas.map((f) => {
     const celdas = f.celdas.map((c, j) => {
       const destino = m.nodos[j].etiqueta;
+      const sinRadio = c.fisico === false;
       const titulo = c.estado === "propio" ? "" :
-        `${f.etiqueta} → ${destino}: ${TITULO[c.estado]}${c.hops ? ` (${c.hops} saltos)` : ""}`;
-      return `<td class="m-${c.estado}" title="${esc(titulo)}">${c.hops ?? ""}</td>`;
+        `${f.etiqueta} → ${destino}: ${TITULO[c.estado]}${c.hops ? ` (${c.hops} saltos)` : ""}` +
+        (sinRadio ? " — pero la radio ya no los conecta" : "");
+      return `<td class="m-${c.estado}${sinRadio ? " m-sin-radio" : ""}" title="${esc(titulo)}">${c.hops ?? ""}</td>`;
     }).join("");
     return `<tr class="${f.vivo ? "" : "m-muerto"}"><th class="fila-nodo" data-id="${f.id}"
       title="Seleccionar ${esc(f.etiqueta)}">${esc(f.etiqueta)}${f.vivo ? "" : " ×"}</th>${celdas}</tr>`;
