@@ -8,6 +8,12 @@
 
 Fecha: 2026-09-30
 
+> **Decisiones pendientes entre los dos:** la Fase 3 de la interfaz web
+> (eventos de fallo programables, laboratorio de lotes, ventana nativa)
+> no se empieza sin acuerdo. Ver
+> [`DECISIONES_FASE3.md`](DECISIONES_FASE3.md). La interfaz web está en
+> la rama `feat/interfaz-web`, todavía sin mergear a `main`.
+
 ---
 
 ## Hecho
@@ -236,7 +242,8 @@ guía (el 1 en la web y el 12, "ver como este nodo").
 - **Pendiente:**
   - Mirar la interfaz en un navegador (la lista de chequeo).
   - **Fase 3, a decidir entre los dos autores** antes de empezar (el
-    encargo lo exige): (a) eventos de caída/recuperación programables en
+    encargo lo exige). Detalle de cada opción, qué toca y qué permite:
+    [`DECISIONES_FASE3.md`](DECISIONES_FASE3.md). En corto: (a) eventos de caída/recuperación programables en
     el esquema de escenario (`{"type": "fail" | "recover", "node_id",
     "t"}`), que permitirían exportar una sesión con intervenciones como
     escenario reproducible y medir la reconvergencia en serio — toca la
