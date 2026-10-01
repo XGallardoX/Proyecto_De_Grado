@@ -1,31 +1,25 @@
 // Cliente delgado de la API HTTP/SSE. No calcula nada del modelo: sólo
-// pide y manda datos ya calculados por Python (ver sección 3 del prompt
-// de encargo, "contrato de paridad").
+// pide y manda datos ya calculados por Python (contrato de paridad).
 
-export async function obtenerEstado() {
-  const r = await fetch("/api/estado");
-  return r.json();
-}
-
-export async function obtenerNodo(id) {
-  const r = await fetch(`/api/nodo/${id}`);
+async function json(ruta) {
+  const r = await fetch(ruta);
   if (!r.ok) return null;
   return r.json();
 }
 
-export async function obtenerSeries() {
-  const r = await fetch("/api/series");
-  return r.json();
-}
+export const obtenerEstado = () => json("/api/estado");
+export const obtenerNodo = (id) => json(`/api/nodo/${id}`);
+export const obtenerSeries = (desde = 0, desdeEvento = 0) =>
+  json(`/api/series?desde=${desde}&desde_evento=${desdeEvento}`);
+export const obtenerMatriz = () => json("/api/matriz");
+export const obtenerCobertura = () => json("/api/cobertura");
+export const obtenerEscenarios = () => json("/api/escenarios");
+export const obtenerEscenarioActual = (posiciones = "iniciales") =>
+  json(`/api/escenario/actual?posiciones=${posiciones}`);
 
 export async function obtenerInspector() {
   const r = await fetch("/api/inspector");
   return r.text();
-}
-
-export async function obtenerEscenarios() {
-  const r = await fetch("/api/escenarios");
-  return r.json();
 }
 
 export async function enviarComando(accion, datos = {}) {
@@ -39,20 +33,17 @@ export async function enviarComando(accion, datos = {}) {
   return cuerpo;
 }
 
-// SSE con reconexión simple. onFrame recibe el frame ya parseado.
-export function conectarStream(onFrame, onError) {
+// SSE con reconexión. onFrame recibe el frame ya parseado.
+export function conectarStream(onFrame, onCambioConexion) {
   let activo = true;
   function abrir() {
     const es = new EventSource("/api/stream");
     es.addEventListener("frame", (ev) => {
-      try {
-        onFrame(JSON.parse(ev.data));
-      } catch (e) {
-        console.error("frame inválido", e);
-      }
+      onCambioConexion?.(true);
+      try { onFrame(JSON.parse(ev.data)); } catch (e) { console.error("frame inválido", e); }
     });
     es.onerror = () => {
-      if (onError) onError();
+      onCambioConexion?.(false);
       es.close();
       if (activo) setTimeout(abrir, 1000);
     };

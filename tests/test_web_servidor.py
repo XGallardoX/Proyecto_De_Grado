@@ -96,6 +96,9 @@ class ServidorTests(unittest.TestCase):
         self.assertIn("generacion", s)
         s = self._get_json("/api/series?desde=abc")
         self.assertEqual(s["desde"], 0)
+        p = self._get_json("/api/paquetes?origen=1")
+        self.assertEqual(p["origen"], 1)
+        self.assertTrue(all(x[6] == 1 for x in p["paquetes"]))
 
     def test_escenarios(self):
         conn = self._conn()

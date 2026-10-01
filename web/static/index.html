@@ -9,13 +9,15 @@
 <body>
   <header id="barra-superior">
     <div class="grupo">
-      <select id="sel-escenario" title="Escenario"></select>
-      <span id="etq-semilla" class="chip" title="Semilla de esta sesión"></span>
+      <strong class="marca">BATMAN · Red de Expansión de Cobertura</strong>
+      <select id="sel-escenario" title="Escenario predefinido (S: siguiente)" aria-label="Escenario"></select>
+      <button id="btn-inicio" title="Elegir escenario, archivo o red aleatoria">Abrir…</button>
+      <button id="btn-semilla" class="chip" title="Semilla de la sesión (clic para cambiarla)"></button>
     </div>
     <div class="grupo">
-      <button id="btn-pausar" title="Espacio">⏸ Pausar</button>
-      <button id="btn-paso" title="Un paso (en pausa)">⏭ Paso</button>
-      <select id="sel-velocidad" title="Velocidad">
+      <button id="btn-pausar" title="Pausa / reanuda (Espacio)">⏸ Pausar</button>
+      <button id="btn-paso" title="Un paso de 0.5 s (sólo en pausa)">⏭ Paso</button>
+      <select id="sel-velocidad" title="Velocidad (1× = ritmo de la ventana pygame)" aria-label="Velocidad">
         <option value="0.25">0.25×</option>
         <option value="0.5">0.5×</option>
         <option value="1" selected>1×</option>
@@ -24,86 +26,115 @@
         <option value="8">8×</option>
         <option value="maxima">máxima</option>
       </select>
-      <button id="btn-reiniciar" title="R">↺ Reiniciar</button>
+      <button id="btn-reiniciar" title="Reiniciar con la misma semilla (R)">↺ Reiniciar</button>
     </div>
     <div class="grupo">
-      <button id="btn-exportar" title="P">⬇ Exportar</button>
-      <button id="btn-terminar" title="Q / Esc">⏹ Terminar sesión</button>
-      <button id="btn-tema" title="Tema claro/oscuro">◐</button>
-      <button id="btn-ayuda" title="?">?</button>
+      <button id="btn-exportar" title="Exportar figura y reportes (P)">⬇ Exportar</button>
+      <button id="btn-editor" title="Editor de escenarios">✎ Editor</button>
+      <button id="btn-presentacion" title="Modo presentación (Z)">⛶</button>
+      <button id="btn-tema" title="Tema claro / oscuro">◐</button>
+      <button id="btn-ayuda" title="Atajos de teclado (?)">?</button>
+      <button id="btn-terminar" title="Exporta y apaga el servidor (Q)">⏹ Terminar</button>
     </div>
-    <div id="estado-red" class="grupo estado">
+    <div id="estado-red" class="grupo estado" aria-live="polite">
       <span id="reloj">T+0s</span>
       <span id="conteo-g"></span>
       <span id="conteo-n"></span>
+      <span id="conteo-alcance" title="Nodos de usuario que comparten grupo de radio con algún Gateway"></span>
       <span id="aviso-particion" class="chip chip-alerta" hidden>RED PARTIDA</span>
+      <span id="aviso-intervenciones" class="chip" hidden title="La sesión tuvo intervenciones: ya no equivale a un comando de terminal"></span>
       <span id="aviso-error" class="chip chip-error" hidden></span>
     </div>
   </header>
 
   <main>
     <section id="zona-mapa">
-      <canvas id="mapa"></canvas>
-      <div id="leyenda"></div>
+      <div id="barra-mapa">
+        <div class="grupo" role="group" aria-label="Herramienta del mapa">
+          <button class="herramienta activa" data-herramienta="seleccionar" title="Seleccionar y arrastrar nodos">↖ Seleccionar</button>
+          <button class="herramienta" data-herramienta="G" title="Clic en el mapa: agregar un Gateway ahí">+ Gateway</button>
+          <button class="herramienta" data-herramienta="N" title="Clic en el mapa: agregar un Nodo de usuario ahí">+ Nodo</button>
+        </div>
+        <div class="grupo">
+          <button id="btn-lente" title="Ver la red como la ve el nodo seleccionado (L)">👁 Ver como este nodo</button>
+          <label class="compacto" title="Mostrar sólo los OGM que originó un nodo (O: el seleccionado)">
+            OGM de
+            <select id="sel-filtro-ogm"><option value="">todos</option></select>
+          </label>
+        </div>
+      </div>
+      <div id="contenedor-canvas">
+        <canvas id="mapa" tabindex="0" aria-label="Mapa del edificio y la malla"></canvas>
+        <div id="banner-lente" hidden></div>
+        <div id="leyenda" aria-label="Leyenda y capas"></div>
+        <div id="tooltip" role="tooltip" hidden></div>
+        <div id="toasts" aria-live="polite"></div>
+      </div>
+      <form id="compositor" hidden>
+        <span>Mensaje</span>
+        <select id="msg-origen" aria-label="Origen"></select>
+        <span>→</span>
+        <select id="msg-destino" aria-label="Destino"></select>
+        <input id="msg-texto" type="text" placeholder="texto (o G1>N2 texto)" autocomplete="off" aria-label="Texto del mensaje">
+        <button type="submit">Enviar</button>
+        <button type="button" id="msg-cerrar" title="Cerrar (Esc)">✕</button>
+        <span id="msg-ayuda" class="detalle">Clic en un nodo: primero origen, después destino.</span>
+      </form>
     </section>
 
     <aside id="panel-lateral">
-      <nav id="pestanas">
-        <button class="pestana activa" data-panel="nodo">Nodo</button>
-        <button class="pestana" data-panel="red">Red</button>
-        <button class="pestana" data-panel="metricas">Métricas</button>
-        <button class="pestana" data-panel="inspector">Inspector</button>
-        <button class="pestana" data-panel="parametros">Parámetros</button>
+      <nav id="pestanas" role="tablist">
+        <button class="pestana activa" data-panel="nodo" role="tab">Nodo</button>
+        <button class="pestana" data-panel="red" role="tab">Red</button>
+        <button class="pestana" data-panel="metricas" role="tab">Métricas</button>
+        <button class="pestana" data-panel="real" role="tab">Real / modelo</button>
+        <button class="pestana" data-panel="inspector" role="tab">Inspector</button>
+        <button class="pestana" data-panel="parametros" role="tab">Parámetros</button>
       </nav>
 
-      <div id="panel-nodo" class="panel activo">
-        <p class="vacio">Seleccioná un nodo (clic, Tab o 1-9).</p>
-      </div>
+      <div id="panel-nodo" class="panel activo" role="tabpanel"></div>
 
-      <div id="panel-red" class="panel">
-        <h3>Mensaje</h3>
-        <form id="form-mensaje">
-          <input id="in-mensaje" type="text" placeholder="G1&gt;N2 texto" autocomplete="off">
-          <button type="submit">Enviar</button>
-        </form>
-        <p id="mensaje-resultado" class="detalle"></p>
-        <h3>Acciones</h3>
-        <div class="fila-botones">
-          <button id="btn-caer">Caer (F)</button>
-          <button id="btn-recuperar">Recuperar (G)</button>
-          <button id="btn-agregar">Añadir nodo (A)</button>
-          <button id="btn-eliminar">Eliminar (D)</button>
+      <div id="panel-red" class="panel" role="tabpanel">
+        <h3>Matriz de conocimiento</h3>
+        <p class="detalle">Fila = el nodo que sabe; columna = el destino. Cada nodo tiene su propia tabla: no hay vista global.</p>
+        <div id="indicador-convergencia"></div>
+        <div id="matriz"></div>
+        <div id="leyenda-matriz" class="leyenda-matriz">
+          <span><i class="m-vigente"></i>ruta vigente (saltos)</span>
+          <span><i class="m-obsoleta"></i>ruta obsoleta</span>
+          <span><i class="m-sin_converger"></i>conectados por radio, sin ruta aún</span>
+          <span><i class="m-sin_conexion"></i>sin conexión física</span>
         </div>
       </div>
 
-      <div id="panel-metricas" class="panel">
-        <canvas id="grafica-metricas" width="320" height="180"></canvas>
-        <p class="detalle">Entrega del radio, TQ medio y partición de la malla.</p>
+      <div id="panel-metricas" class="panel" role="tabpanel">
+        <label class="compacto">Ventana
+          <select id="sel-ventana">
+            <option value="60">últimos 60 s</option>
+            <option value="200" selected>últimos 200 s</option>
+            <option value="0">toda la corrida</option>
+          </select>
+        </label>
+        <div id="graficas"></div>
       </div>
 
-      <div id="panel-inspector" class="panel">
-        <button id="btn-refrescar-inspector">Refrescar</button>
+      <div id="panel-real" class="panel" role="tabpanel"></div>
+
+      <div id="panel-inspector" class="panel" role="tabpanel">
+        <button id="btn-refrescar-inspector">Refrescar (I)</button>
         <pre id="texto-inspector"></pre>
       </div>
 
-      <div id="panel-parametros" class="panel">
-        <label>
-          Alcance de radio (rango_comm)
-          <input id="param-rango" type="range" min="4" max="40" step="1">
-          <output id="param-rango-val"></output>
-        </label>
-        <label>
-          Degradación con la distancia (falloff)
-          <input id="param-falloff" type="range" min="0" max="1.5" step="0.05">
-          <output id="param-falloff-val"></output>
-        </label>
-      </div>
+      <div id="panel-parametros" class="panel" role="tabpanel"></div>
     </aside>
   </main>
 
-  <footer id="barra-log">
-    <div id="log"></div>
+  <footer id="barra-inferior">
+    <div id="linea-tiempo" aria-label="Línea de tiempo de eventos"></div>
+    <div id="log" aria-label="Log de la red"></div>
   </footer>
+
+  <div id="menu-contextual" role="menu" hidden></div>
 
   <dialog id="dialogo-ayuda">
     <h3>Atajos de teclado</h3>
@@ -112,16 +143,66 @@
       <tr><td>Tab, ←/→, clic</td><td>Seleccionar nodo</td></tr>
       <tr><td>1-9</td><td>Seleccionar el N-ésimo Gateway</td></tr>
       <tr><td>F / G</td><td>Caer / recuperar el nodo seleccionado</td></tr>
-      <tr><td>A / D</td><td>Añadir / eliminar nodo</td></tr>
+      <tr><td>A / D</td><td>Añadir un Nodo de usuario / eliminar el seleccionado</td></tr>
       <tr><td>M</td><td>Componer un mensaje</td></tr>
-      <tr><td>I</td><td>Refrescar el inspector</td></tr>
-      <tr><td>S</td><td>Siguiente escenario</td></tr>
+      <tr><td>I</td><td>Inspector</td></tr>
+      <tr><td>S</td><td>Siguiente escenario predefinido</td></tr>
       <tr><td>+/-, [/]</td><td>Alcance de radio / falloff</td></tr>
       <tr><td>P</td><td>Exportar</td></tr>
-      <tr><td>R</td><td>Reiniciar (refija la semilla)</td></tr>
-      <tr><td>Q / Esc</td><td>Terminar sesión</td></tr>
+      <tr><td>R</td><td>Reiniciar (con la misma semilla)</td></tr>
+      <tr><td>Q</td><td>Terminar la sesión (exporta)</td></tr>
+      <tr><td>Esc</td><td>Cerrar diálogos y menús</td></tr>
+      <tr><td>L</td><td>Ver la red como la ve el nodo seleccionado</td></tr>
+      <tr><td>O</td><td>Mostrar sólo los OGM del nodo seleccionado</td></tr>
+      <tr><td>C</td><td>Mapa de cobertura</td></tr>
+      <tr><td>Z</td><td>Modo presentación</td></tr>
+      <tr><td>Clic derecho</td><td>Menú del nodo, o agregar un nodo ahí</td></tr>
+      <tr><td>Arrastrar</td><td>Mover un nodo</td></tr>
     </table>
-    <button id="btn-cerrar-ayuda">Cerrar</button>
+    <p class="detalle">Diferencia con pygame: Reiniciar vuelve a fijar la semilla (la tecla R de pygame no), y Esc sólo cierra diálogos.</p>
+    <button class="cerrar-dialogo">Cerrar</button>
+  </dialog>
+
+  <dialog id="dialogo-inicio">
+    <h3>Elegir la red</h3>
+    <div id="lista-escenarios"></div>
+    <fieldset>
+      <legend>Otras fuentes</legend>
+      <label>Archivo de <code>escenarios/</code>
+        <select id="ini-archivo"><option value="">—</option></select>
+      </label>
+      <label>Red aleatoria
+        <span class="fila">
+          <input id="ini-n" type="number" min="2" max="60" value="8" aria-label="Nodos"> nodos,
+          <input id="ini-g" type="number" min="1" max="59" value="2" aria-label="Gateways"> Gateways
+          <button id="ini-aleatoria" type="button">Cargar aleatoria</button>
+        </span>
+      </label>
+    </fieldset>
+    <fieldset>
+      <legend>Opciones</legend>
+      <label><input id="ini-static" type="checkbox"> Nodos fijos (--static)</label>
+      <label>Movilidad
+        <select id="ini-movilidad">
+          <option value="">la del escenario</option>
+          <option value="seguir">seguir</option>
+          <option value="repartir">repartir</option>
+        </select>
+      </label>
+      <label>Semilla <input id="ini-semilla" type="number" min="1" placeholder="al azar"></label>
+    </fieldset>
+    <p id="ini-error" class="error" hidden></p>
+    <button class="cerrar-dialogo">Seguir con la sesión actual</button>
+  </dialog>
+
+  <dialog id="dialogo-exportado">
+    <h3>Exportado</h3>
+    <div id="exportado-cuerpo"></div>
+    <button class="cerrar-dialogo">Cerrar</button>
+  </dialog>
+
+  <dialog id="dialogo-editor" class="pantalla-completa">
+    <div id="editor"></div>
   </dialog>
 
   <script type="module" src="/static/js/main.js"></script>

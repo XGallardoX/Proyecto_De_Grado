@@ -26,6 +26,7 @@ _PATRON_ETIQUETA = re.compile(r"\b([GN]\d+)\b")
 # sea liviano a 15-20 Hz.
 MAX_LOG_FRAME = 20
 MAX_EVENTOS_FRAME = 20
+MAX_PAQUETES_FRAME = 300
 
 
 def _colores(sim):
@@ -60,14 +61,15 @@ def _nodos(sim):
             "id": n.id,
             "etiqueta": n.label,
             "rol": n.role,
-            "x": n.x,
-            "y": n.y,
+            "x": round(n.x, 2),
+            "y": round(n.y, 2),
             "piso": n.piso,
             "vivo": n.alive,
-            "bateria": n.battery,
+            "bateria": round(n.battery, 1),
             "color": n.color(),
             "en_alerta": en_alerta,
-            "estela": [list(p) for p in n.history[-40:]],
+            # cada 2 puntos de los últimos 40: la estela es sólo dibujo
+            "estela": [[round(x, 1), round(y, 1)] for x, y in n.history[-40::4]],
             "beacon": beacon,
             "ultimo_mensaje": n.last_msg if beacon else None,
             "n_rutas": len(n.router.routes),
@@ -83,23 +85,32 @@ def _enlaces(sim):
         for b in vivos[i + 1:]:
             rel = sim.medium.reliability(a, b)
             if rel > 0.0:
-                out.append({"a": a.id, "b": b.id, "fiabilidad": rel,
-                            "distancia": a.dist_to(b),
-                            "pisos": [a.piso, b.piso]})
+                # [a, b, fiabilidad, distancia]
+                out.append([a.id, b.id, round(rel, 3), round(a.dist_to(b), 2)])
     return out
 
 
-def _paquetes(sim):
-    out = []
-    for p in sim.medium.packets_visual:
-        out.append({
-            "origen_x": p.x, "origen_y": p.y,
-            "destino_x": p.tx, "destino_y": p.ty,
-            "progreso": p.progress, "tipo": p.tipo,
-            "origen": p.origen, "ttl": p.ttl,
-            "emisor": p.emisor, "receptor": p.receptor,
-        })
-    return out
+def _paquete(p):
+    """[x0, y0, x1, y1, progreso, tipo, origen, ttl]: emisor -> receptor
+    del salto, y quién originó el mensaje."""
+    return [round(p.x, 2), round(p.y, 2), round(p.tx, 2), round(p.ty, 2),
+            round(p.progress, 3), p.tipo, p.origen, p.ttl]
+
+
+def _paquetes(sim, maximo=MAX_PAQUETES_FRAME):
+    """Una muestra de a lo sumo `maximo` paquetes en vuelo, a paso fijo
+    (determinista, sin tocar `random`): con 50 nodos puede haber miles,
+    y el frame tiene que seguir siendo liviano."""
+    todos = sim.medium.packets_visual
+    paso = max(1, -(-len(todos) // maximo))
+    return [_paquete(p) for p in todos[::paso]]
+
+
+def paquetes_de_origen(sim, origen, maximo=2000):
+    """Todos los OGM en vuelo que originó `origen` (sus reenvíos
+    incluidos): la inundación salto a salto, con el TTL bajando."""
+    return [_paquete(p) for p in sim.medium.packets_visual
+            if p.tipo == 'OGM' and p.origen == origen][:maximo]
 
 
 def _vigilancia_de(sim, g):
@@ -114,7 +125,7 @@ def _vigilancia_de(sim, g):
         caidos = set(g.fault.failed)
     return [{
         "observador": g.id, "observado": p.node_id,
-        "silencio": sim.t - p.last_seen, "timeout": timeout,
+        "silencio": round(sim.t - p.last_seen, 2), "timeout": timeout,
         "cree_caido": p.node_id in caidos,
         "proximo_chequeo": g.t_fault + 5.0,
     } for p in sorted(peers, key=lambda p: p.node_id)]
@@ -197,6 +208,7 @@ def frame(sim, *, velocidad=1.0, semilla=None, error=None, generacion=0,
         "nodos": _nodos(sim),
         "enlaces": _enlaces(sim),
         "paquetes": _paquetes(sim),
+        "paquetes_total": len(sim.medium.packets_visual),
         "resumen": sim.summary(),
         "grupos": _grupos(sim),
         "nodos_alcanzables": sim.nodes_in_mesh(),

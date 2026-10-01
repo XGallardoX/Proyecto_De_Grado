@@ -51,9 +51,12 @@ class FrameTests(unittest.TestCase):
             for b in vivos[i + 1:]:
                 if sim.medium.reliability(a, b) > 0.0:
                     esperados.add(frozenset((a.id, b.id)))
-        obtenidos = {frozenset((e["a"], e["b"])) for e in f["enlaces"]}
+        obtenidos = {frozenset((e[0], e[1])) for e in f["enlaces"]}
         self.assertEqual(esperados, obtenidos)
-
+        for a, b, rel, d in f["enlaces"]:
+            self.assertAlmostEqual(
+                rel, sim.medium.reliability(sim.nodes[a], sim.nodes[b]), places=3)
+            self.assertAlmostEqual(d, sim.nodes[a].dist_to(sim.nodes[b]), places=2)
     def test_grupos_coinciden_con_union_find(self):
         sim = _sim("particion", pasos=30)
         f = estado.frame(sim)
@@ -70,6 +73,33 @@ class FrameTests(unittest.TestCase):
         f = estado.frame(sim)
         self.assertEqual(f["eventos_nuevos"], [])
         self.assertIsNone(f["ultima_muestra"])
+
+
+class FrameGrandeTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        main_mod.fijar_semilla(1)
+        cls.sim, _ = main_mod.construir_simulacion(None, n_nodes=50, n_gateways=10)
+        for _ in range(120):
+            cls.sim.step()
+
+    def test_frame_liviano_con_50_nodos(self):
+        """Sección 6 del encargo: frames de pocas decenas de KB con 50
+        nodos, aunque haya miles de paquetes en vuelo."""
+        f = estado.frame(self.sim)
+        self.assertGreater(f["paquetes_total"], estado.MAX_PAQUETES_FRAME)
+        self.assertLessEqual(len(f["paquetes"]), estado.MAX_PAQUETES_FRAME)
+        self.assertLess(len(json.dumps(f, ensure_ascii=False)), 80 * 1024)
+
+    def test_paquetes_de_un_origen_son_todos(self):
+        sim = self.sim
+        origen = 1
+        esperados = [p for p in sim.medium.packets_visual
+                     if p.tipo == "OGM" and p.origen == origen]
+        obtenidos = estado.paquetes_de_origen(sim, origen)
+        self.assertEqual(len(obtenidos), len(esperados))
+        self.assertTrue(all(p[5] == "OGM" and p[6] == origen for p in obtenidos))
+
 
 
 class NodoDetalleTests(unittest.TestCase):

@@ -98,9 +98,12 @@ class FrameFase2Tests(unittest.TestCase):
         sim = _sim("base", 3)
         f = estado.frame(sim)
         self.assertTrue(f["paquetes"])
-        for p in f["paquetes"]:
-            self.assertIn(p["tipo"], ("OGM", "BCN"))
-            self.assertIn(p["origen"], sim.nodes)
+        for x0, y0, x1, y1, prog, tipo, origen, ttl in f["paquetes"]:
+            self.assertIn(tipo, ("OGM", "BCN"))
+            self.assertIn(origen, sim.nodes)
+            self.assertTrue(0 <= prog <= 1)
+            if tipo == "OGM":
+                self.assertTrue(1 <= ttl <= sim.cfg["ttl"])
 
     def test_contadores(self):
         sim = _sim("base", 40)

@@ -140,6 +140,12 @@ class ManejadorWeb(BaseHTTPRequestHandler):
                                       entero("desde_evento"))
                 datos["generacion"] = self.sesion.generacion
             self._json(200, datos)
+        elif ruta == "/api/paquetes":
+            origen = entero("origen", None)
+            with self.sesion.lock:
+                datos = {"origen": origen,
+                         "paquetes": estado.paquetes_de_origen(self.sesion.sim, origen)}
+            self._json(200, datos)
         elif ruta == "/api/matriz":
             with self.sesion.lock:
                 datos = estado.matriz_conocimiento(self.sesion.sim)

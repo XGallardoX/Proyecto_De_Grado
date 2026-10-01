@@ -1,31 +1,33 @@
+import { esc } from "../util.js";
+
 export class Log {
   constructor(contenedor) {
     this.contenedor = contenedor;
     this.vistos = new Set();
   }
 
-  // Recibe las últimas líneas del frame (t, texto, tipo). Como
-  // log_lines se recorta por el servidor con pop(0), no hay un cursor
-  // fiable: deduplicamos por contenido+t, que alcanza en la práctica.
+  limpiar() {
+    this.vistos.clear();
+    this.contenedor.replaceChildren();
+  }
+
+  // Recibe las últimas líneas del frame. log_lines se recorta en el
+  // servidor con pop(0), así que su índice no sirve de cursor: se
+  // deduplica por t + texto.
   agregar(lineas) {
+    let nuevas = false;
     for (const { t, texto, tipo } of lineas) {
       const clave = `${t}|${texto}`;
       if (this.vistos.has(clave)) continue;
       this.vistos.add(clave);
+      nuevas = true;
       const div = document.createElement("div");
       div.className = `linea log-${tipo}`;
-      div.innerHTML = `<span class="t">[${t.toFixed(0)}s]</span><span>${escapar(texto)}</span>`;
+      div.innerHTML = `<span class="t">[${t.toFixed(0)}s]</span><span>${esc(texto)}</span>`;
       this.contenedor.appendChild(div);
     }
-    while (this.contenedor.children.length > 300) {
-      this.contenedor.removeChild(this.contenedor.firstChild);
-    }
+    if (!nuevas) return;
+    while (this.contenedor.children.length > 300) this.contenedor.firstChild.remove();
     this.contenedor.scrollTop = this.contenedor.scrollHeight;
   }
-}
-
-function escapar(s) {
-  const d = document.createElement("div");
-  d.textContent = s;
-  return d.innerHTML;
 }
