@@ -6,7 +6,7 @@
 > (`PLAN_TRABAJO.md`, `ANALISIS_REPO_MADRE.md`) ya no están en el repo;
 > quedan en el historial de git (commit `7acf40e`).
 
-Fecha: 2026-09-18
+Fecha: 2026-09-30
 
 ---
 
@@ -191,16 +191,59 @@ mismos resultados. Rama `feat/interfaz-web`.
   nuevo (API, esquema del frame, tabla funcionalidad → capacidad → vacío
   de `sec:brecha` que atiende) y un caso web agregado al caso 1 de
   `docs/guia_ejecucion.md`.
-- **Pendiente de esta fase:** Fase 2 del encargo (arrastrar nodos,
-  agregar con clic, más parámetros en vivo, línea de tiempo de eventos,
-  "ver como este nodo", matriz de conocimiento N×N, detección de fallos
-  con anillo de progreso, propagación de OGM por origen —requiere que
-  `_Packet` guarde tipo/origen/TTL, cambio aditivo en `sim/radio.py`—,
-  envolventes de partición, panel "real vs. modelo", editor de
-  escenarios) y la verificación visual en navegador. Fase 3 (eventos de
-  fallo programables, laboratorio de lotes desde la interfaz, ventana
-  nativa) requiere aprobación explícita de los dos autores antes de
-  empezar, según el propio encargo.
+
+**Interfaz web, Fase 2 — interactiva, con lente de descentralización
+(30 de septiembre):** misma rama `feat/interfaz-web`. Detalle completo
+en `docs/interfaz_web.md`; cómo se usa, en el README; dos casos en la
+guía (el 1 en la web y el 12, "ver como este nodo").
+
+- **Cambios aditivos al núcleo** (commit propio, `afa83bb`):
+  `Simulation.mover_nodo()` y `add_node(role, x, y)` (sin argumentos
+  consume `random` igual que antes, probado), `sim.radio.fiabilidad()`
+  (la fórmula de `reliability()` extraída a una función pura, idéntica,
+  probado), `_Packet` con tipo/origen/TTL, contadores de uso del código
+  real en `SimNode` y `config_loader.validar_escenario()`. `mesh/` no se
+  tocó. Regresión de los dos lotes: idéntica.
+- **Interacción:** arrastrar nodos, agregar un Gateway o un Nodo de
+  usuario con un clic, menú contextual, tooltips, capas, parámetros en
+  vivo (12, cada uno verificado contra el código que lo lee en cada
+  paso) con su valor por defecto y "restaurar", los 6 paneles de la
+  figura en vivo, línea de tiempo de eventos, compositor de mensajes
+  con animación salto a salto, semilla editable, pantalla de inicio,
+  modo presentación, tema oscuro.
+- **Lente de descentralización:** "ver como este nodo", matriz de
+  conocimiento N×N con indicador de convergencia (sólo visualización,
+  no va a los reportes), anillos de vigilancia contra el `timeout`,
+  OGM de un origen con el TTL bajando, envolventes de partición, panel
+  "qué es real y qué es modelo".
+- **Editor de escenarios:** guarda en `escenarios/` con el formato de
+  `--config` (probado: lo guardado corre con `--config` y `--headless`),
+  sin pisar los predefinidos. Mapa de cobertura incluido (lo opcional
+  del encargo), sobre la refactorización pura de `reliability()`.
+- **Problemas encontrados y corregidos en el camino:** con 50 nodos el
+  frame pesaba 1.4 MB por los miles de paquetes en vuelo (ahora 64 KB:
+  muestra de 300 y los OGM de un origen por su propio endpoint); el
+  navegador acumulaba todas las muestras sin tope en sesiones largas.
+  También se completó lo que había faltado de la Fase 1 (interpolación
+  a 60 fps, menú contextual, compositor con clic, tooltips, capas,
+  pantalla de inicio, modo presentación, semilla editable).
+- **Pruebas:** 240 (de 192). Nueva `tests/test_web_frontend.py`, que
+  ejecuta el JavaScript del frontend con datos reales en
+  JavaScriptCore (viene con macOS) y falla si un `NaN`/`undefined` llega
+  al dibujo o al HTML. Sigue sin haber verificación en un navegador real
+  (no hay uno automatizable en este entorno): lista de chequeo en
+  `docs/interfaz_web.md`, sección 4.
+- **Pendiente:**
+  - Mirar la interfaz en un navegador (la lista de chequeo).
+  - **Fase 3, a decidir entre los dos autores** antes de empezar (el
+    encargo lo exige): (a) eventos de caída/recuperación programables en
+    el esquema de escenario (`{"type": "fail" | "recover", "node_id",
+    "t"}`), que permitirían exportar una sesión con intervenciones como
+    escenario reproducible y medir la reconvergencia en serio — toca la
+    decisión abierta del punto 4 de "Falta"; (b) laboratorio de lotes
+    desde la interfaz (en un subproceso `--batch`); (c) ventana nativa
+    con pywebview (dependencia nueva).
+  - Mergear `feat/interfaz-web` a `main` (no se hizo push ni merge).
 
 ---
 

@@ -28,6 +28,7 @@ algún día cambian, es que cambió el código, no el azar.
    9. [Alcance de radio contra cobertura](#caso-9--alcance-de-radio-contra-cobertura)
    10. [Timeout: falsas alarmas contra rapidez de detección](#caso-10--timeout-falsas-alarmas-contra-rapidez-de-detección)
    11. [Seguir contra repartir: cobertura contra conectividad](#caso-11--seguir-contra-repartir-cobertura-contra-conectividad)
+   12. [Ver la red como la ve cada nodo (interfaz web)](#caso-12--ver-la-red-como-la-ve-cada-nodo-interfaz-web)
 5. [Dónde quedan los resultados y cómo leerlos](#5-dónde-quedan-los-resultados-y-cómo-leerlos)
 6. [Problemas frecuentes](#6-problemas-frecuentes)
 
@@ -171,13 +172,15 @@ caer, así que durante 1–4 s puede "no oír" a sus vecinos
 python main.py --web --escenario base --static
 ```
 
-Seleccioná G4 (clic sobre el nodo, o tecla `4`), pulsá `F` en la
-pestaña **Red** (o la tecla `F`): el nodo se pone gris con `X`. A los
-30-35 s simulados, la pestaña **Nodo** de G1/G2/G3 muestra la ruta a G4
-obsoleta (en rojo) y el log de abajo tiene las mismas tres líneas
-`⚠ G1: sin señal de G4 > 30s`. Seleccioná G4 de nuevo y pulsá `G`
-(recuperar): un segundo simulado después, el log muestra la
-recuperación. "Terminar sesión" (o `Q`) deja la misma cronología en el
+Seleccioná G4 (clic sobre el nodo, o tecla `4`) y pulsá `F` (o
+"Caer" en la pestaña **Nodo**, o clic derecho sobre el nodo): se pone
+gris con una `X`. Seleccioná G1: con la capa "Vigilancia" prendida, el
+anillo sobre G4 se va llenando con el silencio. A los 30-35 s
+simulados, la pestaña **Nodo** de G1 muestra la ruta a G4 obsoleta (en
+rojo) y "Cree caídos: G4", y en el log y en la línea de tiempo aparecen
+las mismas tres alertas `⚠ G1: sin señal de G4 > 30s`. Seleccioná G4 de
+nuevo y pulsá `G` (recuperar): un segundo simulado después, las alertas
+se apagan. "Terminar" (o `Q`) deja la misma cronología en el
 `reporte.txt` de `reportes/`.
 
 ### Caso 2 — Mandar mensajes por la malla
@@ -505,6 +508,38 @@ cobertura y conectividad de una red de expansión de cobertura. Para
 compararlos en tus propios escenarios, agrega al lote la misma entrada
 dos veces, una con `"movilidad": "seguir"` y otra con
 `"movilidad": "repartir"`.
+
+### Caso 12 — Ver la red como la ve cada nodo (interfaz web)
+
+**Objetivo:** ver que no hay una vista global: cada nodo tiene su propia
+tabla de rutas y su propia idea de quién está caído, y tarda en enterarse
+de una partición.
+
+```bash
+python main.py --web --escenario rescatista_perdido --seed 1
+```
+
+G4 se aleja hacia la esquina (38, 2). Con la semilla 1, la malla se
+parte a los **41 s** (aviso "RED PARTIDA" y un toast), pero la detección
+recién llega a los **70 s**: el `timeout` de 30 s más lo que falta para
+el siguiente chequeo de `FaultManager`.
+
+1. Pausá cerca de t = 60 s (Espacio; `⏭ Paso` avanza de a 0.5 s) y
+   seleccioná G4 (tecla `4`). Pulsá `L` ("ver como este nodo"): G4
+   todavía tiene rutas a G1, G2 y G3 (de 2, 3 y 2 saltos) aunque la
+   radio ya no lo conecte con ellos. En la pestaña **Red**, la matriz
+   muestra esas celdas como "vigente" con borde punteado: lo que el nodo
+   cree contra lo que hay.
+2. Con G4 seleccionado y la capa "Vigilancia" prendida, los anillos
+   sobre G1, G2 y G3 se van llenando a medida que crece el silencio.
+3. Reanudá hasta pasar los 70 s: las rutas de G4 hacia el otro grupo
+   pasan a obsoletas (en rojo), G4 cree caídos a G1, G2 y G3, y G1 (con
+   `1` y `L`) cree caído a G4. Cada lado decidió por su cuenta.
+
+La convergencia también se ve al arrancar cualquier escenario: la
+matriz empieza con pocas celdas verdes y se va llenando a medida que los
+OGM se propagan (en este mismo escenario, a los 30 s, 24 de los 42
+pares conectados por radio ya tienen ruta).
 
 ---
 

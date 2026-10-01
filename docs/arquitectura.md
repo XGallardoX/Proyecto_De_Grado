@@ -103,7 +103,7 @@ hace `main.py`.
 
 Mismo contrato que `analysis/visualizer.py` (lee y muta una
 `Simulation` ya construida con `main.construir_simulacion()`), pero
-servida por HTTP en vez de dibujada con pygame. Tres piezas:
+servida por HTTP en vez de dibujada con pygame. Sus piezas:
 
 - **`web/sesion.py` (`Sesion`)**: dueña de la `Simulation` en el
   servidor. Un solo `threading.RLock` protege todo acceso a `sim`
@@ -120,18 +120,34 @@ servida por HTTP en vez de dibujada con pygame. Tres piezas:
   sigue sirviendo HTTP — la sesión se puede reiniciar sin matar el
   servidor.
 - **`web/estado.py`**: funciones puras `Simulation -> dict`
-  serializable (`frame`, `nodo_detalle`, `series`, `inspector_texto`).
-  No mutan nada; el llamador (la `Sesion` o los handlers HTTP) es quien
-  toma el lock antes de usarlas.
+  serializable: el `frame` que se publica (liviano: una muestra de los
+  paquetes en vuelo, enlaces y paquetes como arreglos), el detalle de un
+  nodo (tabla de rutas, vecinos, a quién cree caído, a quién alcanza por
+  radio sin conocerlo, a quién vigila), las series del `Recorder`
+  (incrementales), la matriz de conocimiento N×N, el mapa de cobertura,
+  los OGM de un origen y el escenario actual como dict. No mutan nada;
+  el llamador (la `Sesion` o los handlers HTTP) toma el lock antes.
+- **`web/editor.py`**: valida y guarda escenarios del editor con
+  `sim.config_loader.validar_escenario()` (las mismas reglas que
+  `--config`), sin pisar los predefinidos ni salir de `escenarios/`.
 - **`web/servidor.py`**: `http.server.ThreadingHTTPServer` + rutas
-  `/api/*` (estado, stream SSE, nodo, series, inspector, escenarios,
-  comando, reportes) + estáticos de `web/static/`. Sólo biblioteca
-  estándar: sin frameworks ni dependencias nuevas.
+  `/api/*` + estáticos de `web/static/`. Sólo biblioteca estándar: sin
+  frameworks ni dependencias nuevas.
 - **`web/static/`**: HTML/CSS/JS sin paso de compilación (módulos ES
-  nativos, canvas 2D para el mapa). El navegador sólo dibuja e
-  interpola; nada del modelo (fiabilidad de enlaces, conectividad,
-  rutas, métricas) se recalcula en JavaScript — llega ya calculado en
-  el frame.
+  nativos, canvas 2D). El navegador sólo dibuja e interpola entre
+  frames; nada del modelo (fiabilidad de enlaces, conectividad, rutas,
+  métricas, cobertura) se recalcula en JavaScript — llega ya calculado.
+
+**Lo que `web/` agregó al núcleo** (todo aditivo, con el comportamiento
+de siempre por defecto y la regresión de lotes idéntica):
+`Simulation.mover_nodo()` y `add_node(role, x, y)` (sin argumentos
+consume `random` igual que antes); `sim.radio.fiabilidad()`, la fórmula
+de `reliability()` extraída a una función pura para el mapa de
+cobertura (resultado idéntico, probado); `_Packet` con tipo, origen,
+TTL, emisor y receptor; contadores informativos en `SimNode` (llamadas a
+`receive_ogm()`, beacons, `FaultManager.check()`), y
+`config_loader.validar_escenario()` para un escenario en memoria.
+`mesh/` no se tocó.
 
 Detalle de la API, el esquema del frame y las decisiones de diseño en
 [`docs/interfaz_web.md`](interfaz_web.md).

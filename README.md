@@ -147,23 +147,61 @@ Si no se pasa `--seed`, la sesión elige una semilla al azar (con
 muestra en la barra superior — toda sesión web es reproducible aunque
 no se la fije a mano.
 
-**Controles:** la barra superior tiene pausa/reanuda, un paso (en
-pausa), velocidad (0.25× a 8×, más "máxima"), reiniciar (vuelve a fijar
-la semilla de la sesión: a diferencia de la tecla `R` de pygame, que no
-refija la semilla, acá sí es reproducible), exportar y terminar sesión.
-El panel lateral tiene pestañas: **Nodo** (tabla de rutas BATMAN y
-vecinos del nodo seleccionado), **Red** (componer un mensaje, hacer
-caer/recuperar/añadir/eliminar un nodo), **Métricas** (entrega y TQ en
-vivo), **Inspector** (el mismo volcado de texto que la tecla `I`) y
-**Parámetros** (`rango_comm` y `falloff` en vivo). Los atajos de
-teclado son los mismos que la ventana pygame (`?` para verlos todos).
+**Barra superior:** escenario (y "Abrir…" para un archivo de
+`escenarios/` o una red aleatoria), la semilla (clic para cambiarla),
+pausa/reanuda, un paso (en pausa), velocidad (0.25× a 8×, más
+"máxima"), reiniciar (vuelve a fijar la semilla: a diferencia de la
+tecla `R` de pygame, que no la refija, acá la corrida se repite igual),
+exportar, el editor de escenarios, modo presentación, tema claro/oscuro
+y terminar sesión. A la derecha, el reloj, Gateways y Nodos vivos,
+cuántos Nodos de usuario cubre la malla, y avisos de red partida, de
+intervenciones o de error.
+
+**Mapa:** Gateways como círculos, Nodos de usuario como rombos; clic
+para seleccionar, arrastrar para mover, clic derecho para el menú del
+nodo (o para agregar uno donde se hizo clic); las herramientas
+"+ Gateway" / "+ Nodo" agregan con un clic. Desde la leyenda se prenden y
+apagan las capas (enlaces, paquetes, estelas, beacons, alcance, grupos,
+vigilancia y el mapa de cobertura). Al pasar el cursor, datos del nodo o
+del enlace (fiabilidad, distancia, pisos). **"Ver como este nodo"**
+(tecla `L`) muestra sólo lo que el nodo seleccionado sabe: sus destinos
+con saltos, TQ y antigüedad, flechas a su siguiente salto, a quién cree
+caído y a quién alcanza por radio sin conocerlo todavía. Con un Gateway
+seleccionado, un anillo sobre cada Gateway que vigila se llena con el
+tiempo que lleva sin oírlo, contra el `timeout`. "OGM de" (o la tecla
+`O`) muestra sólo la inundación de los OGM de un origen, con el TTL
+bajando. `M` abre el compositor de mensajes: origen y destino con clic,
+y el mensaje se ve viajar salto a salto.
+
+**Panel lateral:** **Nodo** (tabla de rutas BATMAN, vecinos, nodos
+alcanzables sin ruta y la detección de fallos del `FaultManager`),
+**Red** (matriz de conocimiento N×N: qué sabe cada nodo de cada destino,
+con cuántos pares conectados ya tienen ruta), **Métricas** (los 6
+paneles de `analisis_red.png` en vivo, con tooltip y ventana de tiempo),
+**Real / modelo** (qué corre el código de `mesh/` y qué es modelo, con
+contadores en vivo), **Inspector** (el volcado de la tecla `I`) y
+**Parámetros** (los del medio, del protocolo, la batería y la
+movilidad, en vivo, con su valor por defecto y "restaurar"). Abajo, la
+línea de tiempo de eventos (un clic resalta los nodos implicados) y el
+log. Los atajos de teclado son los de la ventana pygame más `L`, `O`,
+`C` (cobertura) y `Z` (presentación); `?` los muestra todos. `Esc` sólo
+cierra diálogos y menús (en pygame termina).
+
+**Editor de escenarios:** arranca del escenario de la sesión (con las
+posiciones del archivo o las de ahora) o de uno vacío; se colocan
+Gateways y Nodos de usuario con clic, se editan el edificio, el medio,
+el protocolo, la movilidad y los eventos `wander`, y se valida con las
+mismas reglas que `--config`. Guarda en `escenarios/<nombre>.json` (nunca
+pisa los 5 predefinidos, ni otro archivo sin marcar "sobrescribir"),
+muestra el comando para correrlo desde la terminal y permite cargarlo
+en la sesión o descargar el JSON.
 
 **Exportar** deja la misma carpeta `reportes/<escenario>_<fecha_hora>/`
 con los mismos cuatro archivos que la terminal, más un `sesion_web.json`
 con la configuración, la semilla, las intervenciones (si las hubo) y el
 comando de terminal equivalente para reproducir la corrida sin
 intervenciones (p. ej. `python main.py --headless --escenario base
---seed 7 --duracion 120`). Terminar la sesión (botón, `Q`/`Esc`, o
+--seed 7 --duracion 120`). Terminar la sesión (botón, `Q`, o
 `Ctrl+C` en la terminal) exporta igual que al cerrar la ventana pygame.
 
 Detalle de la API HTTP/SSE, el esquema del frame y las decisiones de
@@ -503,6 +541,13 @@ corrida, funciones puras de la ventana, validación y agregación del
 runner de lote) y `main.py` sin ventana (`--headless`, `--inspect`,
 `--seed`, `--batch`), incluida la regresión de los 5 escenarios migrados. No abre la ventana `pygame` ni necesita pantalla;
 sí necesita el entorno con las dependencias de `requirements.txt`.
+
+La interfaz web se prueba en `tests/test_web_*.py`: el estado que se
+manda al navegador, la paridad con la terminal (misma semilla, misma
+serie), los comandos, el servidor HTTP/SSE y el editor.
+`tests/test_web_frontend.py` además ejecuta el JavaScript del frontend
+con datos reales en JavaScriptCore (`jsc`, que trae macOS); en otros
+sistemas esa prueba se salta.
 
 ---
 
