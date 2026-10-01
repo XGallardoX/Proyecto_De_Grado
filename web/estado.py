@@ -70,6 +70,8 @@ def _nodos(sim):
             "estela": [list(p) for p in n.history[-40:]],
             "beacon": beacon,
             "ultimo_mensaje": n.last_msg if beacon else None,
+            "n_rutas": len(n.router.routes),
+            "n_vecinos": len(n.router.peers),
         })
     return out
 
@@ -81,7 +83,9 @@ def _enlaces(sim):
         for b in vivos[i + 1:]:
             rel = sim.medium.reliability(a, b)
             if rel > 0.0:
-                out.append({"a": a.id, "b": b.id, "fiabilidad": rel})
+                out.append({"a": a.id, "b": b.id, "fiabilidad": rel,
+                            "distancia": a.dist_to(b),
+                            "pisos": [a.piso, b.piso]})
     return out
 
 

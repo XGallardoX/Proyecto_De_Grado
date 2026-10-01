@@ -345,11 +345,35 @@ class Sesion:
             faltan = [e for e in (origen, destino) if e not in ids]
             if faltan:
                 raise ValueError(f"no existe el nodo {' ni '.join(faltan)}")
-            camino = self.sim.send_unicast(ids[origen], ids[destino], cuerpo)
+            if origen == destino:
+                raise ValueError("el origen y el destino son el mismo nodo")
+            a, b = self.sim.nodes[ids[origen]], self.sim.nodes[ids[destino]]
+            convergida = a.router.routes.get(b.id) is not None
+            camino = self.sim.send_unicast(a.id, b.id, cuerpo)
             self._registrar("mensaje", {"texto": texto})
-        etiquetas = ([self.sim.label_of(i) for i in camino]
-                     if camino else None)
-        return {"camino": etiquetas, "entregado": camino is not None}
+            motivo = None
+            if camino is None:
+                motivo = (f"{a.label} está caído" if not a.alive else
+                          f"{b.label} está caído" if not b.alive else
+                          "no existe ningún camino en la malla (partición)")
+            etiquetas = ([self.sim.label_of(i) for i in camino]
+                         if camino else None)
+            ids_camino = list(camino) if camino else None
+        return {"camino": etiquetas, "ids": ids_camino,
+                "entregado": camino is not None, "motivo": motivo,
+                "ruta_batman_convergida": convergida}
+
+    def _c_cambiar_semilla(self, datos):
+        """Reconstruye la misma configuración con otra semilla."""
+        try:
+            semilla = int(datos.get("semilla"))
+        except (TypeError, ValueError):
+            raise ValueError("'semilla' debe ser un entero")
+        if not (1 <= semilla <= SEMILLA_MAXIMA):
+            raise ValueError(f"la semilla debe estar entre 1 y {SEMILLA_MAXIMA}")
+        with self.lock:
+            self._reconstruir(self.build_args, semilla)
+        return {"semilla": semilla}
 
     def _c_parametro(self, datos):
         clave = _clave_parametro(datos)
@@ -381,6 +405,8 @@ class Sesion:
     def _c_exportar(self, datos):
         carpeta = self.exportar()
         return {"carpeta": carpeta,
+                "archivos": sorted(os.listdir(carpeta)),
+                "intervenciones": len(self.intervenciones),
                 "comando_equivalente": self.comando_equivalente()}
 
     def _c_terminar(self, datos):
@@ -391,7 +417,7 @@ class Sesion:
         "velocidad": _c_velocidad, "reiniciar": _c_reiniciar,
         "cargar": _c_cargar, "caer": _c_caer, "recuperar": _c_recuperar,
         "agregar_nodo": _c_agregar_nodo, "eliminar_nodo": _c_eliminar_nodo,
-        "mover_nodo": _c_mover_nodo,
+        "mover_nodo": _c_mover_nodo, "cambiar_semilla": _c_cambiar_semilla,
         "mensaje": _c_mensaje, "parametro": _c_parametro,
         "restaurar_parametro": _c_restaurar_parametro,
         "validar_escenario": _c_validar_escenario,

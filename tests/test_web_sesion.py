@@ -115,6 +115,34 @@ class ComandosTests(unittest.TestCase):
         r = sesion.comando(
             "mensaje", {"texto": f"{g1.label}>{g2.label} hola"})
         self.assertFalse(r["entregado"])
+        self.assertIn("partición", r["motivo"])
+        sesion.comando("caer", {"id": g2.id})
+        r = sesion.comando(
+            "mensaje", {"texto": f"{g1.label}>{g2.label} hola"})
+        self.assertEqual(r["motivo"], f"{g2.label} está caído")
+
+    def test_mensaje_entregado_devuelve_camino(self):
+        sesion = construir_sesion(main_mod.ruta_escenario("base"),
+                                  semilla=1, static=True)
+        sesion.avanzar_sincrono(20)
+        r = sesion.comando("mensaje", {"texto": "G1>G2 hola"})
+        self.assertTrue(r["entregado"])
+        self.assertEqual(r["camino"][0], "G1")
+        self.assertEqual(r["camino"][-1], "G2")
+        self.assertEqual(len(r["ids"]), len(r["camino"]))
+        self.assertIn("ruta_batman_convergida", r)
+        with self.assertRaises(ValueError):
+            sesion.comando("mensaje", {"texto": "G1>G1 eco"})
+
+    def test_cambiar_semilla(self):
+        self.sesion.avanzar_sincrono(5)
+        self.sesion.comando("cambiar_semilla", {"semilla": 77})
+        self.assertEqual(self.sesion.semilla, 77)
+        self.assertEqual(self.sesion.sim.t, 0.0)
+        self.assertEqual(self.sesion.sim.escenario, "base")
+        for malo in ("x", 0, None):
+            with self.assertRaises(ValueError):
+                self.sesion.comando("cambiar_semilla", {"semilla": malo})
 
     def test_mensaje_formato_invalido(self):
         with self.assertRaises(ValueError):
