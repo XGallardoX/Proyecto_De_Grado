@@ -5,26 +5,36 @@ qué las métricas que se ven en el simulador (TQ, tabla de rutas,
 particiones de la malla) las produce el protocolo BATMAN real y no una
 maqueta simplificada.
 
-## Las 3 capas
+## Las capas
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  analysis/   métricas, visualización, reportes, lotes        │
-│    metrics.py, inspector.py, visualizer.py, reporter.py,     │
-│    lote.py                                                   │
-└───────────────────────────▲───────────────────────────────────┘
-                             │ lee el estado de
-┌───────────────────────────┴───────────────────────────────────┐
-│  sim/        puente de simulación                             │
-│    engine.py (Simulation) · sim_node.py (SimNode) · radio.py  │
-│    (RadioMedium) · config_loader.py                            │
-└───────────────────────────▲───────────────────────────────────┘
+┌──────────────────────────────┐  ┌──────────────────────────────────┐
+│  analysis/  métricas,         │  │  web/  interfaz web local         │
+│  visualización (pygame),      │  │  sesion.py (Sesion) · estado.py   │
+│  reportes, lotes              │  │  (serialización) · servidor.py    │
+│  metrics/inspector/           │  │  (HTTP + SSE) · static/ (frontend)│
+│  visualizer/reporter/lote.py  │  │                                    │
+└───────────────▲───────────────┘  └────────────────▲───────────────────┘
+                 │ lee el estado de                  │ lee/muta el estado de
+                 └──────────────────┬─────────────────┘
+┌───────────────────────────────────┴───────────────────────────────┐
+│  sim/        puente de simulación                                  │
+│    engine.py (Simulation) · sim_node.py (SimNode) · radio.py       │
+│    (RadioMedium) · config_loader.py                                 │
+└───────────────────────────▲──────────────────────────────────────────┘
                              │ usa directamente
 ┌───────────────────────────┴───────────────────────────────────┐
 │  mesh/       protocolo BATMAN real                             │
 │    router.py (BatmanRouter) · fault_manager.py (FaultManager) │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+`analysis/` y `web/` son dos consumidores paralelos del mismo `sim/`:
+ninguno reimplementa el modelo, los dos sólo leen (y, en el caso de
+`web/`, también mutan con las mismas operaciones interactivas de
+`Simulation`) la misma `Simulation`. `main.py` decide cuál de los dos
+usar según las flags (ventana pygame, `--headless`/`--inspect`/`--batch`,
+o `--web`); nunca los dos a la vez.
 
 ### `mesh/` — el protocolo real
 
@@ -89,6 +99,43 @@ desviación estándar muestral por escenario, ignorando las corridas donde
 una métrica no aplica) y escribe el resumen; correr cada corrida lo
 hace `main.py`.
 
+### `web/` — interfaz web local (paralela a pygame)
+
+Mismo contrato que `analysis/visualizer.py` (lee y muta una
+`Simulation` ya construida con `main.construir_simulacion()`), pero
+servida por HTTP en vez de dibujada con pygame. Tres piezas:
+
+- **`web/sesion.py` (`Sesion`)**: dueña de la `Simulation` en el
+  servidor. Un solo `threading.RLock` protege todo acceso a `sim`
+  (no es thread-safe y todo el azar sale del módulo `random` global).
+  Un hilo de fondo (`_bucle`) avanza la simulación a un ritmo
+  equivalente al de pygame (9 s simulados por segundo real a
+  velocidad 1×) y publica un frame serializado unas 18 veces por
+  segundo, despertando a los clientes SSE con una `Condition`. Los
+  comandos (`pausar`, `caer`, `mensaje`, `parametro`, ...) se aplican
+  bajo el mismo lock y nunca tocan `sim` fuera de él. Para elegir una
+  semilla automática usa `secrets`, no `random`, precisamente para no
+  romper la reproducibilidad de la corrida. Si el hilo de simulación
+  lanza una excepción, la registra en `self.error`, pausa la sesión y
+  sigue sirviendo HTTP — la sesión se puede reiniciar sin matar el
+  servidor.
+- **`web/estado.py`**: funciones puras `Simulation -> dict`
+  serializable (`frame`, `nodo_detalle`, `series`, `inspector_texto`).
+  No mutan nada; el llamador (la `Sesion` o los handlers HTTP) es quien
+  toma el lock antes de usarlas.
+- **`web/servidor.py`**: `http.server.ThreadingHTTPServer` + rutas
+  `/api/*` (estado, stream SSE, nodo, series, inspector, escenarios,
+  comando, reportes) + estáticos de `web/static/`. Sólo biblioteca
+  estándar: sin frameworks ni dependencias nuevas.
+- **`web/static/`**: HTML/CSS/JS sin paso de compilación (módulos ES
+  nativos, canvas 2D para el mapa). El navegador sólo dibuja e
+  interpola; nada del modelo (fiabilidad de enlaces, conectividad,
+  rutas, métricas) se recalcula en JavaScript — llega ya calculado en
+  el frame.
+
+Detalle de la API, el esquema del frame y las decisiones de diseño en
+[`docs/interfaz_web.md`](interfaz_web.md).
+
 ## `main.py`
 
 Es la única pieza que no vive en un paquete. No conoce nada del
@@ -103,10 +150,12 @@ protocolo BATMAN — sólo cablea las tres capas de arriba:
 - Después elige el modo: la ventana (`Visualizer`, por defecto),
   `--headless` (`correr()` + `build_analysis_figure()`, que exporta la
   figura y los reportes, más el resumen de `resumen_corrida()`),
-  `--inspect` (`correr()` + `snapshot_red()`) o `--batch`
+  `--inspect` (`correr()` + `snapshot_red()`), `--batch`
   (`ejecutar_lote()`: para cada escenario × semilla del archivo de lote
   fija la semilla, construye, corre y exporta, igual que `--headless`;
-  después agrega con `analysis/lote.py`).
+  después agrega con `analysis/lote.py`) o `--web` (`web.sesion.
+  construir_sesion()` + `web.servidor.ejecutar_servidor()`: arranca el
+  servidor y el hilo de simulación de la `Sesion`).
 - `--seed` llama a `fijar_semilla()` antes de construir la simulación.
   Todo el azar del simulador (posiciones aleatorias, desfase inicial de
   los temporizadores, pérdidas del medio, movilidad) sale del módulo

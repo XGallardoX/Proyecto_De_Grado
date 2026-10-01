@@ -51,11 +51,12 @@ activarlo. Probado con Python 3.14.
 
 ---
 
-## 2. Los cuatro modos de un vistazo
+## 2. Los cinco modos de un vistazo
 
 | Quiero… | Comando | Qué deja |
 |---|---|---|
 | Ver la red en vivo e interactuar | `python main.py --escenario base` | Una ventana; al cerrarla, figura y reportes en `reportes/` |
+| Lo mismo, en el navegador | `python main.py --web --escenario base` | Una pestaña en `http://127.0.0.1:8765/`; al terminar la sesión, los mismos reportes más `sesion_web.json` |
 | Una corrida sin ventana | `python main.py --headless --escenario base --seed 1` | Un resumen en pantalla y `reportes/base_<fecha_hora>/` |
 | Ver el estado interno del protocolo | `python main.py --inspect --escenario particion --duracion 30` | Texto por pantalla, sin archivos |
 | Resultados con varias semillas | `python main.py --batch lotes/ejemplo.json` | Un resumen agregado y `reportes/lote_<nombre>_<fecha_hora>/` |
@@ -163,6 +164,21 @@ porque `FaultManager` revisa cada 5 s.
 **Detalle normal:** al volver, G4 todavía tiene las tablas de antes de
 caer, así que durante 1–4 s puede "no oír" a sus vecinos
 (`G4 no oye a G1`). Se apaga solo en cuanto recibe sus beacons.
+
+**El mismo caso en la interfaz web:**
+
+```bash
+python main.py --web --escenario base --static
+```
+
+Seleccioná G4 (clic sobre el nodo, o tecla `4`), pulsá `F` en la
+pestaña **Red** (o la tecla `F`): el nodo se pone gris con `X`. A los
+30-35 s simulados, la pestaña **Nodo** de G1/G2/G3 muestra la ruta a G4
+obsoleta (en rojo) y el log de abajo tiene las mismas tres líneas
+`⚠ G1: sin señal de G4 > 30s`. Seleccioná G4 de nuevo y pulsá `G`
+(recuperar): un segundo simulado después, el log muestra la
+recuperación. "Terminar sesión" (o `Q`) deja la misma cronología en el
+`reporte.txt` de `reportes/`.
 
 ### Caso 2 — Mandar mensajes por la malla
 

@@ -118,6 +118,57 @@ python main.py --batch lotes/ejemplo.json
 El formato del archivo y lo que produce están en [Archivo de
 lote](#archivo-de-lote---batch).
 
+### Versión de escritorio (interfaz web local): `--web`
+
+Una interfaz gráfica moderna, paralela a la ventana pygame: mismo
+núcleo (`sim/`, `mesh/`, `analysis/`), mismos resultados. Se sirve desde
+un servidor local (sólo biblioteca estándar: `http.server` +
+Server-Sent Events) y se usa en el navegador, sin necesitar Node.js ni
+conexión a internet.
+
+```bash
+python main.py --web --escenario base
+```
+
+Abre `http://127.0.0.1:8765/` en el navegador por defecto. Acepta las
+mismas opciones de topología que la ventana (`--escenario`, `--config`,
+`-n`/`-g`, `--static`, `--movilidad`, `--seed`); no se combina con
+`--headless`, `--inspect`, `--batch` ni `--duracion` (la sesión web no
+tiene una duración fija: corre hasta que la cerrás).
+
+| Flag | Qué hace |
+|---|---|
+| `--web` | Arranca el servidor y abre la interfaz. |
+| `--puerto N` | Puerto del servidor (por defecto `8765`). Si está ocupado, error claro con sugerencia de usar otro. |
+| `--no-abrir` | No abre el navegador automáticamente (útil en un servidor sin entorno gráfico: abrí la URL a mano). |
+
+Si no se pasa `--seed`, la sesión elige una semilla al azar (con
+`secrets`, no con `random`, para no afectar la reproducibilidad) y la
+muestra en la barra superior — toda sesión web es reproducible aunque
+no se la fije a mano.
+
+**Controles:** la barra superior tiene pausa/reanuda, un paso (en
+pausa), velocidad (0.25× a 8×, más "máxima"), reiniciar (vuelve a fijar
+la semilla de la sesión: a diferencia de la tecla `R` de pygame, que no
+refija la semilla, acá sí es reproducible), exportar y terminar sesión.
+El panel lateral tiene pestañas: **Nodo** (tabla de rutas BATMAN y
+vecinos del nodo seleccionado), **Red** (componer un mensaje, hacer
+caer/recuperar/añadir/eliminar un nodo), **Métricas** (entrega y TQ en
+vivo), **Inspector** (el mismo volcado de texto que la tecla `I`) y
+**Parámetros** (`rango_comm` y `falloff` en vivo). Los atajos de
+teclado son los mismos que la ventana pygame (`?` para verlos todos).
+
+**Exportar** deja la misma carpeta `reportes/<escenario>_<fecha_hora>/`
+con los mismos cuatro archivos que la terminal, más un `sesion_web.json`
+con la configuración, la semilla, las intervenciones (si las hubo) y el
+comando de terminal equivalente para reproducir la corrida sin
+intervenciones (p. ej. `python main.py --headless --escenario base
+--seed 7 --duracion 120`). Terminar la sesión (botón, `Q`/`Esc`, o
+`Ctrl+C` en la terminal) exporta igual que al cerrar la ventana pygame.
+
+Detalle de la API HTTP/SSE, el esquema del frame y las decisiones de
+diseño en [`docs/interfaz_web.md`](docs/interfaz_web.md).
+
 ---
 
 ## Archivo de escenario (`--config`)
@@ -458,10 +509,11 @@ sí necesita el entorno con las dependencias de `requirements.txt`.
 ## Estructura del proyecto
 
 ```
-main.py                   ← punto de entrada (CLI): ventana, --headless, --inspect, --batch
+main.py                   ← punto de entrada (CLI): ventana, --headless, --inspect, --batch, --web
 mesh/                     ← protocolo BATMAN real (router, fault manager, ...)
 sim/                      ← motor de simulación + medio radio + carga de escenarios
 analysis/                 ← métricas, visualizador pygame, reportes, runner de lote
+web/                      ← interfaz web local (servidor HTTP/SSE + frontend), paralela a pygame
 escenarios/*.json, *.txt  ← escenarios predefinidos y de ejemplo
 escenarios/casos/         ← variantes usadas por los casos de la guía
 lotes/*.json              ← lotes para --batch (ejemplo.json, casos.json)

@@ -141,6 +141,67 @@ pasan a la carpeta `contexto/`. `PLAN_TRABAJO.md` y
 `ANALISIS_REPO_MADRE.md` salen del repo y quedan en `.gitignore` (eran
 documentos de trabajo de agosto; siguen en el historial de git).
 
+**Interfaz web, Fase 1 — núcleo con paridad (30 de septiembre):**
+arranca la "versión de escritorio" pedida en
+`prompt_version_escritorio.md` (ver ahí el encargo completo, por
+fases): una interfaz gráfica en el navegador, servida por un servidor
+HTTP local (`http.server` + Server-Sent Events, sólo biblioteca
+estándar), que corre **el mismo núcleo** que la terminal —
+`main.construir_simulacion()`, `sim/`, `mesh/`, `analysis/`— y da los
+mismos resultados. Rama `feat/interfaz-web`.
+
+- Paquete nuevo `web/`: `estado.py` (funciones puras `Simulation ->
+  dict` serializable: `frame`, `nodo_detalle`, `series`,
+  `inspector_texto`), `sesion.py` (`Sesion`: dueña de la `Simulation`
+  en el servidor, un lock protege todo acceso, un hilo de fondo avanza
+  al mismo ritmo que pygame —9 s simulados/s real a 1×— y publica
+  frames a ~18 Hz) y `servidor.py` (`ThreadingHTTPServer` + rutas
+  `/api/*` + estáticos). Frontend sin build: HTML/CSS/JS con módulos ES
+  nativos, canvas 2D para el mapa.
+- `main.py` gana `--web`, `--puerto` y `--no-abrir`; no se combina con
+  `--headless`/`--inspect`/`--batch`/`--duracion`.
+- Paridad verificada con pruebas: misma semilla ⇒ misma serie del
+  `Recorder` y mismo `resumen_corrida()` que `correr()` (`base`,
+  `denso` con `repartir`, `static`, modo aleatorio). La semilla
+  automática de una sesión sin `--seed` sale de `secrets`, nunca de
+  `random`, para no afectar la reproducibilidad.
+- Cubre la tabla de paridad de teclado/controles de pygame (pausa, un
+  paso, velocidad 0.25×-8×/máxima, reiniciar —acá sí refija la
+  semilla, a diferencia de la tecla `R`—, exportar, terminar sesión,
+  selección de nodo, caer/recuperar/añadir/eliminar, mensajes,
+  inspector, parámetros `rango_comm`/`falloff`, cambiar de escenario).
+- Exportar deja los mismos `reporte.csv/json/txt` de siempre más
+  `sesion_web.json` (configuración, semilla, intervenciones y el
+  comando de terminal equivalente, válido sólo si la sesión no tuvo
+  intervenciones).
+- 48 pruebas nuevas (`tests/test_web_*.py`: estado, sesión+paridad,
+  servidor HTTP/SSE con *path traversal* rechazado, integración de
+  `--web` en la CLI) — 192 en total. Regresión de `lotes/ejemplo.json`
+  y `lotes/movilidad.json` contra la línea base de antes de esta fase:
+  idéntica.
+- Verificado contra el proceso real (sin navegador disponible en este
+  entorno: no hay Node.js ni forma de instalar un Chromium
+  automatizable): SSE entrega ~16-18 frames/s, el reloj de la
+  simulación avanza al ritmo esperado, los comandos mutan el estado, y
+  "terminar" exporta y apaga el servidor sin dejarlo colgado. Falta la
+  verificación visual en un navegador real — lista de chequeo manual en
+  `docs/interfaz_web.md` sección 4.
+- Documentación: sección nueva en el README ("Versión de escritorio"),
+  la capa `web/` en `docs/arquitectura.md`, `docs/interfaz_web.md`
+  nuevo (API, esquema del frame, tabla funcionalidad → capacidad → vacío
+  de `sec:brecha` que atiende) y un caso web agregado al caso 1 de
+  `docs/guia_ejecucion.md`.
+- **Pendiente de esta fase:** Fase 2 del encargo (arrastrar nodos,
+  agregar con clic, más parámetros en vivo, línea de tiempo de eventos,
+  "ver como este nodo", matriz de conocimiento N×N, detección de fallos
+  con anillo de progreso, propagación de OGM por origen —requiere que
+  `_Packet` guarde tipo/origen/TTL, cambio aditivo en `sim/radio.py`—,
+  envolventes de partición, panel "real vs. modelo", editor de
+  escenarios) y la verificación visual en navegador. Fase 3 (eventos de
+  fallo programables, laboratorio de lotes desde la interfaz, ventana
+  nativa) requiere aprobación explícita de los dos autores antes de
+  empezar, según el propio encargo.
+
 ---
 
 ## Falta
