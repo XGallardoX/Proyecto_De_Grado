@@ -354,18 +354,46 @@ class Simulation:
                     aliveN=aliveN, totN=totN,
                     comps=self._prev_components)
 
-    def add_node(self):
+    def add_node(self, role='N', x=None, y=None):
+        """Añade un nodo. Sin argumentos, un Nodo de usuario en posición
+        aleatoria (consume `random` igual que siempre); con x/y, en esa
+        posición (recortada a los límites de _try_move)."""
+        if role not in ('G', 'N'):
+            raise ValueError(f"rol inválido: {role!r}")
         new_id = max(self.nodes.keys()) + 1
-        x = random.uniform(5, 35)
-        y = random.uniform(5, 25)
-        n = SimNode(new_id, 'N', float(x), float(y), 1, self,self.DEFAULTS,self.N_PISOS,self.PISO_H,self.STAIR_XY,self.STAIR_HALF_W,self.DT)
-        # siguiente índice libre (no la cantidad de N: tras borrar uno,
+        if x is None or y is None:
+            # el camino de siempre (tecla A de pygame): mismo consumo de
+            # random y sin recorte
+            x = random.uniform(5, 35) if x is None else x
+            y = random.uniform(5, 25) if y is None else y
+            x, y = float(x), float(y)
+        else:
+            x, y = self._recortar(float(x), float(y))
+        n = SimNode(new_id, role, x, y, 1, self,self.DEFAULTS,self.N_PISOS,self.PISO_H,self.STAIR_XY,self.STAIR_HALF_W,self.DT)
+        # siguiente índice libre (no la cantidad del rol: tras borrar uno,
         # contar repetiría la etiqueta del último)
         self.local_index[new_id] = max(
             (self.local_index[i] for i, m in self.nodes.items()
-             if m.role == 'N'), default=0) + 1
+             if m.role == role), default=0) + 1
         self.nodes[new_id] = n
         self.log(f"Nodo {n.label} añadido", "info")
+        return new_id
+
+    def _recortar(self, x, y):
+        """Los mismos límites que SimNode._try_move."""
+        return (min(max(x, 1.0), self.ANCHO - 1.0),
+                min(max(y, 0.4), self.ALTO - 0.4))
+
+    def mover_nodo(self, nid, x, y):
+        """Lleva un nodo a (x, y), recortado a los límites de _try_move.
+        Devuelve la posición final, o None si el nodo no existe."""
+        n = self.nodes.get(nid)
+        if n is None:
+            return None
+        n.x, n.y = self._recortar(float(x), float(y))
+        self.event('MOVE', f"{n.label} movido a ({n.x:.1f}, {n.y:.1f})")
+        self.log(f"{n.label} movido a ({n.x:.1f}, {n.y:.1f})", "warn")
+        return n.x, n.y
 
     def remove_node(self, nid):
         if nid in self.nodes:

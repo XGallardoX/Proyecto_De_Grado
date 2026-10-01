@@ -1,3 +1,4 @@
+import copy
 import json
 import os
 
@@ -60,6 +61,18 @@ def load_scenario(path, default_building=None):
     else:
         data = _parse_json(path)
     return _validate(data, path, default_building)
+
+
+def validar_escenario(data, origen="<escenario>", default_building=None):
+    """Valida un escenario ya en memoria (un dict con el mismo esquema que
+    el JSON) con las mismas reglas y mensajes que load_scenario. No
+    modifica `data`: devuelve una copia validada. Lanza ValueError."""
+    if not isinstance(data, dict):
+        raise ValueError(f"{origen}: se esperaba un objeto con 'nodes'")
+    try:
+        return _validate(copy.deepcopy(data), origen, default_building)
+    except (TypeError, AttributeError, KeyError) as e:
+        raise ValueError(f"{origen}: escenario mal formado ({e})")
 
 
 def _parse_json(path):

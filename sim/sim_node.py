@@ -48,7 +48,13 @@ class SimNode:
         self.t_fault = 0.0
 
         self.history = []
-        self.last_msg = ""          
+        self.last_msg = ""
+
+        # contadores de uso del código real (sólo informativos)
+        self.ogms_procesados = 0    # llamadas a BatmanRouter.receive_ogm()
+        self.ogms_nuevos = 0        # de ésas, las que devolvieron True
+        self.beacons_procesados = 0
+        self.chequeos_fallo = 0     # llamadas a FaultManager.check()
 
     @property
     def label(self):
@@ -123,6 +129,7 @@ class SimNode:
             peers = [p for p in self.router.peers.values()
                      if self.sim.is_gateway(p.node_id)]
             nuevos = self.fault.check(peers, now,self.sim.cfg['timeout'])
+            self.chequeos_fallo += 1
             for fid in nuevos:
                 self.router.mark_alert(fid)
                 lbl = self.sim.label_of(fid)
@@ -147,6 +154,7 @@ class SimNode:
                 continue
 
             if mt == 'BCN':
+                self.beacons_procesados += 1
                 nid = msg['node_id']
                 with self.router._lock:
                     if nid not in self.router.peers:
@@ -174,6 +182,9 @@ class SimNode:
 
             elif mt == 'OGM':
                 is_new = self.router.receive_ogm(msg, from_ip, now)
+                self.ogms_procesados += 1
+                if is_new:
+                    self.ogms_nuevos += 1
                 if is_new and msg.get('ttl', 0) > 1:
                     fwd = dict(msg)
                     fwd['ttl'] = msg['ttl'] - 1
