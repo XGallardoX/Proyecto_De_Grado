@@ -27,8 +27,45 @@ PUBLICAR_CADA = 1.0 / 18.0  # ritmo de publicación de frames (~18 Hz)
 MAX_PASOS_POR_LOTE = 400    # tope por iteración del hilo, por si acumula de más
 PRESUPUESTO_MAXIMA_S = 0.04  # s reales por iteración cuando velocidad="maxima"
 
-# Parámetros que 'parametro' puede tocar en vivo (lista blanca, F1).
-PARAMETROS_EDITABLES = ("rango_comm", "falloff")
+# Parámetros que 'parametro' puede tocar en vivo: sólo claves que el núcleo
+# vuelve a leer de sim.cfg en cada paso (verificado una por una):
+#   RadioMedium.reliability -> rango_comm, falloff, perdida_base,
+#     floor_atten (medium.cfg es el mismo dict que sim.cfg);
+#   SimNode.tick -> timeout, beacon_cada, batman_cada, battery_drain,
+#     battery_drain_nodo; SimNode._make_ogm -> ttl;
+#   SimNode.move -> move_speed, movilidad.
+# (tipo, mínimo, máximo) o (str, opciones).
+PARAMETROS = {
+    "rango_comm": (float, 4.0, 60.0),
+    "falloff": (float, 0.0, 1.5),
+    "perdida_base": (float, 0.0, 1.0),
+    "floor_atten": (float, 0.0, 1.0),
+    "timeout": (float, 1.0, 300.0),
+    "ttl": (int, 1, 20),
+    "beacon_cada": (float, 0.5, 30.0),
+    "batman_cada": (float, 0.5, 30.0),
+    "battery_drain": (float, 0.0, 5.0),
+    "battery_drain_nodo": (float, 0.0, 5.0),
+    "move_speed": (float, 0.0, 2.0),
+    "movilidad": (str, ("seguir", "repartir")),
+}
+PARAMETROS_EDITABLES = tuple(PARAMETROS)
+
+
+def _valor_parametro(clave, valor):
+    spec = PARAMETROS[clave]
+    if spec[0] is str:
+        if valor not in spec[1]:
+            raise ValueError(f"'{clave}' debe ser una de {', '.join(spec[1])}")
+        return valor
+    tipo, minimo, maximo = spec
+    try:
+        v = tipo(float(valor))
+    except (TypeError, ValueError):
+        raise ValueError(f"'{clave}' debe ser numérico")
+    if not (minimo <= v <= maximo):
+        raise ValueError(f"'{clave}' debe estar entre {minimo:g} y {maximo:g}")
+    return v
 
 
 def generar_semilla():
@@ -47,6 +84,7 @@ class Sesion:
         self.velocidad = velocidad   # float, o "maxima"
         self.error = None
         self.intervenciones = []
+        self.generacion = 0   # sube con cada reconstrucción (reiniciar/cargar)
 
         self.version = 0
         self.ultimo_frame_json = None
@@ -111,7 +149,10 @@ class Sesion:
     #    benigna de una lectura consistente de Python) ──────────────────
     def frame(self):
         return estado.frame(self.sim, velocidad=self.velocidad,
-                            semilla=self.semilla, error=self.error)
+                            semilla=self.semilla, error=self.error,
+                            generacion=self.generacion,
+                            static=bool(self.build_args.get("static")),
+                            intervenciones=len(self.intervenciones))
 
     # ── avance síncrono, para pruebas (sin hilo) ──────────────────────
     def avanzar_sincrono(self, pasos):
@@ -130,6 +171,7 @@ class Sesion:
         self.semilla = semilla
         self.error = None
         self.intervenciones = []
+        self.generacion += 1
 
     def reiniciar(self):
         """Vuelve a fijar la semilla de la sesión y reproduce la misma
@@ -149,12 +191,22 @@ class Sesion:
             config_path = ruta_escenario(nombre)
         elif "archivo" in datos:
             config_path = _ruta_escenario_segura(datos["archivo"])
-        n_nodes = int(datos.get("n_nodes", 2))
-        n_gateways = int(datos.get("n_gateways", 1))
-        static = bool(datos.get("static", False))
-        movilidad = datos.get("movilidad")
-        semilla = datos.get("semilla")
-        semilla = int(semilla) if semilla is not None else generar_semilla()
+        try:
+            n_nodes = int(datos.get("n_nodes", 2))
+            n_gateways = int(datos.get("n_gateways", 1))
+            semilla = datos.get("semilla")
+            semilla = (int(semilla) if semilla not in (None, "")
+                       else generar_semilla())
+        except (TypeError, ValueError):
+            raise ValueError("n_nodes, n_gateways y semilla deben ser enteros")
+        if not (1 <= semilla <= SEMILLA_MAXIMA):
+            raise ValueError(f"la semilla debe estar entre 1 y {SEMILLA_MAXIMA}")
+        # Sin static/movilidad explícitos se conservan los de la sesión
+        # (como la tecla S de pygame, que respeta --static/--movilidad).
+        static = bool(datos.get("static", self.build_args.get("static", False)))
+        movilidad = datos.get("movilidad", self.build_args.get("movilidad"))
+        if movilidad not in (None, "seguir", "repartir"):
+            raise ValueError("movilidad debe ser 'seguir' o 'repartir'")
         build_args = dict(config_path=config_path, n_nodes=n_nodes,
                           n_gateways=n_gateways, static=static,
                           movilidad=movilidad)
@@ -241,12 +293,32 @@ class Sesion:
         return None
 
     def _c_agregar_nodo(self, datos):
+        rol = datos.get("rol", "N")
+        if rol not in ("G", "N"):
+            raise ValueError("'rol' debe ser 'G' o 'N'")
+        x, y = datos.get("x"), datos.get("y")
+        if (x is None) != (y is None):
+            raise ValueError("hay que pasar 'x' e 'y' juntos (o ninguno)")
+        if x is not None:
+            x, y = _numero(x, "x"), _numero(y, "y")
         with self.lock:
-            antes = set(self.sim.nodes)
-            self.sim.add_node()
-            nuevo = next(iter(set(self.sim.nodes) - antes), None)
-            self._registrar("agregar_nodo", {})
+            nuevo = self.sim.add_node(rol, x, y)
+            registro = {"rol": rol}
+            if x is not None:
+                n = self.sim.nodes[nuevo]
+                registro.update(x=n.x, y=n.y)
+            self._registrar("agregar_nodo", registro)
         return {"id": nuevo}
+
+    def _c_mover_nodo(self, datos):
+        nid = _id_requerido(datos)
+        x, y = _numero(datos.get("x"), "x"), _numero(datos.get("y"), "y")
+        with self.lock:
+            pos = self.sim.mover_nodo(nid, x, y)
+            if pos is None:
+                raise ValueError(f"no existe el nodo {nid}")
+            self._registrar("mover_nodo", {"id": nid, "x": pos[0], "y": pos[1]})
+        return {"x": pos[0], "y": pos[1]}
 
     def _c_eliminar_nodo(self, datos):
         nid = _id_requerido(datos)
@@ -280,19 +352,31 @@ class Sesion:
         return {"camino": etiquetas, "entregado": camino is not None}
 
     def _c_parametro(self, datos):
-        clave = datos.get("clave")
-        if clave not in PARAMETROS_EDITABLES:
-            raise ValueError(
-                f"parámetro no editable: {clave!r} (válidos: "
-                f"{', '.join(PARAMETROS_EDITABLES)})")
-        try:
-            valor = float(datos.get("valor"))
-        except (TypeError, ValueError):
-            raise ValueError("'valor' debe ser numérico")
+        clave = _clave_parametro(datos)
+        valor = _valor_parametro(clave, datos.get("valor"))
         with self.lock:
             self.sim.set_param(clave, valor)
             self._registrar("parametro", {"clave": clave, "valor": valor})
-        return None
+        return {"clave": clave, "valor": valor}
+
+    def _c_restaurar_parametro(self, datos):
+        """Vuelve un parámetro al valor con que arrancó la sesión (el del
+        escenario, o el por defecto del simulador)."""
+        clave = _clave_parametro(datos)
+        with self.lock:
+            valor = self.sim._base_cfg[clave]
+            self.sim.set_param(clave, valor)
+            self._registrar("parametro", {"clave": clave, "valor": valor})
+        return {"clave": clave, "valor": valor}
+
+    def _c_validar_escenario(self, datos):
+        from web import editor
+        return editor.validar(datos.get("escenario"))
+
+    def _c_guardar_escenario(self, datos):
+        from web import editor
+        return editor.guardar(datos.get("escenario"), datos.get("nombre"),
+                              bool(datos.get("sobrescribir", False)))
 
     def _c_exportar(self, datos):
         carpeta = self.exportar()
@@ -307,7 +391,11 @@ class Sesion:
         "velocidad": _c_velocidad, "reiniciar": _c_reiniciar,
         "cargar": _c_cargar, "caer": _c_caer, "recuperar": _c_recuperar,
         "agregar_nodo": _c_agregar_nodo, "eliminar_nodo": _c_eliminar_nodo,
+        "mover_nodo": _c_mover_nodo,
         "mensaje": _c_mensaje, "parametro": _c_parametro,
+        "restaurar_parametro": _c_restaurar_parametro,
+        "validar_escenario": _c_validar_escenario,
+        "guardar_escenario": _c_guardar_escenario,
         "exportar": _c_exportar, "terminar": _c_terminar,
     }
 
@@ -330,7 +418,10 @@ class Sesion:
             if nombre:
                 partes += ["--escenario", nombre]
             else:
-                partes += ["--config", a["config_path"]]
+                ruta = a["config_path"]
+                relativa = os.path.relpath(ruta)
+                partes += ["--config",
+                           ruta if relativa.startswith("..") else relativa]
         else:
             partes += ["-n", str(a.get("n_nodes", 2)),
                       "-g", str(a.get("n_gateways", 1))]
@@ -361,6 +452,25 @@ class Sesion:
                      encoding="utf-8") as f:
                 json.dump(datos_sesion, f, indent=2, ensure_ascii=False)
         return carpeta
+
+
+def _numero(valor, nombre):
+    try:
+        v = float(valor)
+    except (TypeError, ValueError):
+        raise ValueError(f"'{nombre}' debe ser numérico")
+    if v != v or v in (float("inf"), float("-inf")):
+        raise ValueError(f"'{nombre}' debe ser un número finito")
+    return v
+
+
+def _clave_parametro(datos):
+    clave = datos.get("clave")
+    if clave not in PARAMETROS:
+        raise ValueError(
+            f"parámetro no editable: {clave!r} (válidos: "
+            f"{', '.join(PARAMETROS_EDITABLES)})")
+    return clave
 
 
 def _id_requerido(datos):

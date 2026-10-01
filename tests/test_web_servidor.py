@@ -76,6 +76,27 @@ class ServidorTests(unittest.TestCase):
         self.assertEqual(r.status, 200)
         self.assertIn(b"RED AD-HOC", r.read())
 
+    def _get_json(self, ruta):
+        conn = self._conn()
+        conn.request("GET", ruta)
+        r = conn.getresponse()
+        self.assertEqual(r.status, 200, ruta)
+        return json.loads(r.read())
+
+    def test_rutas_fase2(self):
+        m = self._get_json("/api/matriz")
+        self.assertEqual(len(m["filas"]), len(self.sesion.sim.nodes))
+        c = self._get_json("/api/cobertura")
+        self.assertEqual(len(c["valores"]), c["nx"] * c["ny"])
+        e = self._get_json("/api/escenario/actual?posiciones=actuales")
+        self.assertEqual(len(e["nodes"]), len(self.sesion.sim.nodes))
+        s = self._get_json("/api/series?desde=2&desde_evento=0")
+        self.assertEqual(s["desde"], 2)
+        self.assertEqual(len(s["series"]["t"]), s["total"] - 2)
+        self.assertIn("generacion", s)
+        s = self._get_json("/api/series?desde=abc")
+        self.assertEqual(s["desde"], 0)
+
     def test_escenarios(self):
         conn = self._conn()
         conn.request("GET", "/api/escenarios")

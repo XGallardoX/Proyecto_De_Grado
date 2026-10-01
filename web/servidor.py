@@ -10,7 +10,7 @@ import os
 import threading
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 from web import estado
 
@@ -108,7 +108,16 @@ class ManejadorWeb(BaseHTTPRequestHandler):
 
     # ---------- GET ----------
     def do_GET(self):
-        ruta = urlparse(self.path).path
+        url = urlparse(self.path)
+        ruta = url.path
+        consulta = parse_qs(url.query)
+
+        def entero(nombre, defecto=0):
+            try:
+                return int(consulta.get(nombre, [defecto])[0])
+            except ValueError:
+                return defecto
+
         if ruta == "/":
             self._archivo(os.path.join(STATIC_DIR, "index.html"))
         elif ruta.startswith("/static/"):
@@ -127,7 +136,22 @@ class ManejadorWeb(BaseHTTPRequestHandler):
             self._nodo(ruta[len("/api/nodo/"):])
         elif ruta == "/api/series":
             with self.sesion.lock:
-                datos = estado.series(self.sesion.sim)
+                datos = estado.series(self.sesion.sim, entero("desde"),
+                                      entero("desde_evento"))
+                datos["generacion"] = self.sesion.generacion
+            self._json(200, datos)
+        elif ruta == "/api/matriz":
+            with self.sesion.lock:
+                datos = estado.matriz_conocimiento(self.sesion.sim)
+            self._json(200, datos)
+        elif ruta == "/api/cobertura":
+            with self.sesion.lock:
+                datos = estado.cobertura(self.sesion.sim)
+            self._json(200, datos)
+        elif ruta == "/api/escenario/actual":
+            posiciones = consulta.get("posiciones", ["iniciales"])[0]
+            with self.sesion.lock:
+                datos = estado.escenario_actual(self.sesion.sim, posiciones)
             self._json(200, datos)
         elif ruta == "/api/inspector":
             with self.sesion.lock:

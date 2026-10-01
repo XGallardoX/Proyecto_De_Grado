@@ -7,7 +7,7 @@ import numpy as np
 
 import main as main_mod
 from analysis.metrics import resumen_corrida
-from web.sesion import Sesion, construir_sesion
+from web.sesion import PARAMETROS, construir_sesion
 
 
 def _reset_aleatoriedad():
@@ -125,8 +125,85 @@ class ComandosTests(unittest.TestCase):
         self.assertEqual(self.sesion.sim.cfg["rango_comm"], 20)
 
     def test_parametro_fuera_de_lista_blanca(self):
+        for clave in ("nodes", "n_nodes", "events", "no_existe"):
+            with self.assertRaises(ValueError):
+                self.sesion.comando("parametro", {"clave": clave, "valor": 5})
+
+    def test_parametro_fuera_de_rango_o_tipo(self):
+        for clave, valor in (("rango_comm", 999), ("ttl", 0),
+                             ("timeout", "x"), ("movilidad", "volar")):
+            with self.assertRaises(ValueError):
+                self.sesion.comando("parametro", {"clave": clave, "valor": valor})
+
+    def test_cada_parametro_de_la_lista_blanca_se_lee_en_vivo(self):
+        """Cambiar un parámetro de la lista blanca cambia la corrida a
+        partir de ese paso (si el núcleo no lo volviera a leer de sim.cfg,
+        las dos corridas saldrían iguales)."""
+        cambios = {"rango_comm": 30.0, "falloff": 0.2, "perdida_base": 0.5,
+                   "floor_atten": 0.1, "timeout": 2.0, "ttl": 1,
+                   "beacon_cada": 0.5, "batman_cada": 0.5,
+                   "battery_drain": 4.0, "battery_drain_nodo": 4.0,
+                   "move_speed": 1.5, "movilidad": "repartir"}
+        self.assertEqual(set(cambios), set(PARAMETROS))
+
+        def huella(sim):
+            return (sim.medium.attempted, sim.medium.delivered,
+                    [round(n.x, 6) for n in sim.nodes.values()],
+                    [round(n.battery, 6) for n in sim.nodes.values()],
+                    len(sim.recorder.events),
+                    sum(n.ogms_procesados for n in sim.nodes.values()))
+
+        for clave, valor in cambios.items():
+            a = construir_sesion(main_mod.ruta_escenario("denso"), semilla=2)
+            b = construir_sesion(main_mod.ruta_escenario("denso"), semilla=2)
+            a.avanzar_sincrono(10)
+            b.avanzar_sincrono(10)
+            b.comando("parametro", {"clave": clave, "valor": valor})
+            a.avanzar_sincrono(60)
+            b.avanzar_sincrono(60)
+            self.assertNotEqual(huella(a.sim), huella(b.sim), clave)
+
+    def test_restaurar_parametro(self):
+        base = self.sesion.sim.cfg["falloff"]
+        self.sesion.comando("parametro", {"clave": "falloff", "valor": 0.1})
+        r = self.sesion.comando("restaurar_parametro", {"clave": "falloff"})
+        self.assertEqual(r["valor"], base)
+        self.assertEqual(self.sesion.sim.cfg["falloff"], base)
+
+    def test_mover_nodo(self):
+        r = self.sesion.comando("mover_nodo", {"id": 1, "x": 20, "y": 15})
+        self.assertEqual((r["x"], r["y"]), (20.0, 15.0))
+        self.assertEqual(self.sesion.intervenciones[-1]["accion"], "mover_nodo")
         with self.assertRaises(ValueError):
-            self.sesion.comando("parametro", {"clave": "timeout", "valor": 5})
+            self.sesion.comando("mover_nodo", {"id": 999, "x": 1, "y": 1})
+        with self.assertRaises(ValueError):
+            self.sesion.comando("mover_nodo", {"id": 1, "x": "a", "y": 1})
+
+    def test_agregar_gateway_donde_se_hace_clic(self):
+        r = self.sesion.comando("agregar_nodo", {"rol": "G", "x": 8, "y": 9})
+        n = self.sesion.sim.nodes[r["id"]]
+        self.assertEqual((n.role, n.x, n.y), ("G", 8.0, 9.0))
+        with self.assertRaises(ValueError):
+            self.sesion.comando("agregar_nodo", {"rol": "X"})
+        with self.assertRaises(ValueError):
+            self.sesion.comando("agregar_nodo", {"x": 3})
+
+    def test_cargar_conserva_static_y_movilidad(self):
+        sesion = construir_sesion(main_mod.ruta_escenario("base"), semilla=1,
+                                  static=True, movilidad="repartir")
+        sesion.comando("cargar", {"escenario": "denso"})
+        self.assertTrue(sesion.build_args["static"])
+        self.assertEqual(sesion.build_args["movilidad"], "repartir")
+        sesion.comando("cargar", {"escenario": "denso", "static": False,
+                                  "semilla": 9})
+        self.assertFalse(sesion.build_args["static"])
+        self.assertEqual(sesion.semilla, 9)
+
+    def test_generacion_sube_al_reconstruir(self):
+        g = self.sesion.generacion
+        self.sesion.comando("reiniciar", {})
+        self.sesion.comando("cargar", {"escenario": "denso"})
+        self.assertEqual(self.sesion.generacion, g + 2)
 
     def test_reiniciar_refija_semilla(self):
         self.sesion.avanzar_sincrono(10)
