@@ -298,13 +298,16 @@ SERIES_CAMPOS = ("t", "alive_G", "alive_N", "comp_G", "node_reach",
                  "alerts_active", "bandwidth")
 
 
-def series(sim, desde=0, desde_evento=0):
+def series(sim, desde=0, desde_evento=0, ultimas=0):
     """Series del Recorder a partir de la muestra `desde` (0 = completas,
     para reconstruir las gráficas al conectar o recargar) y los eventos a
     partir de `desde_evento`, cada uno con su índice. `total` y
-    `eventos_total` permiten al cliente pedir sólo lo nuevo."""
+    `eventos_total` permiten al cliente pedir sólo lo nuevo. Con
+    `ultimas` > 0, como mucho las últimas `ultimas` muestras."""
     rec = sim.recorder
     desde = max(0, int(desde))
+    if ultimas and ultimas > 0:
+        desde = max(desde, len(rec.t) - int(ultimas))
     desde_evento = max(0, int(desde_evento))
     return {
         "desde": desde,

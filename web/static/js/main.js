@@ -358,6 +358,9 @@ const linea = new LineaTiempo($("linea-tiempo"), (ev) => {
   toast(`${icono} [${ev.t.toFixed(1)} s] ${nombre}: ${ev.texto}`);
 });
 const series = { generacion: null, total: 0, eventosTotal: 0, datos: null, pidiendo: false };
+// Tope de muestras en el navegador (memoria acotada en sesiones largas a
+// velocidad máxima): "toda la corrida" muestra, como mucho, las últimas.
+const MAX_MUESTRAS_CLIENTE = 50000;
 
 function reiniciarSeries() {
   series.generacion = null;
@@ -370,20 +373,31 @@ async function actualizarSeries() {
   series.pidiendo = true;
   try {
     const nuevo = series.generacion == null;
-    const r = await api.obtenerSeries(nuevo ? 0 : series.total, nuevo ? 0 : series.eventosTotal);
+    const r = nuevo
+      ? await api.obtenerSeries(0, 0, MAX_MUESTRAS_CLIENTE)
+      : await api.obtenerSeries(series.total, series.eventosTotal);
     if (!r) return;
+    let c = r;
     if (nuevo || r.generacion !== series.generacion || r.total < series.total) {
-      const c = r.desde === 0 && r.generacion === (frame?.generacion ?? r.generacion)
-        ? r : await api.obtenerSeries(0, 0);
+      if (!nuevo || r.generacion !== (frame?.generacion ?? r.generacion)) {
+        c = await api.obtenerSeries(0, 0, MAX_MUESTRAS_CLIENTE);
+      }
       series.datos = { series: c.series, eventos: c.eventos, timeout: c.timeout };
       series.generacion = c.generacion;
     } else {
-      for (const [k, v] of Object.entries(r.series)) series.datos.series[k].push(...v);
+      for (const [k, v] of Object.entries(r.series)) {
+        for (const x of v) series.datos.series[k].push(x);
+      }
       series.datos.eventos.push(...r.eventos);
       series.datos.timeout = r.timeout;
     }
-    series.total = series.datos.series.t.length;
-    series.eventosTotal = series.datos.eventos.length;
+    // cursores = lo que tiene el servidor; lo local se recorta aparte
+    series.total = c.total;
+    series.eventosTotal = c.eventos_total;
+    const sobra = series.datos.series.t.length - MAX_MUESTRAS_CLIENTE;
+    if (sobra > 0) {
+      for (const k of Object.keys(series.datos.series)) series.datos.series[k].splice(0, sobra);
+    }
     graficas.setDatos(series.datos);
     graficas.dibujar();
     linea.setDatos(series.datos.eventos, frame?.t ?? 0);

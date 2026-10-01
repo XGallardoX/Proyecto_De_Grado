@@ -137,6 +137,10 @@ class SeriesIncrementalesTests(unittest.TestCase):
         self.assertEqual(parte["series"]["t"], completa["series"]["t"][150:])
         self.assertEqual(parte["eventos"], completa["eventos"][2:])
         self.assertEqual(parte["eventos"][0]["indice"], 2)
+        ultimas = estado.series(sim, ultimas=100)
+        self.assertEqual(ultimas["desde"], completa["total"] - 100)
+        self.assertEqual(ultimas["series"]["t"], completa["series"]["t"][-100:])
+        self.assertEqual(ultimas["total"], completa["total"])
 
 
 class CoberturaTests(unittest.TestCase):

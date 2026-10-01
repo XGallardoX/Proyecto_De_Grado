@@ -9,8 +9,8 @@ async function json(ruta) {
 
 export const obtenerEstado = () => json("/api/estado");
 export const obtenerNodo = (id) => json(`/api/nodo/${id}`);
-export const obtenerSeries = (desde = 0, desdeEvento = 0) =>
-  json(`/api/series?desde=${desde}&desde_evento=${desdeEvento}`);
+export const obtenerSeries = (desde = 0, desdeEvento = 0, ultimas = 0) =>
+  json(`/api/series?desde=${desde}&desde_evento=${desdeEvento}&ultimas=${ultimas}`);
 export const obtenerMatriz = () => json("/api/matriz");
 export const obtenerCobertura = () => json("/api/cobertura");
 export const obtenerEscenarios = () => json("/api/escenarios");

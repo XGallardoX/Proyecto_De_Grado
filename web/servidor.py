@@ -137,7 +137,7 @@ class ManejadorWeb(BaseHTTPRequestHandler):
         elif ruta == "/api/series":
             with self.sesion.lock:
                 datos = estado.series(self.sesion.sim, entero("desde"),
-                                      entero("desde_evento"))
+                                      entero("desde_evento"), entero("ultimas"))
                 datos["generacion"] = self.sesion.generacion
             self._json(200, datos)
         elif ruta == "/api/paquetes":

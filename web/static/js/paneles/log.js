@@ -4,10 +4,12 @@ export class Log {
   constructor(contenedor) {
     this.contenedor = contenedor;
     this.vistos = new Set();
+    this.orden = [];   // para olvidar las claves viejas (memoria acotada)
   }
 
   limpiar() {
     this.vistos.clear();
+    this.orden = [];
     this.contenedor.replaceChildren();
   }
 
@@ -20,6 +22,8 @@ export class Log {
       const clave = `${t}|${texto}`;
       if (this.vistos.has(clave)) continue;
       this.vistos.add(clave);
+      this.orden.push(clave);
+      if (this.orden.length > 2000) this.vistos.delete(this.orden.shift());
       nuevas = true;
       const div = document.createElement("div");
       div.className = `linea log-${tipo}`;
