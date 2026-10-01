@@ -377,6 +377,26 @@ def crear_parser():
              "escenario (media ± desviación estándar) en "
              "reportes/lote_<nombre>_<fecha_hora>/."
     )
+
+    # --- Interfaz web (versión de escritorio, paralela a pygame) ---
+    parser.add_argument(
+        "--web",
+        action="store_true",
+        help="Arranca un servidor local y abre la interfaz web (paralela a "
+             "la ventana pygame, mismo núcleo). No se combina con "
+             "--headless, --inspect, --batch ni --duracion."
+    )
+    parser.add_argument(
+        "--puerto",
+        type=int,
+        default=8765,
+        help="Puerto del servidor de --web."
+    )
+    parser.add_argument(
+        "--no-abrir",
+        action="store_true",
+        help="Con --web, no abre el navegador automáticamente."
+    )
     return parser
 
 
@@ -395,6 +415,8 @@ def main(argv=None):
     if args.batch:
         conflictos = [flag for dest, flag in FLAGS_DEL_LOTE.items()
                       if getattr(args, dest) != parser.get_default(dest)]
+        if args.web:
+            conflictos.append("--web")
         if conflictos:
             parser.error(f"--batch no se combina con {', '.join(conflictos)}: "
                          f"escenarios, semillas, duración y static se definen "
@@ -406,6 +428,40 @@ def main(argv=None):
             sys.exit(1)
         except KeyboardInterrupt:
             print("\nLote interrumpido por el usuario.")
+            sys.exit(1)
+        return
+
+    if args.web:
+        conflictos = [flag for dest, flag in
+                     {"headless": "--headless", "inspect": "--inspect",
+                      "batch": "--batch"}.items() if getattr(args, dest)]
+        if args.duracion != DURACION_DEFAULT:
+            conflictos.append("--duracion")
+        if conflictos:
+            parser.error(f"--web no se combina con {', '.join(conflictos)}")
+
+        config_path = args.config
+        if config_path is None and args.escenario is not None:
+            config_path = ruta_escenario(args.escenario)
+
+        from web.sesion import construir_sesion
+        try:
+            sesion = construir_sesion(config_path, args.nodes, args.gateways,
+                                      args.static, args.movilidad,
+                                      semilla=args.seed)
+        except ValueError as e:
+            if config_path:
+                print(f"Error en archivo de escenario: {e}")
+            else:
+                print(f"Error: {e}")
+            sys.exit(1)
+
+        from web.servidor import ejecutar_servidor
+        try:
+            ejecutar_servidor(sesion, puerto=args.puerto,
+                              abrir=not args.no_abrir)
+        except ValueError as e:
+            print(f"Error: {e}")
             sys.exit(1)
         return
 

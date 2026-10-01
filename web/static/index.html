@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Red Ad-Hoc BATMAN — interfaz web</title>
+  <link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body>
+  <header id="barra-superior">
+    <div class="grupo">
+      <select id="sel-escenario" title="Escenario"></select>
+      <span id="etq-semilla" class="chip" title="Semilla de esta sesión"></span>
+    </div>
+    <div class="grupo">
+      <button id="btn-pausar" title="Espacio">⏸ Pausar</button>
+      <button id="btn-paso" title="Un paso (en pausa)">⏭ Paso</button>
+      <select id="sel-velocidad" title="Velocidad">
+        <option value="0.25">0.25×</option>
+        <option value="0.5">0.5×</option>
+        <option value="1" selected>1×</option>
+        <option value="2">2×</option>
+        <option value="4">4×</option>
+        <option value="8">8×</option>
+        <option value="maxima">máxima</option>
+      </select>
+      <button id="btn-reiniciar" title="R">↺ Reiniciar</button>
+    </div>
+    <div class="grupo">
+      <button id="btn-exportar" title="P">⬇ Exportar</button>
+      <button id="btn-terminar" title="Q / Esc">⏹ Terminar sesión</button>
+      <button id="btn-tema" title="Tema claro/oscuro">◐</button>
+      <button id="btn-ayuda" title="?">?</button>
+    </div>
+    <div id="estado-red" class="grupo estado">
+      <span id="reloj">T+0s</span>
+      <span id="conteo-g"></span>
+      <span id="conteo-n"></span>
+      <span id="aviso-particion" class="chip chip-alerta" hidden>RED PARTIDA</span>
+      <span id="aviso-error" class="chip chip-error" hidden></span>
+    </div>
+  </header>
+
+  <main>
+    <section id="zona-mapa">
+      <canvas id="mapa"></canvas>
+      <div id="leyenda"></div>
+    </section>
+
+    <aside id="panel-lateral">
+      <nav id="pestanas">
+        <button class="pestana activa" data-panel="nodo">Nodo</button>
+        <button class="pestana" data-panel="red">Red</button>
+        <button class="pestana" data-panel="metricas">Métricas</button>
+        <button class="pestana" data-panel="inspector">Inspector</button>
+        <button class="pestana" data-panel="parametros">Parámetros</button>
+      </nav>
+
+      <div id="panel-nodo" class="panel activo">
+        <p class="vacio">Seleccioná un nodo (clic, Tab o 1-9).</p>
+      </div>
+
+      <div id="panel-red" class="panel">
+        <h3>Mensaje</h3>
+        <form id="form-mensaje">
+          <input id="in-mensaje" type="text" placeholder="G1&gt;N2 texto" autocomplete="off">
+          <button type="submit">Enviar</button>
+        </form>
+        <p id="mensaje-resultado" class="detalle"></p>
+        <h3>Acciones</h3>
+        <div class="fila-botones">
+          <button id="btn-caer">Caer (F)</button>
+          <button id="btn-recuperar">Recuperar (G)</button>
+          <button id="btn-agregar">Añadir nodo (A)</button>
+          <button id="btn-eliminar">Eliminar (D)</button>
+        </div>
+      </div>
+
+      <div id="panel-metricas" class="panel">
+        <canvas id="grafica-metricas" width="320" height="180"></canvas>
+        <p class="detalle">Entrega del radio, TQ medio y partición de la malla.</p>
+      </div>
+
+      <div id="panel-inspector" class="panel">
+        <button id="btn-refrescar-inspector">Refrescar</button>
+        <pre id="texto-inspector"></pre>
+      </div>
+
+      <div id="panel-parametros" class="panel">
+        <label>
+          Alcance de radio (rango_comm)
+          <input id="param-rango" type="range" min="4" max="40" step="1">
+          <output id="param-rango-val"></output>
+        </label>
+        <label>
+          Degradación con la distancia (falloff)
+          <input id="param-falloff" type="range" min="0" max="1.5" step="0.05">
+          <output id="param-falloff-val"></output>
+        </label>
+      </div>
+    </aside>
+  </main>
+
+  <footer id="barra-log">
+    <div id="log"></div>
+  </footer>
+
+  <dialog id="dialogo-ayuda">
+    <h3>Atajos de teclado</h3>
+    <table>
+      <tr><td>Espacio</td><td>Pausa / reanuda</td></tr>
+      <tr><td>Tab, ←/→, clic</td><td>Seleccionar nodo</td></tr>
+      <tr><td>1-9</td><td>Seleccionar el N-ésimo Gateway</td></tr>
+      <tr><td>F / G</td><td>Caer / recuperar el nodo seleccionado</td></tr>
+      <tr><td>A / D</td><td>Añadir / eliminar nodo</td></tr>
+      <tr><td>M</td><td>Componer un mensaje</td></tr>
+      <tr><td>I</td><td>Refrescar el inspector</td></tr>
+      <tr><td>S</td><td>Siguiente escenario</td></tr>
+      <tr><td>+/-, [/]</td><td>Alcance de radio / falloff</td></tr>
+      <tr><td>P</td><td>Exportar</td></tr>
+      <tr><td>R</td><td>Reiniciar (refija la semilla)</td></tr>
+      <tr><td>Q / Esc</td><td>Terminar sesión</td></tr>
+    </table>
+    <button id="btn-cerrar-ayuda">Cerrar</button>
+  </dialog>
+
+  <script type="module" src="/static/js/main.js"></script>
+</body>
+</html>

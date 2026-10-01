@@ -1,0 +1,135 @@
+:root {
+  --bg: #F8F7F4;
+  --panel: #FFFFFF;
+  --wall: #D3D1C7;
+  --ink: #2C2C2A;
+  --dim: #888780;
+  --alerta: #C0392B;
+  --ok: #1D9E75;
+  --acento: #378ADD;
+  color-scheme: light;
+}
+:root[data-tema="oscuro"] {
+  --bg: #1C1D1F;
+  --panel: #26282B;
+  --wall: #3A3C40;
+  --ink: #EDEDEA;
+  --dim: #9A9A94;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tema="claro"]) {
+    --bg: #1C1D1F;
+    --panel: #26282B;
+    --wall: #3A3C40;
+    --ink: #EDEDEA;
+    --dim: #9A9A94;
+    color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; height: 100%;
+  background: var(--bg); color: var(--ink);
+  font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+  font-size: 14px;
+}
+body {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  height: 100vh;
+}
+
+#barra-superior {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 1rem;
+  padding: 0.5rem 1rem;
+  background: var(--panel);
+  border-bottom: 1px solid var(--wall);
+}
+.grupo { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+.grupo.estado { margin-left: auto; font-variant-numeric: tabular-nums; }
+button, select, input[type=text] {
+  font: inherit; color: var(--ink);
+  background: var(--bg); border: 1px solid var(--wall);
+  border-radius: 6px; padding: 0.35rem 0.6rem; cursor: pointer;
+}
+button:hover { border-color: var(--acento); }
+.chip {
+  padding: 0.15rem 0.5rem; border-radius: 999px;
+  background: var(--wall); font-size: 0.85em;
+}
+.chip-alerta { background: var(--alerta); color: #fff; }
+.chip-error { background: #7a1f1f; color: #fff; }
+
+main {
+  display: grid; grid-template-columns: 1fr 340px;
+  min-height: 0;
+}
+#zona-mapa { position: relative; min-width: 0; }
+#mapa { width: 100%; height: 100%; display: block; background: var(--bg); }
+#leyenda {
+  position: absolute; top: 0.5rem; right: 0.5rem;
+  background: color-mix(in srgb, var(--panel) 90%, transparent);
+  border: 1px solid var(--wall); border-radius: 6px;
+  padding: 0.4rem 0.6rem; font-size: 0.8em;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 0.2rem 0.8rem;
+}
+#leyenda span { display: flex; align-items: center; gap: 0.3rem; }
+
+#panel-lateral {
+  border-left: 1px solid var(--wall); background: var(--panel);
+  display: flex; flex-direction: column; min-height: 0;
+}
+#pestanas { display: flex; border-bottom: 1px solid var(--wall); }
+.pestana {
+  flex: 1; border: none; border-radius: 0; background: transparent;
+  border-bottom: 2px solid transparent; padding: 0.5rem;
+}
+.pestana.activa { border-bottom-color: var(--acento); font-weight: 600; }
+.panel { display: none; padding: 0.7rem; overflow: auto; flex: 1; }
+.panel.activo { display: block; }
+.panel h3 { margin: 0.8rem 0 0.3rem; font-size: 0.95em; }
+.panel h3:first-child { margin-top: 0; }
+.vacio { color: var(--dim); }
+.detalle { color: var(--dim); font-size: 0.85em; }
+.fila-botones { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+#form-mensaje { display: flex; gap: 0.3rem; }
+#form-mensaje input { flex: 1; }
+
+table.tabla-datos { width: 100%; border-collapse: collapse; font-size: 0.85em; }
+table.tabla-datos th, table.tabla-datos td {
+  text-align: left; padding: 0.15rem 0.4rem; border-bottom: 1px solid var(--wall);
+}
+tr.obsoleta { color: var(--alerta); }
+
+#texto-inspector {
+  white-space: pre; font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.78em; overflow: auto;
+}
+
+label { display: block; margin-bottom: 1rem; }
+label input[type=range] { width: 100%; }
+
+#barra-log {
+  border-top: 1px solid var(--wall); background: var(--panel);
+  max-height: 140px; overflow: auto;
+}
+#log { padding: 0.3rem 0.6rem; font-family: ui-monospace, Consolas, monospace;
+       font-size: 0.78em; }
+#log .linea { display: flex; gap: 0.5rem; white-space: pre-wrap; }
+#log .t { color: var(--dim); flex: 0 0 4.5em; }
+.log-info { color: var(--dim); }
+.log-ok { color: var(--ok); }
+.log-warn { color: #a3680f; }
+.log-error { color: var(--alerta); }
+
+dialog { border-radius: 8px; border: 1px solid var(--wall); color: var(--ink);
+         background: var(--panel); }
+dialog table { border-collapse: collapse; margin: 0.5rem 0; }
+dialog td { padding: 0.15rem 0.6rem; }
+
+@media (max-width: 860px) {
+  main { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+  #panel-lateral { border-left: none; border-top: 1px solid var(--wall); max-height: 40vh; }
+}
