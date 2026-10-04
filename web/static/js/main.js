@@ -60,7 +60,7 @@ function seleccionar(id) {
 
 // ── lente "ver como este nodo" ───────────────────────────────────────
 function activarLente(id) {
-  if (id == null) { toast("Seleccioná un nodo primero"); return; }
+  if (id == null) { toast("Selecciona un nodo primero"); return; }
   mapa.lente = { id, detalle: null };
   $("btn-lente").setAttribute("aria-pressed", "true");
   refrescarNodo();
@@ -203,7 +203,7 @@ $("compositor").addEventListener("submit", async (ev) => {
   let texto = $("msg-texto").value.trim();
   if (!/^[gGnN]?\d+\s*>/.test(texto)) {
     const { origen, destino } = mapa.compositor;
-    if (origen == null || destino == null) { toast("Elegí origen y destino (clic en los nodos)", "alerta"); return; }
+    if (origen == null || destino == null) { toast("Elige origen y destino (clic en los nodos)", "alerta"); return; }
     texto = `${etiqueta(origen)}>${etiqueta(destino)} ${texto || "hola"}`;
   }
   const r = await comando("mensaje", { texto }).catch(() => null);
@@ -216,6 +216,9 @@ $("compositor").addEventListener("submit", async (ev) => {
     $("msg-texto").value = "";
   } else {
     toast(`No entregado: ${r.motivo}`, "alerta");
+    // el texto queda para corregirlo, pero seleccionado: lo que se
+    // escriba después lo reemplaza en vez de pegarse detrás
+    $("msg-texto").select();
   }
 });
 
@@ -332,8 +335,9 @@ function pintarBarra(f) {
   $("conteo-alcance").textContent = `Cubiertos ${f.nodos_alcanzables}/${r.totN}`;
   $("aviso-particion").hidden = r.comps <= 1;
   $("aviso-particion").textContent = `RED PARTIDA (${r.comps})`;
+  $("aviso-particion").title = `La malla de Gateways está partida en ${r.comps} grupos`;
   $("aviso-intervenciones").hidden = !f.intervenciones;
-  $("aviso-intervenciones").textContent = `${f.intervenciones} intervención${f.intervenciones === 1 ? "" : "es"}`;
+  $("aviso-intervenciones").textContent = `${f.intervenciones} ${f.intervenciones === 1 ? "intervención" : "intervenciones"}`;
   $("aviso-error").hidden = !f.error;
   $("aviso-error").textContent = f.error ? `Error: ${f.error} — Reiniciar` : "";
   $("btn-pausar").textContent = f.pausado ? "▶ Reanudar" : "⏸ Pausar";
@@ -479,7 +483,7 @@ async function exportar() {
 async function terminar() {
   if (!confirm("¿Terminar la sesión? Se exporta el análisis y se apaga el servidor.")) return;
   await intentar("terminar");
-  document.body.innerHTML = "<p style='padding:2rem'>Sesión terminada: el análisis quedó en <code>reportes/</code>. Ya podés cerrar esta pestaña.</p>";
+  document.body.innerHTML = "<p style='padding:2rem'>Sesión terminada: el análisis quedó en <code>reportes/</code>. Ya puedes cerrar esta pestaña.</p>";
 }
 
 function alternarPresentacion() {

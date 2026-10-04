@@ -73,7 +73,18 @@ input[type=number] { width: 5.5em; }
 }
 .marca { font-size: 0.9rem; white-space: nowrap; }
 .grupo { display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; }
-.grupo.estado { margin-left: auto; font-variant-numeric: tabular-nums; gap: 0.7rem; }
+/* El grupo de estado tiene un ancho base fijo (flex-basis): la barra decide
+   si cabe en una línea o en dos sin mirar qué avisos están visibles, así
+   que aparecer "RED PARTIDA" o el aviso de intervenciones no la hace saltar
+   de línea ni mueve el mapa. Si de verdad no hay lugar, los avisos se
+   recortan con "…" (el texto completo queda en el title). */
+.grupo.estado { margin-left: auto; font-variant-numeric: tabular-nums; gap: 0.7rem;
+                flex: 1 1 24rem; min-width: 0; flex-wrap: nowrap;
+                justify-content: flex-end; overflow: hidden;
+                min-height: 1.6rem; /* el alto de un aviso: no cambia al aparecer */ }
+.grupo.estado > * { white-space: nowrap; flex-shrink: 0; }
+.grupo.estado > .chip { flex-shrink: 1; min-width: 0; overflow: hidden;
+                        text-overflow: ellipsis; }
 #reloj { font-weight: 600; min-width: 5.5em; }
 
 /* ── mapa ── */
