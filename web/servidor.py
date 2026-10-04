@@ -282,12 +282,23 @@ def crear_servidor(sesion, puerto=8765, laboratorio=None):
             f"--puerto <otro número>")
 
 
-def ejecutar_servidor(sesion, puerto=8765, abrir=True):
+def ejecutar_servidor(sesion, puerto=8765, abrir=True, ventana=False):
     httpd = crear_servidor(sesion, puerto)
     url = f"http://127.0.0.1:{puerto}/"
     print(f"Interfaz web en {url}  (Ctrl+C para salir)")
     sesion.iniciar_hilo()
-    if abrir:
+    if abrir and ventana:
+        from web.ventana import abrir_en_ventana
+        try:
+            navegador = abrir_en_ventana(url)
+        except Exception:
+            navegador = None
+        if navegador:
+            print(f"Ventana propia con {os.path.basename(navegador)} (modo app)")
+        else:
+            print("No hay un navegador con modo app (Chrome, Chromium, Brave o "
+                  "Edge): se abrió el navegador por defecto")
+    elif abrir:
         try:
             webbrowser.open(url)
         except Exception:

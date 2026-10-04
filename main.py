@@ -397,6 +397,13 @@ def crear_parser():
         action="store_true",
         help="Con --web, no abre el navegador automáticamente."
     )
+    parser.add_argument(
+        "--ventana",
+        action="store_true",
+        help="Con --web, abre la interfaz en una ventana propia, sin pestañas "
+             "ni barra de direcciones (modo app de Chrome, Chromium, Brave o "
+             "Edge). Si no hay ninguno, abre el navegador por defecto."
+    )
     return parser
 
 
@@ -431,6 +438,9 @@ def main(argv=None):
             sys.exit(1)
         return
 
+    if args.ventana and not args.web:
+        parser.error("--ventana sólo aplica con --web")
+
     if args.web:
         conflictos = [flag for dest, flag in
                      {"headless": "--headless", "inspect": "--inspect",
@@ -439,6 +449,8 @@ def main(argv=None):
             conflictos.append("--duracion")
         if conflictos:
             parser.error(f"--web no se combina con {', '.join(conflictos)}")
+        if args.ventana and args.no_abrir:
+            parser.error("--ventana no se combina con --no-abrir")
 
         config_path = args.config
         if config_path is None and args.escenario is not None:
@@ -459,7 +471,7 @@ def main(argv=None):
         from web.servidor import ejecutar_servidor
         try:
             ejecutar_servidor(sesion, puerto=args.puerto,
-                              abrir=not args.no_abrir)
+                              abrir=not args.no_abrir, ventana=args.ventana)
         except ValueError as e:
             print(f"Error: {e}")
             sys.exit(1)
