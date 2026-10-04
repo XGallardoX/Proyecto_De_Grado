@@ -301,4 +301,47 @@ los dos ajustes el 2026-10-03, y `feat/fase3-eventos` se mergeó a `main`
 ese día.
 
 **Pendiente:** 1d (qué escenarios de fallo van al Capítulo 5) y la
-parte 2 (laboratorio de lotes).
+parte 2 (laboratorio de lotes). Ver la sección siguiente.
+
+---
+
+## Estado de las partes 2 y 3, y propuesta para 1d (2026-10-03)
+
+Rama `feat/fase3-resto`.
+
+- **Parte 2, laboratorio de experimentos: hecha.** Botón "⚗ Laboratorio"
+  en la interfaz: arma un lote o carga uno de `lotes/`, lo corre con
+  `python main.py --batch` en un subproceso y muestra el progreso, la
+  tabla del resumen y una gráfica. Validación sólo de lectura (no
+  consume `random`), topes de 300 corridas y 3600 s, cancelable.
+  Probado que da lo mismo que la terminal. Detalle en
+  `docs/interfaz_web.md`.
+- **Parte 3, ventana propia: hecha con la alternativa decidida.**
+  `--web --ventana` abre la interfaz en el modo `--app` de Chrome,
+  Chromium, Brave, Edge o Vivaldi; si no hay ninguno, el navegador por
+  defecto. Sin dependencias nuevas. No se hizo un lanzador `.desktop`:
+  necesitaría rutas absolutas de cada máquina, y el comando ya alcanza.
+- **Detalles de la revisión en el navegador: corregidos** la tilde de
+  "intervenciónes", la barra superior que saltaba de línea, el texto
+  que quedaba pegado en el compositor y el voseo. Queda uno: con nodos
+  apilados las etiquetas se superponen.
+- **1d, escenarios de fallo para el Capítulo 5: propuesta** (de
+  XGallardoX; **Jefferson puede ajustarla**). `escenarios/fallos/`: un
+  despliegue de cobertura (7 Gateway fijos en 3 pisos, 6 Nodos de
+  usuario) con un Gateway redundante, un puente y un borde, y cuatro
+  experimentos (caída de cada uno, con vuelta, y una cascada sin
+  vuelta). `lotes/capitulo5_fallos.json` los corre con 10 semillas, y el
+  caso 14 de la guía trae los números. Tres cosas a decidir al
+  revisarla:
+  1. **El medio del despliegue no es el por defecto** (alcance 12 m,
+     `falloff` 0.5, atenuación por piso 0.8). Con el por defecto, la
+     entrega cae a 0.32, hay 13.6 falsas alarmas en el control y la
+     reconvergencia de rutas se cierra en 1 a 4 de 10 corridas. Hay que
+     justificarlo en el documento (radios de menor potencia) o cambiarlo.
+  2. **Nodos fijos.** Los fallos se estudian sin movilidad para aislar
+     su efecto; la movilidad sigue siendo una decisión aparte.
+  3. **La cobertura durante una caída no tiene métrica de resumen**:
+     sólo "N alcanzables al final". Una cobertura media en el tiempo
+     (promedio de `nodos_alcanzables`) mostraría cuánto se pierde
+     mientras un Gateway está caído. Sería una métrica nueva: no se
+     agregó sin acordarlo.

@@ -30,6 +30,7 @@ algún día cambian, es que cambió el código, no el azar.
    11. [Seguir contra repartir: cobertura contra conectividad](#caso-11--seguir-contra-repartir-cobertura-contra-conectividad)
    12. [Ver la red como la ve cada nodo (interfaz web)](#caso-12--ver-la-red-como-la-ve-cada-nodo-interfaz-web)
    13. [Un Gateway puente que cae y vuelve: las dos reconvergencias](#caso-13--un-gateway-puente-que-cae-y-vuelve-las-dos-reconvergencias)
+   14. [Escenarios de fallo de un despliegue de cobertura (laboratorio)](#caso-14--escenarios-de-fallo-de-un-despliegue-de-cobertura-laboratorio)
 5. [Dónde quedan los resultados y cómo leerlos](#5-dónde-quedan-los-resultados-y-cómo-leerlos)
 6. [Problemas frecuentes](#6-problemas-frecuentes)
 
@@ -59,6 +60,7 @@ activarlo. Probado con Python 3.14.
 |---|---|---|
 | Ver la red en vivo e interactuar | `python main.py --escenario base` | Una ventana; al cerrarla, figura y reportes en `reportes/` |
 | Lo mismo, en el navegador | `python main.py --web --escenario base` | Una pestaña en `http://127.0.0.1:8765/`; al terminar la sesión, los mismos reportes más `sesion_web.json` |
+| En una ventana propia | `python main.py --web --ventana --escenario base` | La misma interfaz, en una ventana sin pestañas (modo app de Chrome, Chromium, Brave o Edge) |
 | Una corrida sin ventana | `python main.py --headless --escenario base --seed 1` | Un resumen en pantalla y `reportes/base_<fecha_hora>/` |
 | Ver el estado interno del protocolo | `python main.py --inspect --escenario particion --duracion 30` | Texto por pantalla, sin archivos |
 | Resultados con varias semillas | `python main.py --batch lotes/ejemplo.json` | Un resumen agregado y `reportes/lote_<nombre>_<fecha_hora>/` |
@@ -631,6 +633,69 @@ tumbar un Gateway con `F`, recuperarlo con `G` y exportar. Como las únicas inte
 recuperaciones, la exportación deja `escenario_sesion.json` con esas
 intervenciones como eventos `fail`/`recover` y un comando de terminal
 `--config` que reproduce la misma corrida.
+
+### Caso 14 — Escenarios de fallo de un despliegue de cobertura (laboratorio)
+
+**Objetivo:** comparar tipos de fallo sobre un mismo despliegue, con 10
+semillas, desde la terminal o desde el laboratorio de la interfaz. Es la
+propuesta de escenarios para el Capítulo 5 (decisión 1d de
+`contexto/DECISIONES_FASE3.md`).
+
+[`escenarios/fallos/`](../escenarios/fallos/) tiene un despliegue de 7
+Gateway fijos en los 3 pisos que cubren 6 Nodos de usuario
+(`cobertura_edificio.txt`, el control sin fallos) y cuatro variantes con
+eventos programados:
+
+| Archivo | Qué cae | Por qué ese Gateway |
+|---|---|---|
+| `fallo_redundante.txt` | G2, de 60 a 150 s | Parte de la malla redundante de los pisos 1 y 2: no parte nada |
+| `fallo_puente.txt` | G6, de 60 a 150 s | Único puente al piso 3: la malla se parte en dos |
+| `fallo_borde.txt` | G7, de 60 a 150 s | Único Gateway al alcance de N6: N6 queda sin cobertura |
+| `fallo_cascada.txt` | G6 a los 60 s, G7 a los 100 s, G3 a los 140 s, sin vuelta | Degradación progresiva |
+
+El despliegue usa radios de 12 m de alcance con enlaces más fiables que
+los del medio por defecto (`falloff` 0.5, atenuación por piso 0.8; ver
+la cabecera de los archivos). Con el medio por defecto, un despliegue
+con puente y borde en este edificio necesita enlaces tan largos que la
+entrega cae a 0.32 y las falsas alarmas tapan los fallos.
+
+```bash
+python main.py --batch lotes/capitulo5_fallos.json
+```
+
+(o, en la interfaz, "⚗ Laboratorio" → Cargar `lotes/capitulo5_fallos.json`
+→ Correr: mismos números, con la tabla y una gráfica por métrica.)
+
+| Experimento | Malla partida (s) | Tiempo de reconvergencia (s) | Reconvergencia de rutas BATMAN (s) | Alertas | N alcanzables al final |
+|---|---|---|---|---|---|
+| `cobertura_edificio` (control) | 0.0 | no aplica | no aplica | 3.00 ± 2.58 | 6 |
+| `fallo_redundante` | 0.0 | no aplica | 7.8 ± 3.7 | 15.90 ± 2.08 | 6 |
+| `fallo_puente` | 90.0 | 90.0 | 19.9 ± 6.7 | 20.90 ± 0.99 | 6 |
+| `fallo_borde` | 0.0 | no aplica | 17.1 ± 9.0 | 11.40 ± 1.07 | 6 |
+| `fallo_cascada` | 40.0 | no aplica | no aplica | 20.10 ± 0.32 | 3 |
+
+(240 s simulados, semillas 1-10; la entrega del radio es 0.60 en todos.)
+
+**Cómo leerlo:**
+
+- **La reconvergencia de rutas sí distingue los fallos:** volver a
+  tener rutas frescas tras recuperar un Gateway redundante tarda unos
+  8 s; tras recuperar el puente o el borde, de 17 a 20 s, porque sus
+  OGM tienen que atravesar más saltos con pérdidas.
+- **"Tiempo de reconvergencia" repite el dato de entrada** (90 s en
+  `fallo_puente`, el tiempo que G6 estuvo caído), como en el caso 13.
+- **En la cascada** la partición dura 40 s y no se "reunifica": termina
+  cuando cae G7, el último Gateway del lado aislado. Al final quedan 3
+  de 6 Nodos de usuario cubiertos (N2, N5 y N6 dependían de G3, G6 y G7).
+- **La cobertura durante una caída no sale en el resumen.** En
+  `fallo_borde`, N6 se queda sin cobertura de los 60 a los 150 s, pero
+  "N alcanzables al final" es 6 porque G7 ya volvió. Se ve en la serie
+  `nodos_alcanzables` de cada `reporte.csv` (y en el panel 2 de la
+  figura). Una métrica de cobertura media en el tiempo sería una
+  decisión de métricas aparte.
+- **Las alertas incluyen falsas alarmas** (3 en el control, por los
+  enlaces con pérdidas) y las alertas a varios saltos que no se apagan
+  (hallazgo 4 de `DECISIONES_FASE3.md`).
 
 ---
 

@@ -73,6 +73,9 @@ Sólo en `127.0.0.1:<puerto>` (por defecto 8765), sin autenticación.
 | `GET /api/escenarios` | Predefinidos (con descripción) y archivos de `escenarios/` |
 | `GET /api/reportes/<ruta>` | Lo exportado (sólo dentro de `reportes/`, sin `..`) |
 | `POST /api/comando` | `{"accion": ..., ...}` → `{"ok": true, ...}` o `{"ok": false, "error": "..."}` |
+| `GET /api/laboratorio` | Estado del laboratorio: `estado` (`inactivo`, `corriendo`, `cancelando`, `terminado`, `cancelado`, `error`), `hechas`/`total`, últimas líneas de `--batch`, el comando de terminal y, al terminar, el `resultado` (escenarios y métricas de `resumen.json`) |
+| `GET /api/lotes` | Los lotes de `lotes/*.json`, para cargarlos en el laboratorio |
+| `POST /api/laboratorio` | `{"accion": "iniciar", "lote": {...}}` o `{"accion": "cancelar"}` |
 
 ### Acciones de `/api/comando`
 
@@ -199,6 +202,7 @@ tres vacíos:
 | Envolventes de partición y aviso de partición/reunificación | La auto-reorganización de la malla, visible | 3 |
 | Exportar con `sesion_web.json` y el comando equivalente | La exploración interactiva no reemplaza el dato reproducible: una sesión sin intervenciones, o con sólo caídas y recuperaciones (exportadas como eventos del escenario), es literalmente una corrida de terminal | 1 y 2 |
 | Editor de escenarios que guarda en el formato de `--config` | Diseñar el caso a la medida y llevarlo a lotes con semillas | 2 y 3 |
+| Laboratorio de experimentos (lotes `--batch` en un subproceso, con tabla y gráfica) | Pasar de la exploración a resultados con varias semillas sin salir de la interfaz, con los mismos números que la terminal | 1 y 2 |
 
 Insumo para los capítulos 1 y 4 de la tesis.
 
@@ -289,11 +293,36 @@ para el repo.
   por el de la ruta.~~ Corregido en la Fase 3: usan
   `analysis.metrics.ruta_vigente`, el mismo criterio de la métrica de
   reconvergencia de rutas.
-- Tras un mensaje que falla, el texto queda en el compositor y el
-  siguiente se escribe pegado a él.
+- ~~Tras un mensaje que falla, el texto queda en el compositor y el
+  siguiente se escribe pegado a él.~~ Corregido: queda seleccionado y lo
+  que se escribe lo reemplaza.
 - Con nodos apilados (la movilidad `seguir`), las etiquetas se
-  superponen y no se leen.
-- Varios textos usan voseo ("Seleccioná", "Pausá", "Recordá").
+  superponen y no se leen. Sigue así.
+- ~~Varios textos usan voseo.~~ Corregido: tuteo en la interfaz, los
+  mensajes de error y la guía.
+- ~~El aviso dice "intervenciónes" y la barra superior salta de línea.~~
+  Corregidos.
+
+---
+
+### Laboratorio y ventana propia (Fase 3)
+
+- **Laboratorio** (`web/laboratorio.py`): un lote a la vez, con
+  `python main.py --batch` en un subproceso (`cwd` = la raíz del repo,
+  `MPLBACKEND=Agg`). Antes de lanzarlo valida sólo leyendo: el formato
+  del lote con `analysis.lote` y cada escenario con `config_loader`.
+  Nunca construye una `Simulation` en el servidor, porque eso consume
+  `random` (probado). Las rutas `config` tienen que estar dentro de
+  `escenarios/`. El progreso sale de las líneas `[k/N]` de `--batch` y
+  el resultado, del `resumen.json` de la carpeta. Probado: el resumen
+  del laboratorio es igual al de `ejecutar_lote()` con el mismo archivo.
+  Verificado en Chrome con `lotes/fallos.json` (mismos números que en la
+  terminal) y cancelando `lotes/ejemplo.json` a la mitad.
+- **Ventana propia** (`--ventana`, `web/ventana.py`): el modo `--app` de
+  un navegador basado en Chromium, buscado en el `PATH` y, en macOS y
+  Windows, en sus rutas habituales; si no hay ninguno, el navegador por
+  defecto. En la máquina de la revisión detecta Brave. Reemplaza a
+  pywebview, que no se pudo instalar sin root (decisión 3).
 
 ---
 

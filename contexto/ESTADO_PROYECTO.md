@@ -10,8 +10,9 @@ Fecha: 2026-10-03
 
 > **Fase 3 de la interfaz web: decidida el 2026-10-03 (XGallardoX, con
 > el visto bueno de Jefferson); la parte 1 ya está hecha y en `main`.**
-> Sigue la parte 2 (laboratorio de lotes) y falta acordar qué escenarios
-> de fallo van al Capítulo 5. Eventos de fallo programables, con una
+> Partes 2 (laboratorio) y 3 (`--ventana`) hechas en la rama
+> `feat/fase3-resto`, con una propuesta de escenarios de fallo para el
+> Capítulo 5 (1d) que Jefferson puede ajustar. Eventos de fallo programables, con una
 > métrica nueva de reconvergencia de rutas y sin reiniciar la secuencia
 > de OGM al recuperar un nodo. Laboratorio de lotes sí, después.
 > pywebview no. Los hallazgos, las decisiones y dos ajustes que salieron
@@ -281,6 +282,24 @@ commits y números en [`DECISIONES_FASE3.md`](DECISIONES_FASE3.md),
 - Pruebas: 268 (de 240), en `tests/test_fase3.py`. La regresión de
   lotes da idéntico en todas las columnas existentes.
 
+
+**Fase 3, partes 2 y 3, y propuesta 1d (3 de octubre):** rama
+`feat/fase3-resto`. Detalle en
+[`DECISIONES_FASE3.md`](DECISIONES_FASE3.md), "Estado de las partes 2
+y 3".
+
+- **Laboratorio de experimentos** en la interfaz ("⚗ Laboratorio"):
+  arma o carga un lote y lo corre con `--batch` en un subproceso, con
+  progreso, tabla del resumen y gráfica. Mismos números que la terminal.
+- **`--web --ventana`**: la interfaz en una ventana propia (modo app de
+  Chrome/Chromium/Brave/Edge), sin dependencias.
+- **Escenarios de fallo propuestos para el Capítulo 5**
+  (`escenarios/fallos/`, `lotes/capitulo5_fallos.json`, caso 14 de la
+  guía): caída de un Gateway redundante, de un puente, de un borde y
+  una cascada, sobre un mismo despliegue de cobertura.
+- Detalles de la interfaz corregidos (tilde, barra que saltaba de línea,
+  compositor, voseo).
+- Pruebas: 288 (de 268).
 ---
 
 ## Falta

@@ -141,6 +141,7 @@ tiene una duración fija: corre hasta que la cierras).
 | `--web` | Arranca el servidor y abre la interfaz. |
 | `--puerto N` | Puerto del servidor (por defecto `8765`). Si está ocupado, error claro con sugerencia de usar otro. |
 | `--no-abrir` | No abre el navegador automáticamente (útil en un servidor sin entorno gráfico: abre la URL a mano). |
+| `--ventana` | Abre la interfaz en una ventana propia, sin pestañas ni barra de direcciones: el modo aplicación (`--app`) de Chrome, Chromium, Brave, Edge o Vivaldi, el primero que encuentre. Si no hay ninguno, abre el navegador por defecto. No agrega dependencias. |
 
 Si no se pasa `--seed`, la sesión elige una semilla al azar (con
 `secrets`, no con `random`, para no afectar la reproducibilidad) y la
@@ -152,8 +153,8 @@ no se la fije a mano.
 pausa/reanuda, un paso (en pausa), velocidad (0.25× a 8×, más
 "máxima"), reiniciar (vuelve a fijar la semilla: a diferencia de la
 tecla `R` de pygame, que no la refija, acá la corrida se repite igual),
-exportar, el editor de escenarios, modo presentación, tema claro/oscuro
-y terminar sesión. A la derecha, el reloj, Gateways y Nodos vivos,
+exportar, el editor de escenarios, el laboratorio de experimentos, modo
+presentación, tema claro/oscuro y terminar sesión. A la derecha, el reloj, Gateways y Nodos vivos,
 cuántos Nodos de usuario cubre la malla, y avisos de red partida, de
 intervenciones o de error.
 
@@ -196,6 +197,17 @@ mismas reglas que `--config`. Guarda en `escenarios/<nombre>.json` (nunca
 pisa los 5 predefinidos, ni otro archivo sin marcar "sobrescribir"),
 muestra el comando para correrlo desde la terminal y permite cargarlo
 en la sesión o descargar el JSON.
+
+**Laboratorio de experimentos** (botón "⚗ Laboratorio"): arma un lote
+(nombre, duración, semillas y entradas: escenario predefinido o archivo
+de `escenarios/`, etiqueta, nodos fijos, movilidad), o carga uno de
+`lotes/`, y lo corre con `python main.py --batch` en un subproceso, sin
+tocar la sesión en vivo. Muestra el progreso, permite cancelar y, al
+terminar, la tabla del resumen (media ± desviación y n por entrada) y una
+gráfica de barras de la métrica que se elija. Es literalmente el comando
+de terminal, así que da los mismos números; el lote queda guardado en
+`reportes/laboratorio/` y la interfaz muestra el comando para repetirlo.
+Admite hasta 300 corridas y 3600 s por corrida (para más, `--batch`).
 
 **Exportar** deja la misma carpeta `reportes/<escenario>_<fecha_hora>/`
 con los mismos cuatro archivos que la terminal, más un `sesion_web.json`
@@ -580,7 +592,8 @@ analysis/                 ← métricas, visualizador pygame, reportes, runner d
 web/                      ← interfaz web local (servidor HTTP/SSE + frontend), paralela a pygame
 escenarios/*.json, *.txt  ← escenarios predefinidos y de ejemplo
 escenarios/casos/         ← variantes usadas por los casos de la guía
-lotes/*.json              ← lotes para --batch (ejemplo, casos, movilidad, fallos)
+escenarios/fallos/        ← despliegue de cobertura y escenarios de fallo (propuesta para el Cap. 5)
+lotes/*.json              ← lotes para --batch (ejemplo, casos, movilidad, fallos, capitulo5_fallos)
 tests/                    ← pruebas unitarias
 docs/                     ← guía de ejecución, arquitectura y notas de diseño
 ```

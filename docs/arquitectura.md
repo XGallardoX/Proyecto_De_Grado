@@ -130,6 +130,14 @@ servida por HTTP en vez de dibujada con pygame. Sus piezas:
 - **`web/editor.py`**: valida y guarda escenarios del editor con
   `sim.config_loader.validar_escenario()` (las mismas reglas que
   `--config`), sin pisar los predefinidos ni salir de `escenarios/`.
+- **`web/laboratorio.py`** (Fase 3): corre lotes desde la interfaz con
+  `python main.py --batch` en un **subproceso**, nunca en un hilo del
+  servidor: compartiría el `random` global con la sesión en vivo. Su
+  validación previa sólo lee archivos (no construye simulaciones, que
+  consumen `random`). Al apagar el servidor se termina el subproceso.
+- **`web/ventana.py`** (Fase 3): `--ventana` abre la interfaz en el modo
+  `--app` de un navegador basado en Chromium, o en el navegador por
+  defecto si no hay ninguno.
 - **`web/servidor.py`**: `http.server.ThreadingHTTPServer` + rutas
   `/api/*` + estáticos de `web/static/`. Sólo biblioteca estándar: sin
   frameworks ni dependencias nuevas.
