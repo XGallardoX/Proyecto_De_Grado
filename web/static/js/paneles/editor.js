@@ -86,9 +86,11 @@ export class Editor {
         <label>Movilidad <select id="ed-movilidad">
           ${["seguir", "repartir"].map((m) => `<option ${e.protocol.movilidad === m ? "selected" : ""}>${m}</option>`).join("")}
         </select></label>
-        <h3>Eventos <small class="detalle">wander: un Gateway se aleja hasta t = until</small></h3>
+        <h3>Eventos <small class="detalle">wander: un Gateway se aleja hasta t = until · caída / recuperación: un nodo cae o vuelve en el instante t</small></h3>
         <div id="ed-eventos"></div>
         <button data-a="evento">+ wander</button>
+        <button data-a="evento-fail">+ caída</button>
+        <button data-a="evento-recover">+ recuperación</button>
       </div>`;
 
     this.c.querySelectorAll(".ed-herr").forEach((b) => b.addEventListener("click", () => {
@@ -126,6 +128,12 @@ export class Editor {
         const g = this.datos.nodes.find((n) => n.role === "G");
         if (!g) { this._mensaje("Primero agregá un Gateway.", "error"); return; }
         this.datos.events.push({ type: "wander", node_id: g.id, until: 60 });
+        this._pintarEventos();
+      } else if (a === "evento-fail" || a === "evento-recover") {
+        const n = this.datos.nodes[0];
+        if (!n) { this._mensaje("Primero agregá un nodo.", "error"); return; }
+        const tipo = a === "evento-fail" ? "fail" : "recover";
+        this.datos.events.push({ type: tipo, node_id: n.id, t: tipo === "fail" ? 60 : 90 });
         this._pintarEventos();
       } else if (a === "validar") {
         const r = await api.enviarComando("validar_escenario", { escenario: this.datos });
@@ -185,10 +193,17 @@ export class Editor {
     const et = this._etiquetas();
     const gs = this.datos.nodes.filter((n) => n.role === "G");
     const div = this.c.querySelector("#ed-eventos");
-    div.innerHTML = this.datos.events.map((ev, i) => `<div class="fila" data-i="${i}">
-      wander <select data-k="node_id">${gs.map((g) =>
-        `<option value="${g.id}" ${g.id === ev.node_id ? "selected" : ""}>${et.get(g.id)}</option>`).join("")}</select>
+    const opciones = (lista, ev) => lista.map((n) =>
+      `<option value="${n.id}" ${n.id === ev.node_id ? "selected" : ""}>${et.get(n.id)}</option>`).join("");
+    const NOMBRES = { fail: "caída", recover: "recuperación" };
+    div.innerHTML = this.datos.events.map((ev, i) => ev.type === "wander"
+      ? `<div class="fila" data-i="${i}">
+      wander <select data-k="node_id">${opciones(gs, ev)}</select>
       hasta t = <input type="number" min="0" step="1" data-k="until" value="${ev.until}" style="width:5em"> s
+      <button data-borrar>✕</button></div>`
+      : `<div class="fila" data-i="${i}">
+      ${NOMBRES[ev.type] || ev.type} de <select data-k="node_id">${opciones(this.datos.nodes, ev)}</select>
+      en t = <input type="number" min="0" step="0.5" data-k="t" value="${ev.t}" style="width:5em"> s
       <button data-borrar>✕</button></div>`).join("") || '<p class="detalle">(ninguno)</p>';
     div.querySelectorAll("[data-i]").forEach((fila) => {
       const ev = this.datos.events[Number(fila.dataset.i)];

@@ -326,5 +326,89 @@ class EventosEnElMotorTests(unittest.TestCase):
         self.assertEqual(_series(a), _series(b))
 
 
+class ExportarSesionComoEscenarioTests(unittest.TestCase):
+    """1c en la web: una sesión cuyas únicas intervenciones son caer y
+    recuperar se exporta como escenario, y su comando de terminal
+    reproduce la misma corrida."""
+
+    def setUp(self):
+        from web.sesion import construir_sesion
+        self.construir_sesion = construir_sesion
+        self.carpetas = []
+
+    def tearDown(self):
+        import shutil
+        for c in self.carpetas:
+            shutil.rmtree(c, ignore_errors=True)
+
+    def _exportar(self, sesion):
+        carpeta = sesion.exportar()
+        self.carpetas.append(carpeta)
+        return carpeta, sesion.ultima_exportacion
+
+    def test_paridad_con_la_terminal(self):
+        for static in (False, True):
+            with self.subTest(static=static):
+                sesion = self.construir_sesion(main_mod.ruta_escenario("base"),
+                                               semilla=7, static=static)
+                sesion.avanzar_sincrono(120)            # t = 60
+                sesion.comando("caer", {"id": 2})
+                sesion.avanzar_sincrono(60)             # t = 90
+                sesion.comando("recuperar", {"id": 2})
+                sesion.avanzar_sincrono(120)            # t = 150
+                carpeta, export = self._exportar(sesion)
+
+                self.assertEqual(export["escenario_sesion"],
+                                 "escenario_sesion.json")
+                comando = export["comando_equivalente"]
+                self.assertIn("--config", comando)
+                self.assertIn("escenario_sesion.json", comando)
+                self.assertIn("--seed 7", comando)
+                self.assertIn("--duracion 150.0", comando)
+                self.assertEqual("--static" in comando, static)
+
+                ruta = os.path.join(carpeta, "escenario_sesion.json")
+                with open(ruta, encoding="utf-8") as f:
+                    eventos = json.load(f)["events"]
+                self.assertEqual(eventos, [
+                    {"type": "fail", "node_id": 2, "t": 60.0},
+                    {"type": "recover", "node_id": 2, "t": 90.0}])
+
+                # lo mismo que hace --headless con ese comando
+                main_mod.fijar_semilla(7)
+                sim, _ = main_mod.construir_simulacion(ruta, static=static)
+                main_mod.correr(sim, 150.0)
+                self.assertEqual(_series(sim), _series(sesion.sim))
+                self.assertEqual(resumen_corrida(sim),
+                                 resumen_corrida(sesion.sim))
+
+    def test_otras_intervenciones_no_se_exportan(self):
+        sesion = self.construir_sesion(main_mod.ruta_escenario("base"),
+                                       semilla=7, static=True)
+        sesion.avanzar_sincrono(10)
+        sesion.comando("caer", {"id": 2})
+        sesion.comando("mover_nodo", {"id": 1, "x": 10, "y": 20})
+        sesion.avanzar_sincrono(10)
+        self.assertIsNone(sesion.escenario_de_sesion())
+        _, export = self._exportar(sesion)
+        self.assertIsNone(export["escenario_sesion"])
+        self.assertIsNone(export["comando_equivalente"])
+
+    def test_modo_aleatorio_no_se_exporta(self):
+        sesion = self.construir_sesion(None, n_nodes=5, n_gateways=2,
+                                       semilla=7)
+        sesion.avanzar_sincrono(10)
+        sesion.comando("caer", {"id": 1})
+        self.assertIsNone(sesion.escenario_de_sesion())
+
+    def test_sin_intervenciones_sigue_el_comando_de_siempre(self):
+        sesion = self.construir_sesion(main_mod.ruta_escenario("base"),
+                                       semilla=7)
+        sesion.avanzar_sincrono(10)
+        _, export = self._exportar(sesion)
+        self.assertIsNone(export["escenario_sesion"])
+        self.assertIn("--escenario base", export["comando_equivalente"])
+
+
 if __name__ == "__main__":
     unittest.main()

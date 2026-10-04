@@ -471,7 +471,8 @@ async function exportar() {
     <ul>${r.archivos.map((a) => `<li><a href="/api/reportes/${encodeURI(sub)}/${encodeURIComponent(a)}" target="_blank">${esc(a)}</a></li>`).join("")}</ul>
     ${r.comando_equivalente
       ? `<p>Comando de terminal que reproduce esta corrida:</p>${bloqueComando(r.comando_equivalente)}`
-      : `<p class="detalle">La sesión tuvo ${r.intervenciones} intervención(es) (caídas, mensajes, cambios de parámetros…), así que no hay un comando de terminal equivalente: quedan registradas en <code>sesion_web.json</code>.</p>`}`;
+        + (r.escenario_sesion ? `<p class="detalle">Las caídas y recuperaciones de la sesión quedaron como eventos <code>fail</code>/<code>recover</code> en <code>${esc(r.escenario_sesion)}</code>, que el comando usa como escenario.</p>` : "")
+      : `<p class="detalle">La sesión tuvo ${r.intervenciones} ${r.intervenciones === 1 ? "intervención" : "intervenciones"} que no se pueden volver eventos del escenario (mover, agregar o eliminar nodos, mensajes, cambios de parámetros), así que no hay un comando de terminal equivalente: quedan registradas en <code>sesion_web.json</code>. Las caídas y recuperaciones solas sí se exportan como escenario.</p>`}`;
   $("dialogo-exportado").showModal();
 }
 

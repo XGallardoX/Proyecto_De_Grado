@@ -51,6 +51,10 @@ PARAMETROS = {
 }
 PARAMETROS_EDITABLES = tuple(PARAMETROS)
 
+# Intervenciones que se pueden volver eventos del escenario (fail/recover)
+# para exportar la sesión como un escenario reproducible en terminal.
+INTERVENCIONES_EXPORTABLES = {"caer": "fail", "recuperar": "recover"}
+
 
 def _valor_parametro(clave, valor):
     spec = PARAMETROS[clave]
@@ -85,6 +89,7 @@ class Sesion:
         self.error = None
         self.intervenciones = []
         self.generacion = 0   # sube con cada reconstrucción (reiniciar/cargar)
+        self.ultima_exportacion = None
 
         self.version = 0
         self.ultimo_frame_json = None
@@ -407,7 +412,7 @@ class Sesion:
         return {"carpeta": carpeta,
                 "archivos": sorted(os.listdir(carpeta)),
                 "intervenciones": len(self.intervenciones),
-                "comando_equivalente": self.comando_equivalente()}
+                **self.ultima_exportacion}
 
     def _c_terminar(self, datos):
         return {"mensaje": "cerrando sesión"}
@@ -426,15 +431,21 @@ class Sesion:
     }
 
     # ── exportar / comando equivalente ────────────────────────────────
-    def comando_equivalente(self):
-        """El comando de terminal que reproduce esta sesión, o None si
-        hubo intervenciones (ver contrato de paridad, sección 3)."""
-        if self.intervenciones:
+    def comando_equivalente(self, escenario_sesion=None):
+        """El comando de terminal que reproduce esta sesión. Si hubo
+        intervenciones, sólo existe cuando se pasa `escenario_sesion`: la
+        ruta del escenario que las lleva como eventos (ver
+        escenario_de_sesion); si no, None (contrato de paridad, sección 3)."""
+        if self.intervenciones and escenario_sesion is None:
             return None
         from main import ESCENARIOS_DISPONIBLES, ruta_escenario
         a = self.build_args
         partes = ["python", "main.py", "--headless"]
-        if a.get("config_path"):
+        if escenario_sesion:
+            relativa = os.path.relpath(escenario_sesion)
+            partes += ["--config", escenario_sesion
+                       if relativa.startswith("..") else relativa]
+        elif a.get("config_path"):
             nombre = None
             for esc in ESCENARIOS_DISPONIBLES:
                 if os.path.abspath(a["config_path"]) == \
@@ -459,6 +470,32 @@ class Sesion:
         partes += ["--duracion", str(round(self.sim.t, 1))]
         return " ".join(partes)
 
+    def escenario_de_sesion(self):
+        """El escenario que reproduce esta sesión en terminal: el archivo
+        cargado, con las caídas y recuperaciones hechas a mano agregadas
+        como eventos fail/recover en el instante en que se hicieron (el
+        motor los aplica en el mismo punto del ciclo). None si no hubo
+        intervenciones, si alguna no es caer/recuperar (mover, agregar,
+        eliminar, mensajes o parámetros no tienen evento), o si la sesión
+        no salió de un archivo con nodos explícitos."""
+        ruta = self.build_args.get("config_path")
+        if not self.intervenciones or not ruta or any(
+                i["accion"] not in INTERVENCIONES_EXPORTABLES
+                for i in self.intervenciones):
+            return None
+        from main import ALTO, ANCHO, N_PISOS, PISO_H
+        from sim.config_loader import load_scenario
+        datos = load_scenario(ruta, default_building=dict(
+            ancho=ANCHO, alto=ALTO, piso_h=PISO_H, n_pisos=N_PISOS))
+        if "random" in datos:
+            return None
+        datos["events"] = list(datos.get("events", [])) + [
+            {"type": INTERVENCIONES_EXPORTABLES[i["accion"]],
+             "node_id": i["datos"]["id"], "t": i["t"]}
+            for i in self.intervenciones]
+        datos["name"] = f"{datos.get('name') or self.sim.escenario}_sesion"
+        return datos
+
     def exportar(self):
         with self.lock:
             png = build_analysis_figure(self.sim, None)
@@ -467,16 +504,29 @@ class Sesion:
                     "corrida demasiado corta para exportar (hacen falta "
                     "al menos 1 s simulado)")
             carpeta = os.path.dirname(png)
+            escenario = self.escenario_de_sesion()
+            ruta_escenario = None
+            if escenario is not None:
+                ruta_escenario = os.path.join(carpeta, "escenario_sesion.json")
+                with open(ruta_escenario, "w", encoding="utf-8") as f:
+                    json.dump(escenario, f, indent=2, ensure_ascii=False)
+                    f.write("\n")
+            comando = self.comando_equivalente(ruta_escenario)
             datos_sesion = {
                 "escenario": self.sim.escenario,
                 "semilla": self.semilla,
                 "configuracion": self.build_args,
                 "intervenciones": list(self.intervenciones),
-                "comando_equivalente": self.comando_equivalente(),
+                "escenario_sesion": (os.path.basename(ruta_escenario)
+                                     if ruta_escenario else None),
+                "comando_equivalente": comando,
             }
             with open(os.path.join(carpeta, "sesion_web.json"), "w",
                      encoding="utf-8") as f:
                 json.dump(datos_sesion, f, indent=2, ensure_ascii=False)
+            self.ultima_exportacion = {
+                "comando_equivalente": comando,
+                "escenario_sesion": datos_sesion["escenario_sesion"]}
         return carpeta
 
 
