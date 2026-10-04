@@ -184,8 +184,9 @@ Jefferson.** Nada de esto se ha implementado todavía.
     Arranca en el `RECOVER` o el `HEAL` y termina cuando todo par de
     Gateways vivos del mismo componente de radio tiene, en los dos
     sentidos, una ruta vigente: el `last_seen` **de la ruta**
-    (`RouteEntry`, que sólo refrescan los OGM) dentro del `timeout` y
-    el destino sin alerta.
+    (`RouteEntry`, que sólo refrescan los OGM) dentro del `timeout`.
+    (Al implementarla se quitó la condición "y el destino sin alerta":
+    ver "Estado de la parte 1", ajuste 1.)
   - Ojo: la matriz de conocimiento y la tabla de rutas de la interfaz
     **no** usan hoy ese criterio. Miran el `last_seen` del vecino
     (`PeerInfo`), que también refrescan los beacons. Por eso, en la
@@ -236,3 +237,63 @@ después de recorrer la lista de chequeo en un navegador.
 
 **Orden:** lista de chequeo en el navegador → merge a `main` → parte 1
 (1b, 1a, 1c) → parte 2 → parte 3 alternativa, si sobra tiempo.
+
+---
+
+## Estado de la parte 1 (2026-10-03)
+
+La lista de chequeo se recorrió y `feat/interfaz-web` se mergeó a `main`
+(fast-forward, subido). La parte 1 está implementada en la rama
+`feat/fase3-eventos`, un commit por decisión:
+
+- **1b** (`8be99ed`): `recover_node()` conserva la secuencia de OGM.
+- **1a** (`c18f70f`): métrica `tiempo_reconvergencia_rutas_s`, y
+  `f643acf`: la tabla de rutas y la matriz de la interfaz usan el mismo
+  criterio (`analysis.metrics.ruta_vigente`).
+- **1c** (`ad949db`): eventos `fail`/`recover` en el escenario (`.json`
+  y `.txt`), aplicados por el motor; `cac7b12`: la web exporta una
+  sesión con caídas y recuperaciones como `escenario_sesion.json` con su
+  comando `--config`, y el editor maneja los eventos nuevos.
+- Caso de ejemplo `escenarios/casos/puente.txt` (y `puente_corto.txt`),
+  `lotes/fallos.json` y el caso 13 de la guía. **No** es la selección de
+  escenarios del Capítulo 5 (1d sigue pendiente entre los dos).
+
+Regresión: las columnas existentes de `lotes/ejemplo.json` y
+`lotes/movilidad.json` dan idéntico; la única diferencia es la columna
+nueva al final. Pruebas: 268 en verde (1 omitida, la de `jsc`).
+
+**Dos ajustes respecto a lo decidido**, que salieron al implementar:
+
+1. **La ruta vigente no mira las alertas.** Con "y el destino sin
+   alerta", ningún episodio de `denso` con `repartir` se cerraba en
+   200 s: `PeerInfo.in_alert` se contagia (cada OGM lleva la lista de
+   caídos de quien lo emite y marca en alerta a esos nodos en todos los
+   que lo reciben, aunque los oigan bien), y `FaultManager.failed` sólo
+   se limpia con un beacon directo (hallazgo 4). Quedó sólo la
+   antigüedad de la ruta, que es lo que mide la capa de enrutamiento;
+   las alertas ya tienen sus propias métricas.
+2. **Un disparador con un episodio abierto se suma a ese episodio.**
+   Cuando vuelve un Gateway puente, el `RECOVER` y el `HEAL` que provoca
+   medio paso después abrían dos episodios para un mismo hecho, y el
+   promedio de la corrida salía con medio paso de menos.
+
+**Números del caso de ejemplo** (`lotes/fallos.json`, 10 semillas):
+con G2 caído 40 s, "tiempo de reconvergencia" da 40.0 ± 0.0 s (el dato
+de entrada, como anticipaba el hallazgo 1) y la reconvergencia de rutas
+14.8 ± 5.7 s. Con G2 caído 10 s, menos que el `timeout`, 10.0 ± 0.0 s
+contra 1.6 ± 2.6 s. En `denso` con `repartir`, la reconvergencia de
+rutas da 24.2 ± 17.5 s (7 de 10 corridas).
+
+**Hallazgo 4: en el simulador, una alerta sobre un Gateway a varios
+saltos no se apaga nunca.** `SimNode._drain_inbox` (réplica de
+`MeshNode._handle_bcast`) sólo llama a `FaultManager.recover()` al
+recibir un beacon directo. Un Gateway que sólo se oye a través de otros
+(por OGM) queda en `fault.failed` hasta el final aunque sus rutas se
+refresquen. En el caso `puente`, G1 y G3 se siguen creyendo caídos
+después de que G2 vuelve. Afecta a "Alertas de gateway perdido" y a la
+capa de detección, no a la reconvergencia de rutas. Es código del nodo
+real: queda como decisión aparte, igual que el TQ.
+
+**Pendiente:** el visto bueno de Jefferson a la parte 1 (y a los dos
+ajustes); el merge de `feat/fase3-eventos` a `main`; 1d (qué escenarios
+de fallo van al Capítulo 5); la parte 2 (laboratorio de lotes).

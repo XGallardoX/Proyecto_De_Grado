@@ -106,9 +106,21 @@ cambiar cualquiera altera la corrida a partir de ese paso):
 
 **Intervenciones.** Toda acción que cambia la corrida (caer, recuperar,
 agregar, mover, eliminar, mensaje, parámetro) se registra con su
-instante simulado. El **comando equivalente** de terminal sólo existe si
-no hubo intervenciones; si las hubo, la interfaz lo dice y quedan en
-`sesion_web.json`.
+instante simulado. El **comando equivalente** de terminal existe si no
+hubo intervenciones, o si las únicas fueron caer y recuperar y la sesión
+salió de un archivo con nodos explícitos. En ese segundo caso,
+"Exportar" escribe además `escenario_sesion.json`: el escenario cargado
+con esas intervenciones como eventos `fail`/`recover` en su instante, y
+el comando lo usa con `--config`. El motor aplica esos eventos en el
+mismo punto del ciclo en que la sesión aplica una intervención (entre
+dos pasos), así que la corrida es la misma: misma serie del `Recorder` y
+mismo `resumen_corrida()` (probado en `tests/test_fase3.py`). Lo único
+que cambia en `reporte.csv` es el texto del evento ("caído (manual)"
+contra "caído (programado)"). Con cualquier otra intervención no hay
+comando equivalente: la interfaz lo dice y quedan en `sesion_web.json`.
+
+**Editor y eventos.** El editor de escenarios edita los tres tipos de
+evento: `wander`, caída (`fail`) y recuperación (`recover`).
 
 ### Esquema del frame (`"esquema": 1`)
 
@@ -185,7 +197,7 @@ tres vacíos:
 | Enlaces coloreados por fiabilidad y mapa de cobertura (distancia + pisos) | Un medio con atenuación entre pisos de un edificio, no un grafo lógico | 2 y 3 |
 | Arrastrar nodos, agregar Gateways, cambiar parámetros en vivo | Experimentar el efecto de la topología y del medio sobre el protocolo real sin desplegar hardware | 2 |
 | Envolventes de partición y aviso de partición/reunificación | La auto-reorganización de la malla, visible | 3 |
-| Exportar con `sesion_web.json` y el comando equivalente | La exploración interactiva no reemplaza el dato reproducible: una sesión sin intervenciones es, literalmente, una corrida de terminal | 1 y 2 |
+| Exportar con `sesion_web.json` y el comando equivalente | La exploración interactiva no reemplaza el dato reproducible: una sesión sin intervenciones, o con sólo caídas y recuperaciones (exportadas como eventos del escenario), es literalmente una corrida de terminal | 1 y 2 |
 | Editor de escenarios que guarda en el formato de `--config` | Diseñar el caso a la medida y llevarlo a lotes con semillas | 2 y 3 |
 
 Insumo para los capítulos 1 y 4 de la tesis.
@@ -302,6 +314,12 @@ para el repo.
 - **Las rutas de `BatmanRouter` no expiran**: por eso la interfaz las
   marca obsoletas (ningún OGM las refrescó en el último `timeout`) en
   vez de borrarlas.
+- **Recuperar un nodo no es un arranque en frío**: conserva su secuencia
+  de OGM. `BatmanRouter` no contempla que una secuencia vuelva a 0 (ver
+  "Limitaciones conocidas" en `docs/arquitectura.md`).
+- **Una alerta sobre un Gateway a varios saltos no se apaga**:
+  `FaultManager` sólo la borra con un beacon directo (ver
+  `contexto/DECISIONES_FASE3.md`, hallazgo 4).
 
 Ninguna se "arregla" en este trabajo: son decisiones abiertas del
 proyecto (`contexto/ESTADO_PROYECTO.md`, punto 4 de "Falta").

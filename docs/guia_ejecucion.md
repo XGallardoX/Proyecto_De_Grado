@@ -29,6 +29,7 @@ algún día cambian, es que cambió el código, no el azar.
    10. [Timeout: falsas alarmas contra rapidez de detección](#caso-10--timeout-falsas-alarmas-contra-rapidez-de-detección)
    11. [Seguir contra repartir: cobertura contra conectividad](#caso-11--seguir-contra-repartir-cobertura-contra-conectividad)
    12. [Ver la red como la ve cada nodo (interfaz web)](#caso-12--ver-la-red-como-la-ve-cada-nodo-interfaz-web)
+   13. [Un Gateway puente que cae y vuelve: las dos reconvergencias](#caso-13--un-gateway-puente-que-cae-y-vuelve-las-dos-reconvergencias)
 5. [Dónde quedan los resultados y cómo leerlos](#5-dónde-quedan-los-resultados-y-cómo-leerlos)
 6. [Problemas frecuentes](#6-problemas-frecuentes)
 
@@ -236,6 +237,7 @@ líneas `[reporter] Reporte exportado a …`:
   Tiempo de reconvergencia (s)          : no aplica
   Alertas de gateway perdido            : 0
   Primera alerta (s)                    : no aplica
+  Reconvergencia de rutas BATMAN (s)    : no aplica
   Eventos registrados                   : 0
 ------------------------------------------------------------
  Figura y reportes en reportes/base_<fecha_hora>/
@@ -363,8 +365,9 @@ todas):
 | `base` fijo (`base_static`) | 0.716 ± 0.006 | 1.00 | 0.00 | 4.00 | 0.0 | 0.00 | no aplica |
 
 (Donde no hay "±", la desviación es 0.) El TQ medio sale entre 0.99 y
-1.0 en todos, y el tiempo de reconvergencia, "no aplica" en todos. Las dos
-cosas son esperables con el código actual: ver la
+1.0 en todos, y las dos reconvergencias (la de la partición y la de las
+rutas BATMAN), "no aplica" en todos. Las dos cosas son esperables con el
+código actual: ver la
 [sección 5](#5-dónde-quedan-los-resultados-y-cómo-leerlos).
 
 Para tu propio lote, copia `lotes/ejemplo.json` y cambia la lista. El
@@ -498,7 +501,9 @@ cubría la otra punta del edificio.
 **Reconvergencia.** `denso` con `repartir` es el único caso en el que la
 malla se parte y se vuelve a unir: 11.7 ± 9.2 episodios de partición por
 corrida, con una reconvergencia de 7.9 ± 10.0 s (en 9 de las 10
-corridas). Muchos de esos episodios son parpadeos, no reconexiones
+corridas). La reconvergencia de las rutas BATMAN, que mide otra cosa
+(caso 13), da 24.2 ± 17.5 s en 7 de las 10. Muchos de esos episodios
+son parpadeos, no reconexiones
 reales: un Gateway que ya llegó a su nodo sigue dando pasos de 0.32 m a
 su alrededor, y si otro Gateway queda justo en el borde de los 16 m de
 alcance, el enlace se prende y se apaga. Por ejemplo, la semilla 1 tiene
@@ -541,6 +546,91 @@ La convergencia también se ve al arrancar cualquier escenario: la
 matriz empieza con pocas celdas verdes y se va llenando a medida que los
 OGM se propagan (en este mismo escenario, a los 30 s, 24 de los 42
 pares conectados por radio ya tienen ruta).
+### Caso 13 — Un Gateway puente que cae y vuelve: las dos reconvergencias
+
+**Objetivo:** programar una caída y una recuperación en el escenario y
+ver la diferencia entre las dos medidas de reconvergencia.
+
+En [`escenarios/casos/puente.txt`](../escenarios/casos/puente.txt) hay
+tres Gateway en fila, a 9 m entre sí, con los nodos fijos. G1 y G3
+quedan a 18 m, fuera del alcance de 16 m, así que sólo se comunican a
+través de G2. La sección `[events]` programa la caída y la vuelta de G2:
+
+```
+[events]
+fail     2  60
+recover  2  100
+```
+
+(En JSON: `{"type": "fail", "node_id": 2, "t": 60}`; ver el README.)
+
+```bash
+python main.py --headless --config escenarios/casos/puente.txt --duracion 160 --seed 1
+```
+
+**Qué deberías ver** en el resumen (semilla 1):
+
+```
+  Episodios de partición                : 1
+  Tiempo con la malla partida (s)       : 40.0
+  Tiempo de reconvergencia (s)          : 40.0
+  Alertas de gateway perdido            : 6
+  Primera alerta (s)                    : 75.0
+  Reconvergencia de rutas BATMAN (s)    : 5.0
+```
+
+y en la cronología de `reporte.txt`: G2 cae a los 60 s, la malla se
+parte a los 60.5 s, las alertas llegan entre los 75 y los 90 s, G2
+vuelve a los 100 s y la malla se reunifica a los 100.5 s.
+
+**Cómo leerlo:**
+
+- **"Tiempo de reconvergencia" (40.0 s) no mide al protocolo.** Mide
+  cuánto duró la partición de la malla de radio, y como los nodos
+  caídos no se mueven, da exactamente el tiempo que G2 estuvo caído (de
+  60 a 100 s). Es el dato de entrada, no un resultado.
+- **"Reconvergencia de rutas BATMAN" (5.0 s) sí.** Cuenta desde que G2
+  vuelve hasta que G1, G2 y G3 tienen, todos con todos, una ruta que un
+  OGM refrescó en el último `timeout`. Depende del intervalo de OGM
+  (4 s) y de cuántos se pierden por el camino.
+- **La primera alerta llega a los 75 s, antes de los 90 s** que
+  darían la caída más el `timeout`: G3 ya venía oyendo a G1 de forma
+  intermitente (a dos saltos, por enlaces que pierden casi la mitad de
+  los paquetes), y lo último que sabía de él era más viejo que la
+  caída.
+- **G1 y G3 se siguen creyendo caídos hasta el final.** En el simulador,
+  `FaultManager` sólo borra a un nodo de su lista de caídos cuando le
+  llega un beacon directo de él, y G1 y G3 no se oyen directo. Sus
+  rutas sí se refrescan (por eso la reconvergencia de rutas se cierra),
+  pero la alerta queda. Es comportamiento del código real
+  (`mesh/fault_manager.py` y la réplica de `MeshNode._handle_bcast`).
+
+**Con 10 semillas** ([`lotes/fallos.json`](../lotes/fallos.json), que
+también corre la variante
+[`puente_corto.txt`](../escenarios/casos/puente_corto.txt), con G2 de
+vuelta a los 70 s):
+
+```bash
+python main.py --batch lotes/fallos.json
+```
+
+| G2 caído | Malla partida (s) | Tiempo de reconvergencia (s) | Reconvergencia de rutas BATMAN (s) | Alertas |
+|---|---|---|---|---|
+| 40 s (`puente_40s`) | 40.0 | 40.0 | 14.8 ± 5.7 | 5.70 ± 0.48 |
+| 10 s (`puente_10s`) | 10.0 | 10.0 | 1.6 ± 2.6 | 1.10 ± 0.88 |
+
+Con la caída corta, más corta que el `timeout` de 30 s, las rutas hacia
+G2 nunca llegan a quedar viejas: en 8 de las 10 semillas el episodio se
+cierra en la primera muestra (0.5 s). Las alertas que aparecen igual
+son falsas alarmas entre G1 y G3, por los enlaces con pérdidas.
+
+**En la interfaz web**, `casos/puente.txt` se abre desde "Abrir…" y
+corre con sus eventos programados (salen en el log como "caído
+(programado)"). También se puede hacer a mano, con cualquier escenario:
+tumbar un Gateway con `F`, recuperarlo con `G` y exportar. Como las únicas intervenciones fueron caídas y
+recuperaciones, la exportación deja `escenario_sesion.json` con esas
+intervenciones como eventos `fail`/`recover` y un comando de terminal
+`--config` que reproduce la misma corrida.
 
 ---
 
@@ -588,7 +678,10 @@ reportes/
    de entrega del radio**.
 2. **"Tiempo de reconvergencia: no aplica"** es lo normal con la
    movilidad actual: ninguna partición se reunifica en los escenarios
-   predefinidos (el Gateway que se separa no vuelve).
+   predefinidos (el Gateway que se separa no vuelve). Ojo: esa métrica
+   mide cuánto duró la partición *física*, no cuánto tardó BATMAN en
+   volver a tener rutas; para eso está "Reconvergencia de rutas BATMAN"
+   (caso 13).
 3. **Particiones, componentes y nodos alcanzables** se miden sobre los
    enlaces de radio (hay camino si los nodos están en alcance), no
    sobre las tablas de rutas de BATMAN.

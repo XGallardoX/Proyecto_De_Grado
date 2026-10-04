@@ -6,16 +6,16 @@
 > (`PLAN_TRABAJO.md`, `ANALISIS_REPO_MADRE.md`) ya no están en el repo;
 > quedan en el historial de git (commit `7acf40e`).
 
-Fecha: 2026-09-30
+Fecha: 2026-10-03
 
-> **Fase 3 de la interfaz web: decidida por XGallardoX el 2026-10-03,
-> falta el visto bueno de Jefferson.** Eventos de fallo programables
-> sí, pero con una métrica nueva de reconvergencia de rutas y sin
-> reiniciar la secuencia de OGM al recuperar un nodo. Laboratorio de
-> lotes sí, después. pywebview no. Los hallazgos y el detalle están en
-> [`DECISIONES_FASE3.md`](DECISIONES_FASE3.md). No se empieza nada
-> hasta tener el acuerdo. La interfaz web está en la rama
-> `feat/interfaz-web`, todavía sin mergear a `main`.
+> **Fase 3 de la interfaz web: decidida por XGallardoX el 2026-10-03;
+> la parte 1 ya está hecha, en la rama `feat/fase3-eventos`, y le falta
+> el visto bueno de Jefferson.** Eventos de fallo programables, con una
+> métrica nueva de reconvergencia de rutas y sin reiniciar la secuencia
+> de OGM al recuperar un nodo. Laboratorio de lotes sí, después.
+> pywebview no. Los hallazgos, las decisiones y dos ajustes que salieron
+> al implementar están en [`DECISIONES_FASE3.md`](DECISIONES_FASE3.md).
+> La interfaz web (`feat/interfaz-web`) ya está en `main`.
 
 ---
 
@@ -246,16 +246,38 @@ guía (el 1 en la web y el 12, "ver como este nodo").
   - ~~Mirar la interfaz en un navegador.~~ Hecho el 2026-10-03 en
     Chrome sobre Linux. Resultados y detalles menores en
     `docs/interfaz_web.md`, sección 4.
-  - **Fase 3, a decidir entre los dos autores** antes de empezar (el
-    encargo lo exige). Detalle de cada opción, qué toca y qué permite:
-    [`DECISIONES_FASE3.md`](DECISIONES_FASE3.md). En corto: (a) eventos de caída/recuperación programables en
-    el esquema de escenario (`{"type": "fail" | "recover", "node_id",
-    "t"}`), que permitirían exportar una sesión con intervenciones como
-    escenario reproducible y medir la reconvergencia en serio — toca la
-    decisión abierta del punto 4 de "Falta"; (b) laboratorio de lotes
-    desde la interfaz (en un subproceso `--batch`); (c) ventana nativa
-    con pywebview (dependencia nueva).
-  - Mergear `feat/interfaz-web` a `main` (no se hizo push ni merge).
+  - ~~Fase 3, a decidir entre los dos autores.~~ Decidida el
+    2026-10-03 (ver [`DECISIONES_FASE3.md`](DECISIONES_FASE3.md)).
+  - ~~Mergear `feat/interfaz-web` a `main`.~~ Hecho el 2026-10-03.
+
+**Fase 3, parte 1 — fallos programables y reconvergencia de rutas
+(3 de octubre):** rama `feat/fase3-eventos`, sin mergear. Detalle,
+commits y números en [`DECISIONES_FASE3.md`](DECISIONES_FASE3.md),
+"Estado de la parte 1".
+
+- **Eventos `fail`/`recover` en el escenario**
+  (`{"type": "fail", "node_id": 2, "t": 60}`, o `fail 2 60` en `.txt`).
+  El motor los aplica entre dos pasos, igual que la interfaz web aplica
+  una intervención: una caída programada da la misma corrida que la
+  misma caída a mano. Sirven en `--headless` y `--batch`.
+- **Recuperar un nodo conserva su secuencia de OGM.** Antes volvía a 0,
+  y los demás ignoraban sus OGM hasta superar la secuencia de antes de
+  caer: las rutas hacia él tardaban tanto como había estado vivo.
+- **Métrica nueva: "Reconvergencia de rutas BATMAN"**
+  (`tiempo_reconvergencia_rutas_s`, una columna más al final de los
+  reportes de lote). Mide desde que vuelve un Gateway o se reunifica la
+  malla hasta que todos los Gateways conectados tienen rutas frescas
+  entre sí. El "tiempo de reconvergencia" de antes queda igual, pero
+  ahora se documenta como lo que es: la duración de la partición física.
+- **Interfaz web:** la tabla de rutas y la matriz usan el mismo criterio
+  de ruta vigente que la métrica. Una sesión cuyas únicas intervenciones
+  son caer y recuperar se exporta como `escenario_sesion.json` con un
+  comando `--config` que la reproduce. El editor crea y muestra caídas y
+  recuperaciones.
+- **Caso de ejemplo:** `escenarios/casos/puente.txt` (un Gateway puente
+  que cae y vuelve), `lotes/fallos.json` y el caso 13 de la guía.
+- Pruebas: 268 (de 240), en `tests/test_fase3.py`. La regresión de
+  lotes da idéntico en todas las columnas existentes.
 
 ---
 
@@ -305,16 +327,14 @@ guía (el 1 en la web y el 12, "ver como este nodo").
      es tocar el protocolo "real" (también lo usa `mesh/node.py`) y
      cambia todos los resultados. ¿Se corrige, o se reporta así y la
      calidad del medio se mide con la tasa de entrega del radio?
-   - **La reconvergencia no se observa.** Con la movilidad por
-     defecto, ninguna partición se reunificó en las 50 corridas de los 5
-     escenarios (`particion` arranca partida y sigue así; en
-     `rescatista_perdido` el Gateway que se aleja no vuelve). Con
-     `repartir`, en `denso` sí aparecen reunificaciones, pero son sobre
-     todo parpadeos de enlaces en el borde del alcance. Para medirla en
-     serio hacen falta escenarios donde la partición se deshaga, o
-     eventos de caída/recuperación programables en el escenario (hoy
-     la caída y recuperación manual, teclas `F`/`G`, sólo existen en la
-     ventana).
+   - ~~**La reconvergencia no se observa.**~~ En camino (Fase 3, parte
+     1): ya hay eventos de caída/recuperación programables y una métrica
+     de reconvergencia de rutas. Falta decidir entre los dos qué
+     escenarios de fallo van al Capítulo 5 (decisión 1d). El caso
+     `puente` de la guía es sólo un ejemplo.
+   - **Una alerta sobre un Gateway a varios saltos no se apaga nunca**
+     (hallazgo 4 de `DECISIONES_FASE3.md`): `FaultManager` sólo la borra
+     con un beacon directo. Es código del nodo real, como el TQ.
    - **¿Qué movilidad usar en el documento?** `seguir` mantiene la malla
      unida pero cubre poco; `repartir` cubre todo pero la parte (ver
      caso 11 de la guía). Se pueden reportar las dos como comparación,

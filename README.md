@@ -190,7 +190,8 @@ cierra diálogos y menús (en pygame termina).
 **Editor de escenarios:** arranca del escenario de la sesión (con las
 posiciones del archivo o las de ahora) o de uno vacío; se colocan
 Gateways y Nodos de usuario con clic, se editan el edificio, el medio,
-el protocolo, la movilidad y los eventos `wander`, y se valida con las
+el protocolo, la movilidad y los eventos (`wander`, caída y
+recuperación), y se valida con las
 mismas reglas que `--config`. Guarda en `escenarios/<nombre>.json` (nunca
 pisa los 5 predefinidos, ni otro archivo sin marcar "sobrescribir"),
 muestra el comando para correrlo desde la terminal y permite cargarlo
@@ -199,9 +200,14 @@ en la sesión o descargar el JSON.
 **Exportar** deja la misma carpeta `reportes/<escenario>_<fecha_hora>/`
 con los mismos cuatro archivos que la terminal, más un `sesion_web.json`
 con la configuración, la semilla, las intervenciones (si las hubo) y el
-comando de terminal equivalente para reproducir la corrida sin
-intervenciones (p. ej. `python main.py --headless --escenario base
---seed 7 --duracion 120`). Terminar la sesión (botón, `Q`, o
+comando de terminal equivalente (p. ej. `python main.py --headless
+--escenario base --seed 7 --duracion 120`). Si las únicas
+intervenciones fueron caídas y recuperaciones de nodos, y la sesión salió
+de un archivo de escenario, se exporta además `escenario_sesion.json`:
+el escenario con esas intervenciones como eventos `fail`/`recover`, y el
+comando equivalente lo usa con `--config`. Con otras intervenciones
+(mover, agregar o eliminar nodos, mensajes, parámetros) no hay comando
+equivalente. Terminar la sesión (botón, `Q`, o
 `Ctrl+C` en la terminal) exporta igual que al cerrar la ventana pygame.
 
 Detalle de la API HTTP/SSE, el esquema del frame y las decisiones de
@@ -247,12 +253,20 @@ Esquema:
   de `y` (`y // piso_h`) y no se declara aparte — para ubicarlo en el
   piso 2 de un edificio de `piso_h: 10`, usar `y` entre 10 y 20. La
   distancia entre dos nodos es la euclídea en ese plano.
-- `events` (opcional): lista de eventos del escenario. Por ahora sólo
-  existe `{"type": "wander", "node_id": <id>, "until": <t>}` — ese
-  Gateway camina hacia la esquina (38, 2) del edificio hasta el segundo
-  `until` (sigue emitiendo, pero se aleja del alcance del resto) y
-  después vuelve a la regla de movilidad normal. Sólo tiene efecto
-  sobre un Gateway: los Nodos de usuario no se desplazan.
+- `events` (opcional): lista de eventos del escenario.
+  - `{"type": "wander", "node_id": <id>, "until": <t>}`: ese Gateway
+    camina hacia la esquina (38, 2) del edificio hasta el segundo
+    `until` (sigue emitiendo, pero se aleja del alcance del resto) y
+    después vuelve a la regla de movilidad normal. Sólo tiene efecto
+    sobre un Gateway: los Nodos de usuario no se desplazan.
+  - `{"type": "fail", "node_id": <id>, "t": <t>}` y
+    `{"type": "recover", "node_id": <id>, "t": <t>}`: el nodo (Gateway o
+    Nodo de usuario) cae o vuelve en el instante `t`, igual que con las
+    teclas `F`/`G` de la ventana. El motor los aplica al principio del
+    primer paso con reloj `>= t`, el mismo punto en que la interfaz web
+    aplica una intervención. Al volver, el nodo conserva su secuencia de
+    OGM (no es un arranque en frío). No valen en el modo de nodos
+    aleatorios.
 - Config inválido (id duplicado, rol desconocido, sin gateway,
   coordenadas fuera del edificio, campo faltante) frena la ejecución
   con un mensaje de error específico, antes de arrancar la simulación.
@@ -320,7 +334,8 @@ wander    1        60
   [battery]`, separado por espacios), **o** modo aleatorio con
   `mode=random`, `n_nodes=N`, `n_gateways=G` en vez de líneas de nodos
   (no se pueden mezclar los dos estilos en la misma sección).
-- `[events]` es opcional, una línea por evento: `wander node_id until`.
+- `[events]` es opcional, una línea por evento: `wander node_id until`,
+  `fail node_id t` o `recover node_id t`.
 - Mismas validaciones y mismos mensajes de error que el JSON (id
   duplicado, rol inválido, sin gateway, fuera del edificio, etc.).
 
@@ -510,6 +525,7 @@ escenario) sale de la serie temporal que ya registra
 | Tiempo de reconvergencia (s) | Duración media de los episodios de partición que terminaron en una reunificación: la malla volvió a un solo componente sin perder Gateways en ese paso (el mismo criterio que el evento `HEAL`). Si la partición desaparece porque el Gateway aislado cayó, no cuenta. "No aplica" si ningún episodio se reunificó. |
 | Alertas de gateway perdido | Eventos `ALERT_ON`: un Gateway dejó de oír a otro durante más de `timeout` segundos (cada Gateway que lo detecta cuenta una). |
 | Primera alerta (s) | Instante de la primera de esas alertas; "no aplica" si no hubo. |
+| Reconvergencia de rutas BATMAN (s) | Duración media de los episodios de reconvergencia de rutas. Un episodio empieza cuando vuelve un Gateway (`RECOVER`) o se reunifica la malla (`HEAL`), y termina en la primera muestra en que todo par de Gateways conectados por radio tiene una ruta vigente: la ruta existe en su `BatmanRouter` y un OGM la refrescó hace menos que el `timeout`. Si llega otro disparador con un episodio abierto, se suma a ese. "No aplica" si ningún episodio se cerró. |
 
 Dos advertencias para interpretarlas:
 
@@ -520,11 +536,14 @@ Dos advertencias para interpretarlas:
   medio" termina midiendo durante cuánto tiempo hubo rutas (vale 0
   hasta que llega el primer OGM), no la calidad de los enlaces. Ver
   "Limitaciones conocidas" en [`docs/arquitectura.md`](docs/arquitectura.md).
-- **Particiones y reconvergencia miden conectividad de radio, no
-  tablas de rutas.** Dos Gateways están en el mismo componente si hay un
-  camino de enlaces en rango entre ellos (lo mismo que el panel 2 de la
-  figura y los eventos `PARTITION`/`HEAL`). El tiempo que tarda BATMAN
-  en volver a tener rutas hacia todos no se mide aparte.
+- **Particiones y "tiempo de reconvergencia" miden conectividad de
+  radio, no tablas de rutas.** Dos Gateways están en el mismo componente
+  si hay un camino de enlaces en rango entre ellos (lo mismo que el panel
+  2 de la figura y los eventos `PARTITION`/`HEAL`). Por eso el "tiempo de
+  reconvergencia" es en realidad la duración de la partición física: si
+  un Gateway puente cae en t₁ y vuelve en t₂, da t₂ − t₁. Lo que tarda
+  BATMAN en volver a tener rutas lo mide "Reconvergencia de rutas
+  BATMAN" (caso 13 de la [guía](docs/guia_ejecucion.md)).
 
 ---
 
@@ -561,7 +580,7 @@ analysis/                 ← métricas, visualizador pygame, reportes, runner d
 web/                      ← interfaz web local (servidor HTTP/SSE + frontend), paralela a pygame
 escenarios/*.json, *.txt  ← escenarios predefinidos y de ejemplo
 escenarios/casos/         ← variantes usadas por los casos de la guía
-lotes/*.json              ← lotes para --batch (ejemplo.json, casos.json)
+lotes/*.json              ← lotes para --batch (ejemplo, casos, movilidad, fallos)
 tests/                    ← pruebas unitarias
 docs/                     ← guía de ejecución, arquitectura y notas de diseño
 ```
