@@ -17,3 +17,11 @@ de este repo).
 Este proyecto lo llevan dos personas (ver `ESTADO_PROYECTO.md`), así
 que la autoría real de cada commit importa para que quede claro quién
 hizo qué.
+
+## Al empezar una sesión
+
+Lee `contexto/PLAN_SIGUIENTE.md` (dónde quedamos, decisiones tomadas y
+el plan en orden) y `contexto/ESTADO_PROYECTO.md`. Las decisiones de
+`PLAN_SIGUIENTE.md` ya están tomadas: ejecútalas, no pidas que se
+revisen con el otro autor. Cuando termines un paso del plan, márcalo como
+hecho en ese archivo.

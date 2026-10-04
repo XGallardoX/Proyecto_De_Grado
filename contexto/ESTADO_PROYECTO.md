@@ -8,16 +8,12 @@
 
 Fecha: 2026-10-03
 
-> **Fase 3 de la interfaz web: decidida el 2026-10-03 (XGallardoX, con
-> el visto bueno de Jefferson); la parte 1 ya está hecha y en `main`.**
-> Partes 2 (laboratorio) y 3 (`--ventana`) hechas en la rama
-> `feat/fase3-resto`, con una propuesta de escenarios de fallo para el
-> Capítulo 5 (1d) que Jefferson puede ajustar. Eventos de fallo programables, con una
-> métrica nueva de reconvergencia de rutas y sin reiniciar la secuencia
-> de OGM al recuperar un nodo. Laboratorio de lotes sí, después.
-> pywebview no. Los hallazgos, las decisiones y dos ajustes que salieron
-> al implementar están en [`DECISIONES_FASE3.md`](DECISIONES_FASE3.md).
-> La interfaz web (`feat/interfaz-web`) ya está en `main`.
+> **Para retomar: [`PLAN_SIGUIENTE.md`](PLAN_SIGUIENTE.md)** (dónde
+> quedamos, decisiones ya tomadas y el plan en orden, con qué decirle a
+> Claude Code para seguir). La interfaz web y la Fase 3 completa (eventos
+> de fallo, reconvergencia de rutas, laboratorio, `--ventana`,
+> escenarios del Capítulo 5) están en `main`; la historia está en
+> [`DECISIONES_FASE3.md`](DECISIONES_FASE3.md).
 
 ---
 
@@ -283,8 +279,8 @@ commits y números en [`DECISIONES_FASE3.md`](DECISIONES_FASE3.md),
   lotes da idéntico en todas las columnas existentes.
 
 
-**Fase 3, partes 2 y 3, y propuesta 1d (3 de octubre):** rama
-`feat/fase3-resto`. Detalle en
+**Fase 3, partes 2 y 3, y escenarios del Capítulo 5 (3 de octubre):**
+rama `feat/fase3-resto`, mergeada a `main`. Detalle en
 [`DECISIONES_FASE3.md`](DECISIONES_FASE3.md), "Estado de las partes 2
 y 3".
 
@@ -338,31 +334,18 @@ y 3".
    la malla ante fallos de nodos). El código ya está alineado (ver
    "Hecho"); falta el documento (punto 1).
 
-4. **Decisiones abiertas sobre las métricas** (salieron al correr el
-   primer lote; detalle en "Limitaciones conocidas" de
-   `docs/arquitectura.md`):
-   - **El TQ vale siempre 1.0.** `BatmanRouter` (`mesh/router.py`)
-     nunca registra en su ventana deslizante los OGMs que se pierden,
-     así que el "TQ medio" mide cuánto tiempo hubo rutas, no la calidad
-     de los enlaces (el prototipo original hacía lo mismo). Corregirlo
-     es tocar el protocolo "real" (también lo usa `mesh/node.py`) y
-     cambia todos los resultados. ¿Se corrige, o se reporta así y la
-     calidad del medio se mide con la tasa de entrega del radio?
-   - ~~**La reconvergencia no se observa.**~~ En camino (Fase 3, parte
-     1): ya hay eventos de caída/recuperación programables y una métrica
-     de reconvergencia de rutas. Falta decidir entre los dos qué
-     escenarios de fallo van al Capítulo 5 (decisión 1d). El caso
-     `puente` de la guía es sólo un ejemplo.
-   - **Una alerta sobre un Gateway a varios saltos no se apaga nunca**
-     (hallazgo 4 de `DECISIONES_FASE3.md`): `FaultManager` sólo la borra
-     con un beacon directo. Es código del nodo real, como el TQ.
-   - **¿Qué movilidad usar en el documento?** `seguir` mantiene la malla
-     unida pero cubre poco; `repartir` cubre todo pero la parte (ver
-     caso 11 de la guía). Se pueden reportar las dos como comparación,
-     o diseñar un tercer modo que reparta sin partir la malla.
-   - En modo `-n`/`-g` desde la línea de comandos, `battery_drain` vale
-     0.02 en vez del 0.030 por defecto (viene del repo madre, commit
-     `bf98d2f`): confirmar si es a propósito.
+4. ~~**Decisiones abiertas sobre las métricas.**~~ **Tomadas el
+   2026-10-03**, falta ejecutarlas (pasos 1 a 4 de
+   [`PLAN_SIGUIENTE.md`](PLAN_SIGUIENTE.md)):
+   - El TQ que vale siempre 1.0 **se corrige** en `mesh/router.py` (D1).
+   - La alerta sobre un Gateway a varios saltos **se apaga con un OGM
+     nuevo** de ese origen (D2).
+   - Movilidad: **resultados principales con nodos fijos**; `seguir`
+     contra `repartir` como comparación secundaria (D3).
+   - El `battery_drain` de 0.02 del modo `-n`/`-g` **se quita** (D4).
+   - La reconvergencia ya se mide (Fase 3). Los escenarios del Capítulo
+     5 son los de `escenarios/fallos/` (D5), y se agrega una métrica de
+     **cobertura media** en el tiempo (D6).
 
 ---
 

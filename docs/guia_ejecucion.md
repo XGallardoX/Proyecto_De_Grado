@@ -637,9 +637,8 @@ intervenciones como eventos `fail`/`recover` y un comando de terminal
 ### Caso 14 — Escenarios de fallo de un despliegue de cobertura (laboratorio)
 
 **Objetivo:** comparar tipos de fallo sobre un mismo despliegue, con 10
-semillas, desde la terminal o desde el laboratorio de la interfaz. Es la
-propuesta de escenarios para el Capítulo 5 (decisión 1d de
-`contexto/DECISIONES_FASE3.md`).
+semillas, desde la terminal o desde el laboratorio de la interfaz. Son los
+escenarios del Capítulo 5 (decisión D5 de `contexto/PLAN_SIGUIENTE.md`).
 
 [`escenarios/fallos/`](../escenarios/fallos/) tiene un despliegue de 7
 Gateway fijos en los 3 pisos que cubren 6 Nodos de usuario

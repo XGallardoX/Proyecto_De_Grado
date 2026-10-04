@@ -592,7 +592,7 @@ analysis/                 ← métricas, visualizador pygame, reportes, runner d
 web/                      ← interfaz web local (servidor HTTP/SSE + frontend), paralela a pygame
 escenarios/*.json, *.txt  ← escenarios predefinidos y de ejemplo
 escenarios/casos/         ← variantes usadas por los casos de la guía
-escenarios/fallos/        ← despliegue de cobertura y escenarios de fallo (propuesta para el Cap. 5)
+escenarios/fallos/        ← despliegue de cobertura y escenarios de fallo del Cap. 5
 lotes/*.json              ← lotes para --batch (ejemplo, casos, movilidad, fallos, capitulo5_fallos)
 tests/                    ← pruebas unitarias
 docs/                     ← guía de ejecución, arquitectura y notas de diseño

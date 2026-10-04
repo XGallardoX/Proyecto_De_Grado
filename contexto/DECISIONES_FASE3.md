@@ -325,14 +325,15 @@ Rama `feat/fase3-resto`.
   "intervenciónes", la barra superior que saltaba de línea, el texto
   que quedaba pegado en el compositor y el voseo. Queda uno: con nodos
   apilados las etiquetas se superponen.
-- **1d, escenarios de fallo para el Capítulo 5: propuesta** (de
-  XGallardoX; **Jefferson puede ajustarla**). `escenarios/fallos/`: un
+- **1d, escenarios de fallo para el Capítulo 5: decidido** (D5 de
+  `PLAN_SIGUIENTE.md`). `escenarios/fallos/`: un
   despliegue de cobertura (7 Gateway fijos en 3 pisos, 6 Nodos de
   usuario) con un Gateway redundante, un puente y un borde, y cuatro
   experimentos (caída de cada uno, con vuelta, y una cascada sin
   vuelta). `lotes/capitulo5_fallos.json` los corre con 10 semillas, y el
-  caso 14 de la guía trae los números. Tres cosas a decidir al
-  revisarla:
+  caso 14 de la guía trae los números. Los tres puntos que quedaban
+  abiertos se decidieron el 2026-10-03 (D3, D5 y D6 de
+  `PLAN_SIGUIENTE.md`):
   1. **El medio del despliegue no es el por defecto** (alcance 12 m,
      `falloff` 0.5, atenuación por piso 0.8). Con el por defecto, la
      entrega cae a 0.32, hay 13.6 falsas alarmas en el control y la
