@@ -1,0 +1,50 @@
+# Escenario de fallo para el Capítulo 5 (propuesta, decisión 1d de
+# contexto/DECISIONES_FASE3.md): Caídas en cascada sin recuperación: G6 a los 60 s (la malla se
+# parte), G7 a los 100 s (N6 sin cobertura) y G3 a los 140 s (N2 sin cobertura).
+#
+# Despliegue (el mismo en todos los archivos de esta carpeta): 7 Gateway
+# fijos en los 3 pisos que cubren 6 Nodos de usuario. El medio es el de
+# radios de menor alcance (12 m) pero enlaces más fiables que los del
+# medio por defecto (falloff 0.5, atenuación por piso 0.8): enlaces entre
+# Gateway vecinos de 0.41 a 0.65. Con el medio por defecto, un despliegue
+# que tenga un puente y un borde en este edificio necesita enlaces tan
+# largos que pierden la mayoría de los paquetes, y las falsas alarmas
+# tapan los fallos. Topología (enlaces de radio con fiabilidad > 0):
+#   - G1, G2, G4 y G5 forman una malla redundante en los pisos 1 y 2: la
+#     caída de cualquiera no parte la malla ni deja a nadie sin cobertura.
+#   - G6 es el único puente hacia el piso 3: si cae, G7, N5 y N6 quedan
+#     aislados del resto (la malla se parte en dos).
+#   - G7 es el único Gateway al alcance de N6, y G3 el único de N2: si
+#     uno cae, ese Nodo de usuario queda sin cobertura.
+# Ver docs/guia_ejecucion.md, caso 14, y lotes/capitulo5_fallos.json.
+
+name: fallo_cascada
+
+[medium]
+rango_comm=12
+falloff=0.5
+floor_atten=0.8
+
+[protocol]
+static=true
+
+[nodes]
+# id  rol  x   y      (piso 1: y 0-10 · piso 2: y 10-20 · piso 3: y 20-30)
+1    G    4   5
+2    G    12  5
+3    G    20  5
+4    G    8   14
+5    G    16  14
+6    G    24  22
+7    G    33  25
+101  N    2   2
+102  N    24  3
+103  N    4   17
+104  N    18  18
+105  N    26  27
+106  N    39  28
+
+[events]
+fail  6  60
+fail  7  100
+fail  3  140

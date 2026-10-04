@@ -1,0 +1,27 @@
+{
+  "nombre": "capitulo5_fallos",
+  "duracion": 240,
+  "semillas": 10,
+  "escenarios": [
+    {
+      "config": "escenarios/fallos/cobertura_edificio.txt",
+      "etiqueta": "cobertura_edificio"
+    },
+    {
+      "config": "escenarios/fallos/fallo_redundante.txt",
+      "etiqueta": "fallo_redundante"
+    },
+    {
+      "config": "escenarios/fallos/fallo_puente.txt",
+      "etiqueta": "fallo_puente"
+    },
+    {
+      "config": "escenarios/fallos/fallo_borde.txt",
+      "etiqueta": "fallo_borde"
+    },
+    {
+      "config": "escenarios/fallos/fallo_cascada.txt",
+      "etiqueta": "fallo_cascada"
+    }
+  ]
+}
