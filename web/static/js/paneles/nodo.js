@@ -45,7 +45,7 @@ export function pintarPanelNodo(contenedor, n, opciones) {
     ${n.rutas.length ? `<table class="tabla">
       <tr><th>Dest</th><th>Vía</th><th>Saltos</th><th>TQ</th><th>Edad</th></tr>${rutas}</table>`
       : '<p class="detalle">Sin rutas todavía (esperando OGMs).</p>'}
-    <p class="detalle">En rojo, rutas obsoletas: el destino está en alerta o hace más que el timeout que no se lo oye. Las rutas de BatmanRouter no expiran solas.</p>
+    <p class="detalle">En rojo, rutas obsoletas: ningún OGM las refrescó en el último timeout (la columna Edad). Es el mismo criterio de la métrica de reconvergencia de rutas. Las rutas de BatmanRouter no expiran solas.</p>
     <h4>Alcanzables por radio que todavía no conoce</h4>
     <p class="detalle">${sinRuta}</p>
     <h4>Vecinos (PeerInfo)</h4>

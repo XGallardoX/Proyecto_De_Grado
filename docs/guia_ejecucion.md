@@ -175,10 +175,11 @@ python main.py --web --escenario base --static
 Seleccioná G4 (clic sobre el nodo, o tecla `4`) y pulsá `F` (o
 "Caer" en la pestaña **Nodo**, o clic derecho sobre el nodo): se pone
 gris con una `X`. Seleccioná G1: con la capa "Vigilancia" prendida, el
-anillo sobre G4 se va llenando con el silencio. A los 30-35 s
-simulados, la pestaña **Nodo** de G1 muestra la ruta a G4 obsoleta (en
-rojo) y "Cree caídos: G4", y en el log y en la línea de tiempo aparecen
-las mismas tres alertas `⚠ G1: sin señal de G4 > 30s`. Seleccioná G4 de
+anillo sobre G4 se va llenando con el silencio. Entre 25 y 30 s
+simulados después de la caída, la pestaña **Nodo** de G1 muestra la
+ruta a G4 obsoleta (en rojo: ningún OGM la refrescó en el último
+`timeout`); a los 30-35 s aparecen "Cree caídos: G4" y, en el log y en
+la línea de tiempo, las mismas tres alertas `⚠ G1: sin señal de G4 > 30s`. Seleccioná G4 de
 nuevo y pulsá `G` (recuperar): un segundo simulado después, las alertas
 se apagan. "Terminar" (o `Q`) deja la misma cronología en el
 `reporte.txt` de `reportes/`.

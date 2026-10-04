@@ -163,5 +163,26 @@ class ReconvergenciaRutasTests(unittest.TestCase):
         self.assertIsNone(resumen_corrida(sim)["tiempo_reconvergencia_rutas_s"])
 
 
+class CriterioWebTests(unittest.TestCase):
+    """La tabla de rutas y la matriz de la interfaz usan ruta_vigente: una
+    ruta que ningún OGM refrescó sale obsoleta aunque el vecino se oiga
+    por beacons (el caso de la revisión del 3 de octubre)."""
+
+    def test_tabla_y_matriz_marcan_la_ruta_vieja(self):
+        from web import estado
+        sim = _sim()
+        _hasta(sim, 30)
+        g1 = sim.nodes[1]
+        g1.router.routes[2].last_seen = sim.t - sim.cfg["timeout"] - 1
+        g1.router.peers[2].last_seen = sim.t
+        detalle = estado.nodo_detalle(sim, 1)
+        [ruta] = [r for r in detalle["rutas"] if r["destino"] == 2]
+        self.assertTrue(ruta["obsoleta"])
+        matriz = estado.matriz_conocimiento(sim)
+        col = [n["id"] for n in matriz["nodos"]].index(2)
+        [fila] = [f for f in matriz["filas"] if f["id"] == 1]
+        self.assertEqual(fila["celdas"][col]["estado"], "obsoleta")
+
+
 if __name__ == "__main__":
     unittest.main()

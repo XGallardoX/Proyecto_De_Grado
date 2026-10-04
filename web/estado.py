@@ -8,6 +8,7 @@ import math
 import re
 
 from analysis.inspector import snapshot_red
+from analysis.metrics import ruta_vigente
 from sim.radio import fiabilidad
 
 ESQUEMA = 1
@@ -245,7 +246,6 @@ def nodo_detalle(sim, nid):
     n = sim.nodes.get(nid)
     if n is None:
         return None
-    timeout = sim.cfg['timeout']
     with n.router._lock:
         peers = dict(n.router.peers)
         routes = list(n.router.routes.values())
@@ -253,8 +253,8 @@ def nodo_detalle(sim, nid):
 
     rutas = []
     for r in sorted(routes, key=lambda r: r.dest):
-        p = peers.get(r.dest)
-        obsoleta = bool(p and (p.in_alert or p.is_lost(sim.t, timeout)))
+        # mismo criterio que la métrica tiempo_reconvergencia_rutas_s
+        obsoleta = not ruta_vigente(sim, n, r.dest)
         rutas.append({
             "destino": r.dest, "destino_etiqueta": sim.label_of(r.dest),
             "via": r.via_id, "via_etiqueta": sim.label_of(r.via_id),
@@ -329,18 +329,18 @@ def _orden(sim, n):
 def matriz_conocimiento(sim):
     """Matriz N×N: fila = el nodo que sabe, columna = el destino. Cada
     celda es 'vigente' (ruta en la tabla, con sus saltos), 'obsoleta'
-    (ruta en la tabla pero el destino está en alerta o su last_seen supera
-    el timeout), 'sin_converger' (sin ruta, pero la radio los conecta) o
-    'sin_conexion'. Métrica sólo de visualización: no va a los reportes."""
+    (ruta en la tabla, pero ningún OGM la refrescó en el último timeout:
+    ver analysis.metrics.ruta_vigente, el mismo criterio de la métrica
+    tiempo_reconvergencia_rutas_s), 'sin_converger' (sin ruta, pero la
+    radio los conecta) o 'sin_conexion'. El indicador de pares con ruta
+    es sólo de visualización: no va a los reportes."""
     nodos = sorted(sim.nodes.values(), key=lambda n: _orden(sim, n))
     alive, find, idx = sim._union_find()
     grupo = {n.id: find(idx[n.id]) for n in alive}
-    timeout = sim.cfg['timeout']
     filas, conectados, con_ruta = [], 0, 0
     for a in nodos:
         with a.router._lock:
             rutas = dict(a.router.routes)
-            peers = dict(a.router.peers)
         celdas = []
         for b in nodos:
             if a.id == b.id:
@@ -350,8 +350,7 @@ def matriz_conocimiento(sim):
                       and grupo[a.id] == grupo[b.id])
             r = rutas.get(b.id) if a.alive else None
             if r is not None:
-                p = peers.get(b.id)
-                obsoleta = bool(p and (p.in_alert or p.is_lost(sim.t, timeout)))
+                obsoleta = not ruta_vigente(sim, a, b.id)
                 # `fisico` falso: el nodo todavía tiene la ruta, pero la
                 # radio ya no los conecta (lo que cree contra lo que hay)
                 celda = {"estado": "obsoleta" if obsoleta else "vigente",

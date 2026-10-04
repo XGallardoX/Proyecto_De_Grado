@@ -142,8 +142,10 @@ enlaces (antes de compactarlo, con 50 nodos pesaba 1.4 MB por los
 paquetes). Hay una prueba que lo exige por debajo de 80 KB.
 
 **Matriz de conocimiento** (`/api/matriz`): fila = el nodo que sabe,
-columna = el destino. Estados: `vigente` (con `hops`), `obsoleta` (el
-destino está en alerta o hace más que el `timeout` que no se lo oye),
+columna = el destino. Estados: `vigente` (con `hops`), `obsoleta`
+(ningún OGM refrescó la ruta en el último `timeout`: el criterio de
+`analysis.metrics.ruta_vigente`, el mismo de la métrica
+`tiempo_reconvergencia_rutas_s`),
 `sin_converger` (la radio los conecta pero no hay ruta) y
 `sin_conexion`. Una ruta vigente u obsoleta lleva además `fisico`: en
 falso, el nodo todavía tiene la ruta pero la radio ya no los conecta
@@ -270,10 +272,11 @@ para el repo.
 - Con una ventana de unos 1568 px, al aparecer el aviso de
   intervenciones la barra superior pasa a dos líneas y todo baja unos
   27 px.
-- La tabla de rutas y la matriz deciden si una ruta está obsoleta por
-  el `last_seen` del vecino (también lo refrescan los beacons), no por
-  el de la ruta. Ver `contexto/DECISIONES_FASE3.md`, hallazgo 2 y
-  decisión 1a.
+- ~~La tabla de rutas y la matriz deciden si una ruta está obsoleta
+  por el `last_seen` del vecino (también lo refrescan los beacons), no
+  por el de la ruta.~~ Corregido en la Fase 3: usan
+  `analysis.metrics.ruta_vigente`, el mismo criterio de la métrica de
+  reconvergencia de rutas.
 - Tras un mensaje que falla, el texto queda en el compositor y el
   siguiente se escribe pegado a él.
 - Con nodos apilados (la movilidad `seguir`), las etiquetas se
@@ -297,8 +300,8 @@ para el repo.
 - **Los paquetes del mapa son una muestra** cuando hay más de 300 en
   vuelo (salvo con el filtro de un origen, que los muestra todos).
 - **Las rutas de `BatmanRouter` no expiran**: por eso la interfaz las
-  marca obsoletas (destino en alerta o sin oírse más que el `timeout`)
-  en vez de borrarlas.
+  marca obsoletas (ningún OGM las refrescó en el último `timeout`) en
+  vez de borrarlas.
 
 Ninguna se "arregla" en este trabajo: son decisiones abiertas del
 proyecto (`contexto/ESTADO_PROYECTO.md`, punto 4 de "Falta").
