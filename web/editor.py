@@ -35,13 +35,13 @@ def guardar(escenario, nombre, sobrescribir=False):
                          "'-' o '.'")
     nombre = nombre[:-5] if nombre.endswith(".json") else nombre
     if nombre in ESCENARIOS_DISPONIBLES:
-        raise ValueError(f"'{nombre}' es un escenario predefinido: elegí "
+        raise ValueError(f"'{nombre}' es un escenario predefinido: elige "
                          f"otro nombre")
     validar(escenario)
 
     ruta = os.path.join(ESCENARIOS_DIR, f"{nombre}.json")
     if os.path.exists(ruta) and not sobrescribir:
-        raise ValueError(f"ya existe escenarios/{nombre}.json (marcá "
+        raise ValueError(f"ya existe escenarios/{nombre}.json (marca "
                          f"'sobrescribir' para reemplazarlo)")
     datos = dict(escenario)
     datos["name"] = nombre

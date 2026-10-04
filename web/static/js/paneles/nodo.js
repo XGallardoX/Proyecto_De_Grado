@@ -4,7 +4,7 @@ import { esc, num } from "../util.js";
 // del nodo seleccionado.
 export function pintarPanelNodo(contenedor, n, opciones) {
   if (!n) {
-    contenedor.innerHTML = '<p class="vacio">Seleccioná un nodo: clic en el mapa, Tab o 1-9.</p>';
+    contenedor.innerHTML = '<p class="vacio">Selecciona un nodo: clic en el mapa, Tab o 1-9.</p>';
     return;
   }
   const { lenteActiva } = opciones;

@@ -78,7 +78,7 @@ export class Editor {
       <div class="ed-lado">
         <div id="ed-msg"></div>
         <h3>Nodos (${e.nodes.length})</h3>
-        <p class="detalle">Clic en el edificio para poner un nodo con la herramienta elegida; arrastrá para moverlo. Recordá: x horizontal, y altura (el piso sale de y).</p>
+        <p class="detalle">Clic en el edificio para poner un nodo con la herramienta elegida; arrastra para moverlo. Recuerda: x horizontal, y altura (el piso sale de y).</p>
         <table class="tabla" id="ed-nodos"></table>
         <h3>Edificio</h3>${CAMPOS_EDIFICIO.map((c) => campo("building", c)).join("")}
         <h3>Medio</h3>${CAMPOS_MEDIO.map((c) => campo("medium", c)).join("")}
@@ -126,12 +126,12 @@ export class Editor {
       else if (a === "cerrar") this.dialogo.close();
       else if (a === "evento") {
         const g = this.datos.nodes.find((n) => n.role === "G");
-        if (!g) { this._mensaje("Primero agregá un Gateway.", "error"); return; }
+        if (!g) { this._mensaje("Primero agrega un Gateway.", "error"); return; }
         this.datos.events.push({ type: "wander", node_id: g.id, until: 60 });
         this._pintarEventos();
       } else if (a === "evento-fail" || a === "evento-recover") {
         const n = this.datos.nodes[0];
-        if (!n) { this._mensaje("Primero agregá un nodo.", "error"); return; }
+        if (!n) { this._mensaje("Primero agrega un nodo.", "error"); return; }
         const tipo = a === "evento-fail" ? "fail" : "recover";
         this.datos.events.push({ type: tipo, node_id: n.id, t: tipo === "fail" ? 60 : 90 });
         this._pintarEventos();

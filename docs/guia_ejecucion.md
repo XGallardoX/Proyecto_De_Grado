@@ -173,15 +173,15 @@ caer, así que durante 1–4 s puede "no oír" a sus vecinos
 python main.py --web --escenario base --static
 ```
 
-Seleccioná G4 (clic sobre el nodo, o tecla `4`) y pulsá `F` (o
+Selecciona G4 (clic sobre el nodo, o tecla `4`) y pulsa `F` (o
 "Caer" en la pestaña **Nodo**, o clic derecho sobre el nodo): se pone
-gris con una `X`. Seleccioná G1: con la capa "Vigilancia" prendida, el
+gris con una `X`. Selecciona G1: con la capa "Vigilancia" prendida, el
 anillo sobre G4 se va llenando con el silencio. Entre 25 y 30 s
 simulados después de la caída, la pestaña **Nodo** de G1 muestra la
 ruta a G4 obsoleta (en rojo: ningún OGM la refrescó en el último
 `timeout`); a los 30-35 s aparecen "Cree caídos: G4" y, en el log y en
-la línea de tiempo, las mismas tres alertas `⚠ G1: sin señal de G4 > 30s`. Seleccioná G4 de
-nuevo y pulsá `G` (recuperar): un segundo simulado después, las alertas
+la línea de tiempo, las mismas tres alertas `⚠ G1: sin señal de G4 > 30s`. Selecciona G4 de
+nuevo y pulsa `G` (recuperar): un segundo simulado después, las alertas
 se apagan. "Terminar" (o `Q`) deja la misma cronología en el
 `reporte.txt` de `reportes/`.
 
@@ -530,15 +530,15 @@ parte a los **41 s** (aviso "RED PARTIDA" y un toast), pero la detección
 recién llega a los **70 s**: el `timeout` de 30 s más lo que falta para
 el siguiente chequeo de `FaultManager`.
 
-1. Pausá cerca de t = 60 s (Espacio; `⏭ Paso` avanza de a 0.5 s) y
-   seleccioná G4 (tecla `4`). Pulsá `L` ("ver como este nodo"): G4
+1. Pausa cerca de t = 60 s (Espacio; `⏭ Paso` avanza de a 0.5 s) y
+   selecciona G4 (tecla `4`). Pulsa `L` ("ver como este nodo"): G4
    todavía tiene rutas a G1, G2 y G3 (de 2, 3 y 2 saltos) aunque la
    radio ya no lo conecte con ellos. En la pestaña **Red**, la matriz
    muestra esas celdas como "vigente" con borde punteado: lo que el nodo
    cree contra lo que hay.
 2. Con G4 seleccionado y la capa "Vigilancia" prendida, los anillos
    sobre G1, G2 y G3 se van llenando a medida que crece el silencio.
-3. Reanudá hasta pasar los 70 s: las rutas de G4 hacia el otro grupo
+3. Reanuda hasta pasar los 70 s: las rutas de G4 hacia el otro grupo
    pasan a obsoletas (en rojo), G4 cree caídos a G1, G2 y G3, y G1 (con
    `1` y `L`) cree caído a G4. Cada lado decidió por su cuenta.
 

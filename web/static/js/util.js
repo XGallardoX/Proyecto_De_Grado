@@ -28,7 +28,7 @@ export async function copiar(texto) {
     await navigator.clipboard.writeText(texto);
     toast("Copiado al portapapeles", "ok");
   } catch {
-    toast("No se pudo copiar: seleccioná el texto a mano");
+    toast("No se pudo copiar: selecciona el texto a mano");
   }
 }
 

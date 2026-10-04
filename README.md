@@ -134,13 +134,13 @@ Abre `http://127.0.0.1:8765/` en el navegador por defecto. Acepta las
 mismas opciones de topología que la ventana (`--escenario`, `--config`,
 `-n`/`-g`, `--static`, `--movilidad`, `--seed`); no se combina con
 `--headless`, `--inspect`, `--batch` ni `--duracion` (la sesión web no
-tiene una duración fija: corre hasta que la cerrás).
+tiene una duración fija: corre hasta que la cierras).
 
 | Flag | Qué hace |
 |---|---|
 | `--web` | Arranca el servidor y abre la interfaz. |
 | `--puerto N` | Puerto del servidor (por defecto `8765`). Si está ocupado, error claro con sugerencia de usar otro. |
-| `--no-abrir` | No abre el navegador automáticamente (útil en un servidor sin entorno gráfico: abrí la URL a mano). |
+| `--no-abrir` | No abre el navegador automáticamente (útil en un servidor sin entorno gráfico: abre la URL a mano). |
 
 Si no se pasa `--seed`, la sesión elige una semilla al azar (con
 `secrets`, no con `random`, para no afectar la reproducibilidad) y la
