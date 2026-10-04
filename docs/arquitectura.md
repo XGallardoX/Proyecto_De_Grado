@@ -232,9 +232,18 @@ se retiró del repo; queda en el historial de git.)
 - **La conectividad se mide sobre los enlaces de radio.** Componentes,
   particiones, reunificaciones (eventos `PARTITION`/`HEAL`) y nodos
   alcanzables se calculan con union-find sobre los enlaces con
-  fiabilidad > 0, no sobre las tablas de rutas. No hay una métrica de
-  cuánto tarda BATMAN en volver a tener rutas hacia todos tras un
-  cambio de topología.
+  fiabilidad > 0, no sobre las tablas de rutas. Por eso
+  `tiempo_reconvergencia_s` mide la duración de la partición *física*,
+  no lo que tarda BATMAN en volver a tener rutas. Para eso está
+  `tiempo_reconvergencia_rutas_s` (Fase 3, decisión 1a): desde que
+  vuelve un Gateway (`RECOVER`) o se reunifica la malla (`HEAL`) hasta
+  que todo par de Gateways conectados por radio tiene una ruta vigente
+  (`analysis.metrics.ruta_vigente`: la ruta existe y un OGM la refrescó
+  hace menos que el `timeout`). Si una caída dura menos que el
+  `timeout`, las rutas nunca llegan a vencer y el episodio dura una
+  muestra (0.5 s). En mallas que parpadean (`denso` con `repartir`) hay
+  episodios largos, de decenas de segundos: Gateways unidos sólo por
+  enlaces muy débiles, por donde los OGM casi no pasan.
 - **`BatmanRouter` no contempla que un nodo reinicie su secuencia de
   OGM.** `receive_ogm()` (`mesh/router.py`) descarta todo OGM cuya
   secuencia no supere la última vista de ese origen. Si un nodo

@@ -296,6 +296,7 @@ class Simulation:
                     and not perdio_gateways):
                 self._last_part_evt = self.t
                 self.event('HEAL', "Malla de gateways reunificada")
+                self.recorder.abrir_reconvergencia(self.t, "HEAL")
                 self.log("La malla de gateways se reunificó "
                          "(BATMAN reconvergió)", "ok")
         self._prev_components = comps
@@ -334,6 +335,8 @@ class Simulation:
         # docs/arquitectura.md, "Limitaciones conocidas").
         n.router.seen_ogms.clear()
         self.event('RECOVER', f"{n.label} recuperado (manual)")
+        if n.role == 'G':
+            self.recorder.abrir_reconvergencia(self.t, f"RECOVER {n.label}")
         self.log(f"{n.label} vuelve a la red — BATMAN reconverge", "ok")
 
     def set_param(self, clave, valor):

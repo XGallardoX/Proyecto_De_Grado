@@ -101,6 +101,7 @@ class ResumenCorridaTests(unittest.TestCase):
             "tiempo_particionado_s": 1.0,      # 2 muestras partidas x 0.5 s
             "tiempo_reconvergencia_s": 0.5,    # sólo se cerró 1.0 -> 1.5
             "alertas_gateway": 2, "t_primera_alerta_s": 1.0,
+            "tiempo_reconvergencia_rutas_s": None,   # sin episodios
         })
 
     def test_particion_resuelta_por_perdida_no_da_reconvergencia(self):

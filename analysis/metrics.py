@@ -11,10 +11,22 @@ class Recorder:
         self.deliver_ratio = []     
         self.alerts_active = []
         self.bandwidth = []
-        self.events = []            
+        self.events = []
+        # Episodios de reconvergencia de rutas: [inicio, fin, causa]. Los
+        # abre el motor al recuperar un Gateway (RECOVER) o al reunificarse
+        # la malla (HEAL); se cierran en la primera muestra en que todos
+        # los pares de Gateways conectados por radio tienen ruta vigente
+        # (rutas_convergidas). fin = None si la corrida terminó antes.
+        self.reconv_rutas = []
+        self._reconv_abiertas = []
 
     def event(self, t, tipo, texto):
         self.events.append((t, tipo, texto))
+
+    def abrir_reconvergencia(self, t, causa):
+        episodio = [t, None, causa]
+        self.reconv_rutas.append(episodio)
+        self._reconv_abiertas.append(episodio)
 
     def sample(self, sim, medium):
         self.t.append(sim.t)
@@ -72,6 +84,52 @@ class Recorder:
                     total_bw += bw
         self.bandwidth.append(total_bw)
 
+        # sólo se mira mientras haya un episodio abierto: no cuesta nada
+        # en las corridas sin recuperaciones ni reunificaciones
+        if self._reconv_abiertas and rutas_convergidas(sim):
+            for episodio in self._reconv_abiertas:
+                episodio[1] = sim.t
+            self._reconv_abiertas = []
+
+
+# ══════════════════════════════════════════════════════════════════════════
+#  RUTAS VIGENTES
+# ══════════════════════════════════════════════════════════════════════════
+def ruta_vigente(sim, origen, destino_id):
+    """¿`origen` (un SimNode) tiene una ruta vigente hacia `destino_id`?
+
+    Vigente = la ruta existe en su BatmanRouter y su `last_seen` no supera
+    el `timeout`. Es el `last_seen` de la ruta (RouteEntry), que sólo
+    refrescan los OGM; no el del vecino (PeerInfo), que también refrescan
+    los beacons. Las rutas de BatmanRouter no expiran solas, por eso hace
+    falta este criterio.
+
+    No mira las alertas: `PeerInfo.in_alert` se contagia (cada OGM lleva
+    la lista de caídos de quien lo emite y marca en alerta a esos nodos en
+    todos los que lo reciben, aunque los oigan bien), y
+    `FaultManager.failed` sólo se limpia con un beacon directo, así que
+    un Gateway a varios saltos queda marcado para siempre. Con cualquiera
+    de las dos, en `denso` con `repartir` ningún episodio se cerraba.
+
+    Es el mismo criterio para la métrica tiempo_reconvergencia_rutas_s y
+    para la interfaz web (tabla de rutas y matriz de conocimiento).
+    """
+    ruta = origen.router.routes.get(destino_id)
+    return ruta is not None and sim.t - ruta.last_seen <= sim.cfg['timeout']
+
+
+def rutas_convergidas(sim):
+    """True si todo par ordenado de Gateways vivos del mismo componente de
+    radio tiene ruta vigente (ver ruta_vigente)."""
+    vivos, find, idx = sim._union_find()
+    gateways = [n for n in vivos if n.role == 'G']
+    for a in gateways:
+        for b in gateways:
+            if a is not b and find(idx[a.id]) == find(idx[b.id]) \
+                    and not ruta_vigente(sim, a, b.id):
+                return False
+    return True
+
 
 # ══════════════════════════════════════════════════════════════════════════
 #  RESUMEN DE UNA CORRIDA
@@ -92,6 +150,7 @@ METRICAS_CORRIDA = [
     ("tiempo_reconvergencia_s", "Tiempo de reconvergencia (s)", 1),
     ("alertas_gateway", "Alertas de gateway perdido", 2),
     ("t_primera_alerta_s", "Primera alerta (s)", 1),
+    ("tiempo_reconvergencia_rutas_s", "Reconvergencia de rutas BATMAN (s)", 1),
 ]
 
 
@@ -134,11 +193,19 @@ def resumen_corrida(sim):
     - tiempo_particionado_s: muestras con comp_G > 1, por DT.
     - tiempo_reconvergencia_s: duración media de los episodios que se
       cerraron con una reunificación (ver episodios_particion); None si
-      ninguno.
+      ninguno. Ojo: mide la duración de la partición *física* (enlaces de
+      radio), no lo que tarda BATMAN en volver a tener rutas.
     - alertas_gateway / t_primera_alerta_s: cantidad de eventos ALERT_ON
       (un gateway deja de oír a otro más allá del timeout) y el instante
       del primero; None si no hubo.
+    - tiempo_reconvergencia_rutas_s: duración media de los episodios de
+      reconvergencia de rutas que se cerraron (Recorder.reconv_rutas):
+      desde que vuelve un Gateway (RECOVER) o se reunifica la malla (HEAL)
+      hasta que todo par de Gateways conectados por radio tiene ruta
+      vigente (ver ruta_vigente). None si ninguno se cerró.
     """
+    reconv = [fin - ini for ini, fin, _causa
+              in getattr(sim.recorder, "reconv_rutas", []) if fin is not None]
     rec = sim.recorder
     n = len(rec.t)
     episodios = episodios_particion(rec.t, rec.comp_G, rec.alive_G)
@@ -160,4 +227,6 @@ def resumen_corrida(sim):
                                     if cerrados else None),
         "alertas_gateway": len(alertas),
         "t_primera_alerta_s": min(alertas) if alertas else None,
+        "tiempo_reconvergencia_rutas_s": (sum(reconv) / len(reconv)
+                                          if reconv else None),
     }
