@@ -4,6 +4,12 @@ import os
 
 VALID_ROLES = {"G", "N"}
 
+# Tipos de evento del escenario. `wander` aleja un Gateway hasta `until`;
+# `fail`/`recover` hacen caer o volver un nodo en el instante `t` (los
+# aplica Simulation.step, igual que las teclas F/G o la interfaz web).
+TIPOS_EVENTO = ("wander", "fail", "recover")
+EVENTOS_PROGRAMADOS = ("fail", "recover")
+
 # Modelos de movilidad de los Gateway (clave "movilidad" de medium/protocol):
 #   seguir   -> cada Gateway camina hacia el Nodo de usuario más cercano
 #               (el de siempre, por defecto);
@@ -44,6 +50,11 @@ def load_scenario(path, default_building=None):
         [nodes]
         1  G  7   27
         2  N  10  10
+
+        [events]
+        wander   4  80     # tipo  node_id  until
+        fail     2  60     # tipo  node_id  t
+        recover  2  90
 
     En vez de nodos explícitos, [nodes] también acepta modo aleatorio:
         [nodes]
@@ -175,12 +186,13 @@ def _parse_txt(path):
             if len(parts) != 3:
                 raise ValueError(
                     f"{path}:{lineno}: evento inválido '{line}' (se esperaba "
-                    f"'type node_id until')"
+                    f"'wander node_id until' o 'fail|recover node_id t')"
                 )
-            ev_type, nid, until = parts
+            ev_type, nid, instante = parts
+            clave = "t" if ev_type in EVENTOS_PROGRAMADOS else "until"
             try:
                 data["events"].append(
-                    {"type": ev_type, "node_id": int(nid), "until": float(until)}
+                    {"type": ev_type, "node_id": int(nid), clave: float(instante)}
                 )
             except ValueError:
                 raise ValueError(f"{path}:{lineno}: evento inválido '{line}'")
@@ -224,6 +236,12 @@ def _validate(data, path, default_building=None):
     alto = building.get("alto", 30.0)
 
     if "random" in data:
+        if any(isinstance(ev, dict) and ev.get("type") in EVENTOS_PROGRAMADOS
+               for ev in data.get("events", [])):
+            raise ValueError(
+                f"{path}: los eventos 'fail'/'recover' necesitan nodos "
+                f"explícitos, no el modo random"
+            )
         rnd = data["random"]
         n_nodes = rnd.get("n_nodes")
         n_gateways = rnd.get("n_gateways", 1)
@@ -282,15 +300,32 @@ def _validate(data, path, default_building=None):
         raise ValueError(f"{path}: se requiere al menos un nodo con role 'G' (Gateway)")
 
     for ev in data.get("events", []):
-        if ev.get("type") != "wander":
-            raise ValueError(f"{path}: tipo de evento desconocido: {ev.get('type')}")
+        tipo = ev.get("type")
+        if tipo not in TIPOS_EVENTO:
+            raise ValueError(
+                f"{path}: tipo de evento desconocido: {tipo} (válidos: "
+                f"{', '.join(TIPOS_EVENTO)})"
+            )
         if ev.get("node_id") not in seen_ids:
             raise ValueError(
-                f"{path}: evento 'wander' referencia node_id "
+                f"{path}: evento '{tipo}' referencia node_id "
                 f"{ev.get('node_id')} que no existe en 'nodes'"
             )
-        if "until" not in ev:
-            raise ValueError(f"{path}: evento 'wander' sin campo 'until'")
+        if tipo == "wander":
+            if "until" not in ev:
+                raise ValueError(f"{path}: evento 'wander' sin campo 'until'")
+            continue
+        instante = ev.get("t")
+        if isinstance(instante, bool) or not isinstance(instante, (int, float)):
+            raise ValueError(
+                f"{path}: evento '{tipo}' del nodo {ev['node_id']} sin un "
+                f"instante 't' numérico"
+            )
+        if not (0 <= instante < float("inf")):
+            raise ValueError(
+                f"{path}: evento '{tipo}' del nodo {ev['node_id']} con "
+                f"t={instante} (debe ser >= 0)"
+            )
 
     data["building"] = building
     return data

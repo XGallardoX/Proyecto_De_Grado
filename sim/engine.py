@@ -51,6 +51,10 @@ class Simulation:
         self._last_part_evt = -100.0
         self._objetivos = {}          # movilidad "repartir": id G -> nodo N
         self._objetivos_t = None      # instante en que se calculó
+        # eventos fail/recover del escenario, en orden de t (estable: los
+        # del mismo instante se aplican en el orden del archivo)
+        self._eventos_programados = []
+        self._prox_evento = 0
 
 
         explicit_nodes = self.cfg.get("nodes")
@@ -72,6 +76,15 @@ class Simulation:
                     self.local_index[nid] = ni
                 self.nodes[nid] = n
 
+            self._eventos_programados = sorted(
+                (ev for ev in self.cfg.get("events", [])
+                 if ev["type"] in ("fail", "recover")
+                 and ev["node_id"] in self.nodes),
+                key=lambda ev: ev["t"])
+            if self._eventos_programados:
+                self.log(f"Escenario: {len(self._eventos_programados)} "
+                         f"eventos programados de caída/recuperación.",
+                         "warn")
             for ev in self.cfg.get("events", []):
                 if ev["type"] == "wander" and ev["node_id"] in self.nodes:
                     self.wanderer = self.nodes[ev["node_id"]]
@@ -267,6 +280,7 @@ class Simulation:
     def step(self):
         if self.paused:
             return
+        self._aplicar_eventos_programados()
         self.t += self.DT
         self.medium.reset_step_counters()
 
@@ -310,17 +324,35 @@ class Simulation:
 
         self.recorder.sample(self, self.medium)
 
+    def _aplicar_eventos_programados(self):
+        """Aplica los eventos fail/recover del escenario cuyo instante ya
+        llegó. Se llama al principio de step(), antes de avanzar el reloj:
+        el mismo punto del ciclo en que la interfaz web aplica una
+        intervención (entre dos pasos, con sim.t en el instante en que se
+        hizo), así que una sesión exportada como escenario reproduce la
+        misma corrida. Un evento con t entre dos pasos se aplica en el
+        primero con sim.t >= t. No consume `random`."""
+        eventos = self._eventos_programados
+        while (self._prox_evento < len(eventos)
+               and eventos[self._prox_evento]["t"] <= self.t + 1e-9):
+            ev = eventos[self._prox_evento]
+            self._prox_evento += 1
+            if ev["type"] == "fail":
+                self.fail_node(ev["node_id"], origen="programado")
+            else:
+                self.recover_node(ev["node_id"], origen="programado")
+
     # ── operaciones interactivas ──
-    def fail_node(self, nid):
+    def fail_node(self, nid, origen="manual"):
         n = self.nodes.get(nid)
         if not n or not n.alive:
             return
         n.alive = False
         n.battery = 0.0
-        self.event('FAIL', f"{n.label} caído (manual)")
+        self.event('FAIL', f"{n.label} caído ({origen})")
         self.log(f"FALLO: {n.label} dejó de responder", "error")
 
-    def recover_node(self, nid):
+    def recover_node(self, nid, origen="manual"):
         n = self.nodes.get(nid)
         if not n or n.alive:
             return
@@ -334,7 +366,7 @@ class Simulation:
         # tardarían tanto como estuvo vivo antes del fallo (ver
         # docs/arquitectura.md, "Limitaciones conocidas").
         n.router.seen_ogms.clear()
-        self.event('RECOVER', f"{n.label} recuperado (manual)")
+        self.event('RECOVER', f"{n.label} recuperado ({origen})")
         if n.role == 'G':
             self.recorder.abrir_reconvergencia(self.t, f"RECOVER {n.label}")
         self.log(f"{n.label} vuelve a la red — BATMAN reconverge", "ok")

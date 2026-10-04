@@ -1,9 +1,13 @@
 """Fase 3, parte 1 (contexto/DECISIONES_FASE3.md): recuperar un nodo sin
 reiniciar su secuencia de OGM (1b), tiempo de reconvergencia de rutas
 (1a) y eventos de caída y recuperación programables en el escenario (1c)."""
+import json
+import os
+import tempfile
 import unittest
 
 import main as main_mod
+from sim.config_loader import load_scenario, validar_escenario
 from analysis.metrics import resumen_corrida, ruta_vigente
 
 
@@ -16,6 +20,26 @@ def _sim(nombre="base", semilla=1, static=True, **kw):
 def _hasta(sim, t):
     while sim.t < t:
         sim.step()
+
+
+def _escenario_con_eventos(eventos, nombre="base", ext=".json"):
+    """Escribe en un archivo temporal el escenario predefinido `nombre`
+    con `eventos` agregados. Devuelve la ruta (el llamador la borra)."""
+    with open(main_mod.ruta_escenario(nombre), encoding="utf-8") as f:
+        datos = json.load(f)
+    datos["events"] = list(datos.get("events", [])) + eventos
+    fd, ruta = tempfile.mkstemp(suffix=ext)
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        json.dump(datos, f)
+    return ruta
+
+
+def _series(sim):
+    rec = sim.recorder
+    return {k: list(getattr(rec, k)) for k in (
+        "t", "alive_G", "alive_N", "comp_G", "node_reach", "avg_tq",
+        "avg_hops", "max_silence", "deliver_ratio", "alerts_active",
+        "bandwidth")}
 
 
 class RecuperarConservaSecuenciaTests(unittest.TestCase):
@@ -182,6 +206,124 @@ class CriterioWebTests(unittest.TestCase):
         col = [n["id"] for n in matriz["nodos"]].index(2)
         [fila] = [f for f in matriz["filas"] if f["id"] == 1]
         self.assertEqual(fila["celdas"][col]["estado"], "obsoleta")
+
+
+class EventosEnElCargadorTests(unittest.TestCase):
+    """1c: validación de los eventos fail/recover."""
+
+    def _validar(self, eventos, **extra):
+        datos = {"nodes": [{"id": 1, "role": "G", "x": 5, "y": 5},
+                           {"id": 2, "role": "N", "x": 9, "y": 5}],
+                 "events": eventos}
+        datos.update(extra)
+        return validar_escenario(datos, "prueba")
+
+    def test_fail_y_recover_validos(self):
+        datos = self._validar([{"type": "fail", "node_id": 1, "t": 60},
+                               {"type": "recover", "node_id": 1, "t": 90.5}])
+        self.assertEqual([e["type"] for e in datos["events"]],
+                         ["fail", "recover"])
+
+    def test_errores(self):
+        casos = [
+            ([{"type": "fail", "node_id": 1}], "instante 't'"),
+            ([{"type": "fail", "node_id": 1, "t": "60"}], "instante 't'"),
+            ([{"type": "recover", "node_id": 1, "t": -1}], "debe ser >= 0"),
+            ([{"type": "fail", "node_id": 7, "t": 1}], "no existe"),
+            ([{"type": "explotar", "node_id": 1, "t": 1}],
+             "válidos: wander, fail, recover"),
+        ]
+        for eventos, mensaje in casos:
+            with self.subTest(eventos=eventos):
+                with self.assertRaises(ValueError) as cm:
+                    self._validar(eventos)
+                self.assertIn(mensaje, str(cm.exception))
+
+    def test_modo_random_no_admite_fail(self):
+        with self.assertRaises(ValueError) as cm:
+            validar_escenario({"random": {"n_nodes": 4, "n_gateways": 1},
+                               "events": [{"type": "fail", "node_id": 1,
+                                           "t": 5}]}, "prueba")
+        self.assertIn("nodos explícitos", str(cm.exception))
+
+    def test_formato_txt(self):
+        fd, ruta = tempfile.mkstemp(suffix=".txt")
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write("name: t\n[nodes]\n1 G 5 5\n2 G 9 5\n"
+                    "[events]\nwander 2 40\nfail 1 60\nrecover 1 90\n")
+        try:
+            datos = load_scenario(ruta)
+        finally:
+            os.remove(ruta)
+        self.assertEqual(datos["events"], [
+            {"type": "wander", "node_id": 2, "until": 40.0},
+            {"type": "fail", "node_id": 1, "t": 60.0},
+            {"type": "recover", "node_id": 1, "t": 90.0}])
+
+
+class EventosEnElMotorTests(unittest.TestCase):
+    """1c: el motor aplica los eventos en el mismo punto del ciclo que la
+    interfaz web aplica una intervención."""
+
+    def _correr(self, eventos, fin=150, static=True):
+        ruta = _escenario_con_eventos(eventos)
+        try:
+            main_mod.fijar_semilla(1)
+            sim, _ = main_mod.construir_simulacion(ruta, static=static)
+        finally:
+            os.remove(ruta)
+        _hasta(sim, fin)
+        return sim
+
+    def test_aplica_la_caida_y_la_vuelta_en_su_instante(self):
+        sim = self._correr([{"type": "fail", "node_id": 2, "t": 60},
+                            {"type": "recover", "node_id": 2, "t": 90}])
+        eventos = [(t, tipo, txt) for t, tipo, txt in sim.recorder.events
+                   if tipo in ("FAIL", "RECOVER")]
+        self.assertEqual(eventos, [(60.0, "FAIL", "G2 caído (programado)"),
+                                   (90.0, "RECOVER",
+                                    "G2 recuperado (programado)")])
+        self.assertTrue(sim.nodes[2].alive)
+        self.assertIsNotNone(
+            resumen_corrida(sim)["tiempo_reconvergencia_rutas_s"])
+
+    def test_igual_que_hacerlo_a_mano_entre_pasos(self):
+        for static in (True, False):
+            with self.subTest(static=static):
+                programada = self._correr(
+                    [{"type": "fail", "node_id": 2, "t": 60},
+                     {"type": "recover", "node_id": 2, "t": 90}],
+                    static=static)
+                main_mod.fijar_semilla(1)
+                manual = _sim(static=static)
+                _hasta(manual, 60)
+                manual.fail_node(2)
+                _hasta(manual, 90)
+                manual.recover_node(2)
+                _hasta(manual, 150)
+                self.assertEqual(_series(programada), _series(manual))
+                self.assertEqual(resumen_corrida(programada),
+                                 resumen_corrida(manual))
+
+    def test_instante_entre_dos_pasos_se_aplica_en_el_siguiente(self):
+        sim = self._correr([{"type": "fail", "node_id": 2, "t": 60.2}],
+                           fin=70)
+        [t] = [t for t, tipo, _ in sim.recorder.events if tipo == "FAIL"]
+        self.assertEqual(t, 60.5)
+
+    def test_reiniciar_vuelve_a_programarlos(self):
+        sim = self._correr([{"type": "fail", "node_id": 2, "t": 10}], fin=20)
+        sim._build_world()
+        _hasta(sim, 20)
+        fallas = [e for e in sim.recorder.events if e[1] == "FAIL"]
+        self.assertEqual(len(fallas), 1)
+
+    def test_sin_eventos_programados_nada_cambia(self):
+        main_mod.fijar_semilla(1)
+        a = _sim()
+        _hasta(a, 80)
+        b = self._correr([], fin=80)
+        self.assertEqual(_series(a), _series(b))
 
 
 if __name__ == "__main__":

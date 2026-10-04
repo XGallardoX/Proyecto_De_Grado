@@ -223,12 +223,14 @@ se retiró del repo; queda en el historial de git.)
   de él (`_move_avoiding()` no se detiene), y un enlace que queda justo
   en el borde del alcance se prende y se apaga. Esos valores hay que
   leerlos con cuidado.
-- **No hay fallos programables en el escenario.** Sin ventana, los
-  únicos fallos posibles son la batería agotada (`battery`,
-  `battery_drain`) y el alejamiento (`wander`); la caída y la
-  recuperación manual de un nodo (teclas `F`/`G`) sólo existen en la
-  ventana. Un tipo de evento que haga caer o volver un nodo en un
-  instante dado permitiría experimentos de fallo controlados en lote.
+- ~~No hay fallos programables en el escenario.~~ Desde la Fase 3
+  (decisión 1c) el escenario acepta eventos `fail` y `recover`
+  (`{"type": "fail", "node_id": 2, "t": 60}`), que el motor aplica al
+  principio de `step()`, antes de avanzar el reloj: el mismo punto en
+  que la interfaz web aplica una intervención. Una caída programada da
+  exactamente la misma corrida que la misma caída hecha a mano entre
+  dos pasos (probado en `tests/test_fase3.py`). Sirven en `--headless`
+  y en `--batch`, pero no en el modo de nodos aleatorios.
 - **La conectividad se mide sobre los enlaces de radio.** Componentes,
   particiones, reunificaciones (eventos `PARTITION`/`HEAL`) y nodos
   alcanzables se calculan con union-find sobre los enlaces con
