@@ -229,32 +229,56 @@ Insumo para los capítulos 1 y 4 de la tesis.
   los comandos mutan el estado y `terminar` exporta y apaga sin dejar el
   proceso colgado.
 
-### Pendiente: mirar la interfaz en un navegador
+### En un navegador (revisión del 3 de octubre)
 
-En el entorno donde se hizo este trabajo no hay un navegador
-automatizable (sin Node.js ni Chromium, y `safaridriver` requiere
-habilitarlo con permisos de administrador), así que no hay capturas ni
-se midieron los 60 fps ni la memoria tras 30 minutos. Lista de chequeo:
+Se recorrió la lista en Chrome sobre Linux (ventana de 1568×770 de
+contenido), con la extensión Claude in Chrome. No se tomaron capturas
+para el repo.
 
-- [ ] `python main.py --web --escenario base`: el edificio, 4 Gateway
-  (círculos) y 3 Nodos de usuario (rombos); se mueven suave, sin
-  saltos ni parpadeos; la consola del navegador sin errores.
-- [ ] Tabla de paridad con pygame, con el teclado y con los botones:
-  Espacio, Tab/←/→ y clic, 1-9, F/G, A/D, M, I, S, +/-, [/], P, R, Q.
-- [ ] Caso 1 de la guía (tumbar G4) en la web.
-- [ ] Caso 12 de la guía: "ver como este nodo" durante la partición de
-  `rescatista_perdido`.
-- [ ] Arrastrar un nodo, agregar un Gateway con clic, menú contextual.
-- [ ] Matriz de conocimiento al arrancar (pocos pares con ruta) y a los
-  30 s.
-- [ ] OGM de un origen en `cadena.txt`: el TTL bajando salto a salto.
-- [ ] Editor: guardar, cargar en la sesión, correr el comando que
-  muestra en la terminal.
-- [ ] Tema oscuro (sistema e interruptor), modo presentación en un
-  proyector, ventana angosta (el panel lateral pasa abajo).
-- [ ] Rendimiento: `-n 50 -g 10` fluido; 30 minutos a velocidad máxima
-  sin que crezca la memoria de la pestaña (el cliente conserva como
-  mucho 50 000 muestras y 300 líneas de log).
+- [x] `base`: el edificio, los Gateway como círculos y los Nodos de
+  usuario como rombos; sin errores en la consola.
+- [x] Tabla de paridad: Espacio, clic, 1-9, F/G, A/D, M, I, S, +/-,
+  [/], P y R funcionan. **No se probaron** Tab, ←/→ ni Q (Q está
+  cubierta por `tests/test_web_cli.py`).
+- [x] Caso 1 (tumbar G4): `FAIL` en t = 341 s y las tres alertas en
+  t = 375 s.
+- [x] Caso 12: la partición a los 41 s, la detección a los 70 s y la
+  lente de G4, como dice la guía.
+- [x] Arrastrar un nodo, agregar un Gateway con el menú contextual y el
+  menú contextual de un nodo.
+- [x] Matriz de conocimiento: un Gateway recién agregado aparece como
+  "conectado por radio, sin ruta aún" y la cobertura baja al 44 %.
+- [x] OGM de un origen en `cadena.txt`: los paquetes llevan su TTL. Ojo:
+  toda la inundación ocurre dentro de un mismo paso de 0.5 s (los nodos
+  procesan su bandeja en orden dentro de `step()`), así que se ven a la
+  vez los saltos con TTL 6, 5 y 4, no como una onda en el tiempo.
+- [x] Editor: guardar en `escenarios/` y correr el comando con
+  `--headless --config`. No se probó "Cargarlo en esta sesión".
+- [x] Comando equivalente: una sesión sin intervenciones
+  (`colapso_progresivo`, semilla 1836583462, 36.5 s) da el mismo
+  `reporte.csv`, byte a byte, que la terminal.
+- [x] Interruptor de tema, modo presentación (`Z`) y ventana angosta
+  (900 px: el panel pasa abajo, sin scroll horizontal). No se probó
+  el tema según la preferencia del sistema ni un proyector real.
+- [~] Rendimiento con 50 nodos y 10 Gateway: 58-59 fps, frames de 63 KB
+  y heap de 14-33 MB que el recolector libera. Se probó 1-2 minutos,
+  **no 30**. El núcleo no sostiene el ritmo de 1× con 50 nodos: aun en
+  "máxima" da unos 7.5 s simulados por segundo real (1× pide 9).
+
+**Detalles encontrados (ninguno bloquea):**
+- El aviso dice "intervenciónes", con tilde (`main.js`, línea 336).
+- Con una ventana de unos 1568 px, al aparecer el aviso de
+  intervenciones la barra superior pasa a dos líneas y todo baja unos
+  27 px.
+- La tabla de rutas y la matriz deciden si una ruta está obsoleta por
+  el `last_seen` del vecino (también lo refrescan los beacons), no por
+  el de la ruta. Ver `contexto/DECISIONES_FASE3.md`, hallazgo 2 y
+  decisión 1a.
+- Tras un mensaje que falla, el texto queda en el compositor y el
+  siguiente se escribe pegado a él.
+- Con nodos apilados (la movilidad `seguir`), las etiquetas se
+  superponen y no se leen.
+- Varios textos usan voseo ("Seleccioná", "Pausá", "Recordá").
 
 ---
 

@@ -123,8 +123,9 @@ hay que mantener.
 - Regresión de lotes: `lotes/ejemplo.json` y `lotes/movilidad.json`
   dan idéntico en `main` y en la rama (`corridas.csv` byte a byte,
   `resumen.json` sin las fechas).
-- Sigue faltando mirar la interfaz en un navegador
-  (`docs/interfaz_web.md`, sección 4).
+- Lista de chequeo en el navegador: recorrida el mismo día en Chrome
+  sobre Linux, sin nada que bloquee. Los resultados y los detalles
+  encontrados están en `docs/interfaz_web.md`, sección 4.
 
 **Hallazgo 1: `tiempo_reconvergencia_s` mide la partición física, no
 la reconvergencia de BATMAN.** `resumen_corrida()`
@@ -182,9 +183,16 @@ Jefferson.** Nada de esto se ha implementado todavía.
   - Se agrega una métrica nueva, `tiempo_reconvergencia_rutas_s`.
     Arranca en el `RECOVER` o el `HEAL` y termina cuando todo par de
     Gateways vivos del mismo componente de radio tiene, en los dos
-    sentidos, una ruta vigente: `last_seen` dentro del `timeout` y el
-    destino sin alerta. Es el mismo criterio de la matriz de
-    conocimiento, que hasta ahora era sólo visual.
+    sentidos, una ruta vigente: el `last_seen` **de la ruta**
+    (`RouteEntry`, que sólo refrescan los OGM) dentro del `timeout` y
+    el destino sin alerta.
+  - Ojo: la matriz de conocimiento y la tabla de rutas de la interfaz
+    **no** usan hoy ese criterio. Miran el `last_seen` del vecino
+    (`PeerInfo`), que también refrescan los beacons. Por eso, en la
+    revisión del 3 de octubre, una ruta de G1 a G4 con 151 s sin
+    refrescarse se mostraba como vigente (hallazgo 2). Al implementar
+    la métrica, la interfaz debe pasar a usar el mismo criterio, para
+    que lo que se ve y lo que se reporta coincidan.
   - La métrica nueva es aditiva: una columna más al final. Las columnas
     existentes deben salir idénticas en la regresión de lotes.
 - *1b. Secuencia de OGM al recuperar.* `recover_node()` deja de

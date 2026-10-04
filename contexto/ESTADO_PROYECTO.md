@@ -243,7 +243,9 @@ guía (el 1 en la web y el 12, "ver como este nodo").
   (no hay uno automatizable en este entorno): lista de chequeo en
   `docs/interfaz_web.md`, sección 4.
 - **Pendiente:**
-  - Mirar la interfaz en un navegador (la lista de chequeo).
+  - ~~Mirar la interfaz en un navegador.~~ Hecho el 2026-10-03 en
+    Chrome sobre Linux. Resultados y detalles menores en
+    `docs/interfaz_web.md`, sección 4.
   - **Fase 3, a decidir entre los dos autores** antes de empezar (el
     encargo lo exige). Detalle de cada opción, qué toca y qué permite:
     [`DECISIONES_FASE3.md`](DECISIONES_FASE3.md). En corto: (a) eventos de caída/recuperación programables en
