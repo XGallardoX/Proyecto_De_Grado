@@ -14,6 +14,7 @@ import { ajustePygame, construirParametros, sincronizarParametros } from "./pane
 import { abrirMenu, cerrarMenu, menuAbierto } from "./paneles/menu.js";
 import { prepararInicio } from "./paneles/inicio.js";
 import { Editor } from "./paneles/editor.js";
+import { Laboratorio } from "./paneles/laboratorio.js";
 import { bloqueComando, esc, ICONOS_EVENTO, num, toast } from "./util.js";
 
 const $ = (id) => document.getElementById(id);
@@ -561,6 +562,10 @@ document.addEventListener("keydown", (ev) => {
 // ── editor de escenarios ─────────────────────────────────────────────
 const editor = new Editor($("dialogo-editor"), $("editor"), (datos) => comando("cargar", datos));
 $("btn-editor").addEventListener("click", () => editor.abrir());
+
+// ── laboratorio de experimentos (lotes en un subproceso --batch) ──────
+const laboratorio = new Laboratorio($("dialogo-laboratorio"), $("laboratorio"));
+$("btn-laboratorio").addEventListener("click", () => laboratorio.abrir());
 
 // ── arranque ──────────────────────────────────────────────────────────
 (async () => {

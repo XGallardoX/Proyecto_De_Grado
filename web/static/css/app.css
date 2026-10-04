@@ -56,9 +56,10 @@ button, select, input {
 }
 button { cursor: pointer; transition: border-color .12s, background .12s; }
 button:hover { border-color: var(--acento); }
-button.activa, button[aria-pressed="true"] {
+button.activa, button.primario, button[aria-pressed="true"] {
   background: var(--acento); border-color: var(--acento); color: #fff;
 }
+button:disabled { opacity: 0.5; cursor: default; }
 input[type=number] { width: 5.5em; }
 .chip { padding: 0.15rem 0.55rem; border-radius: 999px; background: var(--piso);
         font-size: 0.85em; border: 1px solid var(--borde); }
@@ -261,6 +262,37 @@ dialog.pantalla-completa { width: 96vw; max-width: 96vw; height: 92vh; padding: 
 #editor .ed-msg.ok { background: color-mix(in srgb, var(--ok) 15%, transparent); }
 #editor .ed-msg.error { background: color-mix(in srgb, var(--alerta) 15%, transparent); color: var(--tinta); }
 
+/* ── laboratorio de experimentos ── */
+#laboratorio { display: grid; grid-template-columns: minmax(360px, 1fr) 1.4fr;
+               grid-template-rows: auto 1fr; height: 100%; }
+#laboratorio .lab-barra { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 0.5rem;
+                          align-items: center; padding: 0.5rem 0.8rem;
+                          border-bottom: 1px solid var(--borde); }
+#laboratorio .lab-barra .separador { flex: 1; }
+#laboratorio .lab-armado { overflow: auto; padding: 0.7rem; border-right: 1px solid var(--borde); }
+#laboratorio .lab-armado > label { display: flex; justify-content: space-between; gap: 0.4rem;
+                                   margin: 0.3rem 0; }
+#laboratorio .lab-entrada { display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center;
+                            padding: 0.35rem 0; border-bottom: 1px solid var(--borde); }
+#laboratorio .lab-entrada input[data-k="etiqueta"] { width: 11em; }
+#laboratorio .lab-resultados { overflow: auto; padding: 0.7rem; min-width: 0; }
+#laboratorio .lab-barra-progreso { height: 10px; border-radius: 999px; background: var(--piso);
+                                   overflow: hidden; }
+#laboratorio .lab-barra-progreso > div { height: 100%; background: var(--acento);
+                                         transition: width 0.3s; }
+#laboratorio .lab-log { font: 12px/1.35 var(--mono); background: var(--piso); padding: 0.5rem;
+                        border-radius: 6px; white-space: pre-wrap; max-height: 10em; overflow: auto; }
+#laboratorio .lab-log.error { color: var(--alerta); }
+#laboratorio .lab-tabla { overflow-x: auto; }
+#laboratorio table { border-collapse: collapse; font-size: 0.88em; font-variant-numeric: tabular-nums; }
+#laboratorio th, #laboratorio td { padding: 0.25rem 0.5rem; border-bottom: 1px solid var(--borde);
+                                   text-align: right; white-space: nowrap; }
+#laboratorio tbody th { text-align: left; font-weight: normal; }
+#laboratorio tbody tr { cursor: pointer; }
+#laboratorio tbody tr:hover, #laboratorio tbody tr.elegida { background: var(--piso); }
+#laboratorio td.na { color: var(--tenue); }
+#laboratorio canvas { width: 100%; height: 260px; display: block; margin-top: 0.5rem; }
+
 /* ── modo presentación ── */
 body.presentacion #panel-lateral, body.presentacion #barra-inferior,
 body.presentacion #barra-mapa { display: none; }
@@ -273,4 +305,5 @@ body.presentacion .marca { display: inline !important; }
   main { grid-template-columns: 1fr; grid-template-rows: minmax(320px, 1fr) auto; }
   #panel-lateral { border-left: none; border-top: 1px solid var(--borde); max-height: 45vh; }
   #editor { grid-template-columns: 1fr; grid-template-rows: auto 50vh auto; }
+  #laboratorio { grid-template-columns: 1fr; grid-template-rows: auto auto auto; overflow: auto; }
 }
