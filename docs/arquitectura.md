@@ -235,6 +235,19 @@ se retiró del repo; queda en el historial de git.)
   fiabilidad > 0, no sobre las tablas de rutas. No hay una métrica de
   cuánto tarda BATMAN en volver a tener rutas hacia todos tras un
   cambio de topología.
+- **`BatmanRouter` no contempla que un nodo reinicie su secuencia de
+  OGM.** `receive_ogm()` (`mesh/router.py`) descarta todo OGM cuya
+  secuencia no supere la última vista de ese origen. Si un nodo
+  arrancara en frío con la secuencia en 0, los demás ignorarían sus OGM
+  (y no los reenviarían) hasta que superara la de antes. Las rutas hacia
+  él quedarían viejas tanto tiempo como estuvo vivo antes de caer:
+  medido en `base` con `--static` y semilla 1, G2 cae a los 60 s, vuelve
+  a los 90 s, y las rutas hacia él no se refrescan hasta t ≈ 150 s. Por
+  eso `Simulation.recover_node()` modela la recuperación como un nodo
+  que vuelve a la red **conservando** su secuencia (antes la ponía en
+  0). El arranque en frío queda fuera del modelo: corregirlo es tocar
+  `mesh/` (la implementación del kernel, batman-adv, tiene un mecanismo
+  para aceptar el reinicio de la secuencia de un originador).
 - **Resto del framing de rescate en `mesh/`.** Los OGM del nodo real
   (`mesh/node.py`) y `PeerInfo` (`mesh/router.py`) conservan un campo
   `survivors`, que el nodo real emite siempre vacío. El simulador ya no

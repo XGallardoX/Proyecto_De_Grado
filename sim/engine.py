@@ -325,7 +325,13 @@ class Simulation:
             return
         n.alive = True
         n.battery = max(n.battery, 60.0)
-        n._ogm_seq = 0
+        # La recuperación modela un nodo que vuelve a la red, no un
+        # arranque en frío: conserva su número de secuencia de OGM. Si
+        # volviera a 0, los BatmanRouter de los demás descartarían sus
+        # OGM (mesh/router.py sólo acepta secuencias mayores a la última
+        # vista) hasta superar la de antes de caer, y las rutas hacia él
+        # tardarían tanto como estuvo vivo antes del fallo (ver
+        # docs/arquitectura.md, "Limitaciones conocidas").
         n.router.seen_ogms.clear()
         self.event('RECOVER', f"{n.label} recuperado (manual)")
         self.log(f"{n.label} vuelve a la red — BATMAN reconverge", "ok")
