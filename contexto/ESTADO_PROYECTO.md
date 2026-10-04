@@ -8,11 +8,14 @@
 
 Fecha: 2026-09-30
 
-> **Decisiones pendientes entre los dos:** la Fase 3 de la interfaz web
-> (eventos de fallo programables, laboratorio de lotes, ventana nativa)
-> no se empieza sin acuerdo. Ver
-> [`DECISIONES_FASE3.md`](DECISIONES_FASE3.md). La interfaz web está en
-> la rama `feat/interfaz-web`, todavía sin mergear a `main`.
+> **Fase 3 de la interfaz web: decidida por XGallardoX el 2026-10-03,
+> falta el visto bueno de Jefferson.** Eventos de fallo programables
+> sí, pero con una métrica nueva de reconvergencia de rutas y sin
+> reiniciar la secuencia de OGM al recuperar un nodo. Laboratorio de
+> lotes sí, después. pywebview no. Los hallazgos y el detalle están en
+> [`DECISIONES_FASE3.md`](DECISIONES_FASE3.md). No se empieza nada
+> hasta tener el acuerdo. La interfaz web está en la rama
+> `feat/interfaz-web`, todavía sin mergear a `main`.
 
 ---
 

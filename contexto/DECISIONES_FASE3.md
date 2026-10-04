@@ -2,6 +2,12 @@
 
 Fecha: 2026-09-30 · Rama: `feat/interfaz-web`
 
+> **Actualización 2026-10-03:** se revisó la rama en Linux y aparecieron
+> dos hallazgos que cambian el alcance de la parte 1 (sección
+> "Revisión del 3 de octubre", al final). Las decisiones de XGallardoX
+> están en "Decisiones", también al final. **Falta el visto bueno de
+> Jefferson**, y la Fase 3 no se empieza hasta tenerlo.
+
 Las fases 1 y 2 de `prompt_version_escritorio.md` (la interfaz web
 local, `python main.py --web`) están hechas y probadas. El detalle está
 en `contexto/ESTADO_PROYECTO.md` y en `docs/interfaz_web.md`. El
@@ -108,13 +114,117 @@ hay que mantener.
 
 ---
 
-## Cómo responder
+## Revisión del 3 de octubre (Linux)
 
-Basta una línea por punto en este archivo o en un mensaje, por ejemplo:
+**Verificación de la rama.**
+- `venv/bin/python -m unittest discover -s tests`: 240 pruebas en
+  verde. Se salta 1, `test_web_frontend.py`, porque busca el `jsc` de
+  macOS y en Linux no está.
+- Regresión de lotes: `lotes/ejemplo.json` y `lotes/movilidad.json`
+  dan idéntico en `main` y en la rama (`corridas.csv` byte a byte,
+  `resumen.json` sin las fechas).
+- Sigue faltando mirar la interfaz en un navegador
+  (`docs/interfaz_web.md`, sección 4).
 
-- 1 (eventos programables): sí / no / sí, pero ...
-- 2 (laboratorio): sí / no / más adelante
-- 3 (ventana nativa): sí / no
+**Hallazgo 1: `tiempo_reconvergencia_s` mide la partición física, no
+la reconvergencia de BATMAN.** `resumen_corrida()`
+(`analysis/metrics.py`) promedia la duración de los episodios en que la
+malla de Gateways estuvo partida, calculada con `_union_find` sobre los
+enlaces de radio. No mira las tablas de rutas. Con eventos programados
+la métrica devolvería el dato de entrada: si un Gateway puente cae en
+t₁ y vuelve en t₂, como los nodos caídos no se mueven, el episodio dura
+t₂ − t₁. Así que la parte 1, tal como estaba planteada, **no** daría
+una medida de reconvergencia.
 
-También queda por decidir cuándo se mergea `feat/interfaz-web` a `main`
-(está subida como rama aparte, sin merge).
+**Hallazgo 2: después de recuperar un nodo, las rutas hacia él tardan
+lo mismo que el nodo estuvo vivo antes de caer.**
+`Simulation.recover_node()` (`sim/engine.py`) pone `_ogm_seq = 0`, y
+`BatmanRouter.receive_ogm()` (`mesh/router.py`) descarta todo OGM con
+una secuencia menor o igual a la última que vio de ese origen. Los
+demás nodos ignoran los OGM del nodo recuperado hasta que su secuencia
+supera la de antes de caer, y además no los reenvían.
+
+Medido con `base`, `--static` y semilla 1:
+- G2 cae en t = 60 s con la secuencia en 15 (un OGM cada 4 s) y vuelve
+  en t = 90 s.
+- Las rutas de G1, G3 y G4 hacia G2 siguen sin refrescarse hasta
+  t ≈ 150 s (antigüedad de 70 s en t = 130). Es decir, unos 60 s, que
+  es justo lo que G2 estuvo vivo antes de caer.
+- Los `ALERT_OFF` llegan en 1 a 4 s, porque los beacons (`BCN`) llegan
+  directo y no pasan por esa comprobación. Por eso el efecto no se ve
+  en los eventos ni en los reportes, pero sí en la matriz de
+  conocimiento de la interfaz (rutas obsoletas).
+
+Los lotes actuales no recuperan nodos, así que sus resultados no se ven
+afectados. Lo afectado es la tecla `G` de pygame y "recuperar" en la
+web.
+
+**Hallazgo 3: pywebview no se puede instalar en esta máquina.** El
+venv es Python 3.14. El motor GTK de pywebview necesita compilar
+PyGObject contra los *headers* de `gobject-introspection`, que no están
+instalados, y no hay `sudo`. El motor Qt exigiría PyQt + QtWebEngine
+(cientos de MB). Brave (Chromium) sí está instalado.
+
+---
+
+## Decisiones
+
+Tomadas por XGallardoX el 2026-10-03. **Falta el visto bueno de
+Jefferson.** Nada de esto se ha implementado todavía.
+
+**1. Eventos `fail`/`recover` programables: sí, con estas condiciones.**
+
+- *1a. Qué se llama reconvergencia.* Hay dos medidas distintas y se
+  reportan las dos:
+  - `tiempo_reconvergencia_s` se queda como está (mismos números, misma
+    columna), pero en la documentación y en la tesis se describe como
+    **duración de la partición física**.
+  - Se agrega una métrica nueva, `tiempo_reconvergencia_rutas_s`.
+    Arranca en el `RECOVER` o el `HEAL` y termina cuando todo par de
+    Gateways vivos del mismo componente de radio tiene, en los dos
+    sentidos, una ruta vigente: `last_seen` dentro del `timeout` y el
+    destino sin alerta. Es el mismo criterio de la matriz de
+    conocimiento, que hasta ahora era sólo visual.
+  - La métrica nueva es aditiva: una columna más al final. Las columnas
+    existentes deben salir idénticas en la regresión de lotes.
+- *1b. Secuencia de OGM al recuperar.* `recover_node()` deja de
+  reiniciar `_ogm_seq`: la recuperación modela un nodo que vuelve a la
+  red, no un arranque en frío. Así la métrica de 1a mide el protocolo y
+  no el artefacto del hallazgo 2.
+  - `mesh/` no se toca.
+  - El arranque en frío (secuencia desde 0 contra un router que no lo
+    contempla) queda documentado como limitación conocida de
+    `mesh/router.py` en `docs/arquitectura.md` y en
+    `docs/interfaz_web.md` §5.
+  - Esto cambia lo que pasa al recuperar un nodo con la tecla `G` de
+    pygame y con "recuperar" en la web. Los lotes no cambian (se
+    verifica con la regresión).
+- *1c. Alcance.*
+  - Sólo los tipos `fail` y `recover`, con la forma
+    `{"type": ..., "node_id": ..., "t": ...}`, al lado de `wander`, en
+    `.json` y en `.txt`.
+  - Se aplican en el mismo punto del ciclo en que la web aplica las
+    intervenciones (entre pasos), para que una sesión exportada como
+    escenario reproduzca exactamente la corrida. Esto lleva una prueba
+    de paridad.
+  - "Exportar la sesión como escenario" sólo vale si las intervenciones
+    fueron caer/recuperar. Si hubo mover, agregar, eliminar o cambiar
+    parámetros, se sigue mostrando que no hay comando equivalente.
+- *1d. Escenarios de fallo para el Capítulo 5:* se definen entre los
+  dos al implementar la parte 1.
+
+**2. Laboratorio de experimentos: sí, después de la parte 1.** Corre
+`python main.py --batch` en un subproceso, como estaba planteado. Vale
+más con la parte 1 hecha, porque permite lotes con fallos programados.
+
+**3. Ventana nativa con pywebview: no** (hallazgo 3). Alternativa
+opcional, sin dependencias, sólo si sobra tiempo: abrir la interfaz en
+el modo aplicación de un navegador Chromium (`--app=URL`), que da una
+ventana sin barra de navegador. Si no hay uno, se abre en el navegador
+normal, como ahora.
+
+**4. Merge de `feat/interfaz-web` a `main`: antes de la Fase 3**,
+después de recorrer la lista de chequeo en un navegador.
+
+**Orden:** lista de chequeo en el navegador → merge a `main` → parte 1
+(1b, 1a, 1c) → parte 2 → parte 3 alternativa, si sobra tiempo.
