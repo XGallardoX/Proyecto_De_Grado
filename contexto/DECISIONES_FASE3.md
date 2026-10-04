@@ -5,8 +5,9 @@ Fecha: 2026-09-30 · Rama: `feat/interfaz-web`
 > **Actualización 2026-10-03:** se revisó la rama en Linux y aparecieron
 > dos hallazgos que cambian el alcance de la parte 1 (sección
 > "Revisión del 3 de octubre", al final). Las decisiones de XGallardoX
-> están en "Decisiones", también al final. **Falta el visto bueno de
-> Jefferson**, y la Fase 3 no se empieza hasta tenerlo.
+> están en "Decisiones", también al final. **Jefferson dio el visto
+> bueno el 2026-10-03**, también a la parte 1 ya implementada y a sus
+> dos ajustes ("Estado de la parte 1").
 
 Las fases 1 y 2 de `prompt_version_escritorio.md` (la interfaz web
 local, `python main.py --web`) están hechas y probadas. El detalle está
@@ -170,8 +171,9 @@ instalados, y no hay `sudo`. El motor Qt exigiría PyQt + QtWebEngine
 
 ## Decisiones
 
-Tomadas por XGallardoX el 2026-10-03. **Falta el visto bueno de
-Jefferson.** Nada de esto se ha implementado todavía.
+Tomadas por XGallardoX el 2026-10-03, con el visto bueno de Jefferson
+el mismo día. La parte 1 ya está implementada (ver "Estado de la parte
+1", al final).
 
 **1. Eventos `fail`/`recover` programables: sí, con estas condiciones.**
 
@@ -294,6 +296,9 @@ después de que G2 vuelve. Afecta a "Alertas de gateway perdido" y a la
 capa de detección, no a la reconvergencia de rutas. Es código del nodo
 real: queda como decisión aparte, igual que el TQ.
 
-**Pendiente:** el visto bueno de Jefferson a la parte 1 (y a los dos
-ajustes); el merge de `feat/fase3-eventos` a `main`; 1d (qué escenarios
-de fallo van al Capítulo 5); la parte 2 (laboratorio de lotes).
+**Aprobada y mergeada:** Jefferson dio el visto bueno a la parte 1 y a
+los dos ajustes el 2026-10-03, y `feat/fase3-eventos` se mergeó a `main`
+ese día.
+
+**Pendiente:** 1d (qué escenarios de fallo van al Capítulo 5) y la
+parte 2 (laboratorio de lotes).

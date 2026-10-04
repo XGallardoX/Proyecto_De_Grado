@@ -8,9 +8,10 @@
 
 Fecha: 2026-10-03
 
-> **Fase 3 de la interfaz web: decidida por XGallardoX el 2026-10-03;
-> la parte 1 ya está hecha, en la rama `feat/fase3-eventos`, y le falta
-> el visto bueno de Jefferson.** Eventos de fallo programables, con una
+> **Fase 3 de la interfaz web: decidida el 2026-10-03 (XGallardoX, con
+> el visto bueno de Jefferson); la parte 1 ya está hecha y en `main`.**
+> Sigue la parte 2 (laboratorio de lotes) y falta acordar qué escenarios
+> de fallo van al Capítulo 5. Eventos de fallo programables, con una
 > métrica nueva de reconvergencia de rutas y sin reiniciar la secuencia
 > de OGM al recuperar un nodo. Laboratorio de lotes sí, después.
 > pywebview no. Los hallazgos, las decisiones y dos ajustes que salieron
@@ -251,7 +252,8 @@ guía (el 1 en la web y el 12, "ver como este nodo").
   - ~~Mergear `feat/interfaz-web` a `main`.~~ Hecho el 2026-10-03.
 
 **Fase 3, parte 1 — fallos programables y reconvergencia de rutas
-(3 de octubre):** rama `feat/fase3-eventos`, sin mergear. Detalle,
+(3 de octubre):** rama `feat/fase3-eventos`, aprobada por Jefferson y
+mergeada a `main` el mismo día. Detalle,
 commits y números en [`DECISIONES_FASE3.md`](DECISIONES_FASE3.md),
 "Estado de la parte 1".
 
