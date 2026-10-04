@@ -1,0 +1,22 @@
+# Caso "Gateway puente": tres Gateway en fila sobre el piso 1, a 9 m
+# entre sí. Con el alcance por defecto (16 m), G1 y G3 (a 18 m) sólo se
+# conectan a través de G2. G2 cae a los 60 s (la malla se parte en dos) y
+# vuelve a los 100 s (se reunifica). Sirve para ver las dos medidas de
+# reconvergencia: la de la partición física y la de las rutas BATMAN.
+# Ver docs/guia_ejecucion.md, caso 13 (y puente_corto.txt).
+
+name: puente
+
+[protocol]
+static=true
+
+[nodes]
+1    G  7   5
+2    G  16  5
+3    G  25  5
+101  N  4   8
+102  N  28  8
+
+[events]
+fail     2  60
+recover  2  100

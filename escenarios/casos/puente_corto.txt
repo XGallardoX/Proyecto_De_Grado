@@ -1,0 +1,20 @@
+# Variante del caso "Gateway puente" (puente.txt): la misma red, pero G2
+# vuelve a los 70 s, antes de que venza el timeout (30 s). Las rutas
+# hacia G2 nunca llegan a quedar viejas, así que para BATMAN casi no hay
+# nada que reconverger. Ver docs/guia_ejecucion.md, caso 13.
+
+name: puente_corto
+
+[protocol]
+static=true
+
+[nodes]
+1    G  7   5
+2    G  16  5
+3    G  25  5
+101  N  4   8
+102  N  28  8
+
+[events]
+fail     2  60
+recover  2  70

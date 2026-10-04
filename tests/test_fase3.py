@@ -175,6 +175,19 @@ class ReconvergenciaRutasTests(unittest.TestCase):
         self.assertTrue(all(fin is not None
                             for _, fin, _ in sim.recorder.reconv_rutas))
 
+    def test_volver_de_un_puente_es_un_solo_episodio(self):
+        # RECOVER de G2 y, medio paso después, el HEAL que provoca: un
+        # solo episodio, medido desde el RECOVER.
+        main_mod.fijar_semilla(1)
+        sim, _ = main_mod.construir_simulacion(
+            os.path.join(main_mod.ESCENARIOS_DIR, "casos", "puente.txt"))
+        _hasta(sim, 160)
+        tipos = [tipo for _, tipo, _ in sim.recorder.events]
+        self.assertIn("HEAL", tipos)
+        [(inicio, fin, causa)] = sim.recorder.reconv_rutas
+        self.assertEqual((inicio, causa), (100.0, "RECOVER G2"))
+        self.assertIsNotNone(fin)
+
     def test_episodio_abierto_al_final_no_cuenta(self):
         sim = _sim()
         _hasta(sim, 60)

@@ -18,15 +18,21 @@ class Recorder:
         # los pares de Gateways conectados por radio tienen ruta vigente
         # (rutas_convergidas). fin = None si la corrida terminó antes.
         self.reconv_rutas = []
-        self._reconv_abiertas = []
+        self._reconv_abierta = None
 
     def event(self, t, tipo, texto):
         self.events.append((t, tipo, texto))
 
     def abrir_reconvergencia(self, t, causa):
-        episodio = [t, None, causa]
-        self.reconv_rutas.append(episodio)
-        self._reconv_abiertas.append(episodio)
+        """Abre un episodio, salvo que ya haya uno abierto: entonces el
+        nuevo disparador se suma a ese, que se sigue midiendo desde el
+        primero. Así, un Gateway puente que vuelve (RECOVER) y la
+        reunificación que eso provoca medio paso después (HEAL) cuentan
+        como un solo episodio."""
+        if self._reconv_abierta is not None:
+            return
+        self._reconv_abierta = [t, None, causa]
+        self.reconv_rutas.append(self._reconv_abierta)
 
     def sample(self, sim, medium):
         self.t.append(sim.t)
@@ -86,10 +92,9 @@ class Recorder:
 
         # sólo se mira mientras haya un episodio abierto: no cuesta nada
         # en las corridas sin recuperaciones ni reunificaciones
-        if self._reconv_abiertas and rutas_convergidas(sim):
-            for episodio in self._reconv_abiertas:
-                episodio[1] = sim.t
-            self._reconv_abiertas = []
+        if self._reconv_abierta is not None and rutas_convergidas(sim):
+            self._reconv_abierta[1] = sim.t
+            self._reconv_abierta = None
 
 
 # ══════════════════════════════════════════════════════════════════════════

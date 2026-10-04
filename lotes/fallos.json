@@ -1,0 +1,9 @@
+{
+  "nombre": "fallos",
+  "duracion": 160,
+  "semillas": 10,
+  "escenarios": [
+    { "config": "escenarios/casos/puente.txt", "etiqueta": "puente_40s" },
+    { "config": "escenarios/casos/puente_corto.txt", "etiqueta": "puente_10s" }
+  ]
+}
