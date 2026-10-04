@@ -13,6 +13,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
 from web import estado
+from web.laboratorio import Laboratorio, lotes_existentes
 
 _AQUI = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(_AQUI, "static")
@@ -71,6 +72,7 @@ class Servidor(ThreadingHTTPServer):
 
 class ManejadorWeb(BaseHTTPRequestHandler):
     sesion = None  # inyectado por crear_servidor() antes de arrancar
+    laboratorio = None  # ídem: el Laboratorio (lotes en un subproceso)
     protocol_version = "HTTP/1.1"
 
     def log_message(self, fmt, *args):
@@ -165,6 +167,10 @@ class ManejadorWeb(BaseHTTPRequestHandler):
             self._texto(200, texto)
         elif ruta == "/api/escenarios":
             self._json(200, listar_escenarios())
+        elif ruta == "/api/laboratorio":
+            self._json(200, self.laboratorio.estado())
+        elif ruta == "/api/lotes":
+            self._json(200, {"lotes": lotes_existentes()})
         elif ruta.startswith("/api/reportes/"):
             self._reporte(ruta[len("/api/reportes/"):])
         else:
@@ -218,7 +224,8 @@ class ManejadorWeb(BaseHTTPRequestHandler):
 
     # ---------- POST ----------
     def do_POST(self):
-        if urlparse(self.path).path != "/api/comando":
+        destino = urlparse(self.path).path
+        if destino not in ("/api/comando", "/api/laboratorio"):
             self._texto(404, "no encontrado")
             return
         largo = int(self.headers.get("Content-Length") or 0)
@@ -235,6 +242,9 @@ class ManejadorWeb(BaseHTTPRequestHandler):
         if not accion:
             self._json(400, {"ok": False, "error": "falta 'accion'"})
             return
+        if destino == "/api/laboratorio":
+            self._laboratorio(accion, cuerpo)
+            return
         try:
             resultado = self.sesion.comando(accion, cuerpo)
         except ValueError as e:
@@ -247,9 +257,23 @@ class ManejadorWeb(BaseHTTPRequestHandler):
         if accion == "terminar":
             threading.Thread(target=self.server.shutdown, daemon=True).start()
 
+    def _laboratorio(self, accion, cuerpo):
+        try:
+            if accion == "iniciar":
+                datos = self.laboratorio.iniciar(cuerpo.get("lote"))
+            elif accion == "cancelar":
+                datos = self.laboratorio.cancelar()
+            else:
+                raise ValueError(f"acción desconocida del laboratorio: {accion!r}")
+        except ValueError as e:
+            self._json(400, {"ok": False, "error": str(e)})
+            return
+        self._json(200, dict(datos, ok=True))
 
-def crear_servidor(sesion, puerto=8765):
+
+def crear_servidor(sesion, puerto=8765, laboratorio=None):
     ManejadorWeb.sesion = sesion
+    ManejadorWeb.laboratorio = laboratorio or Laboratorio()
     try:
         return Servidor(("127.0.0.1", puerto), ManejadorWeb)
     except OSError as e:
@@ -273,6 +297,7 @@ def ejecutar_servidor(sesion, puerto=8765, abrir=True):
     except KeyboardInterrupt:
         print("\nCerrando sesión...")
     finally:
+        ManejadorWeb.laboratorio.detener()
         sesion.detener_hilo()
         try:
             carpeta = sesion.exportar()
