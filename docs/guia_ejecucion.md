@@ -336,11 +336,9 @@ Son 8 nodos en posiciones al azar, 2 de ellos Gateway. Con `--seed 7`
 salen siempre las mismas posiciones y el mismo resultado: tasa de
 entrega 0.348 y los 6 Nodos de usuario alcanzables al final. Para
 guardar una red aleatoria como escenario se usa un `.txt` con
-`mode=random`, `n_nodes=8` y `n_gateways=2` en `[nodes]`.
-
-> En este modo (`-n`/`-g` sin archivo), `battery_drain` vale 0.02 en
-> vez del 0.030 por defecto (viene del repo madre). Un `.txt` con
-> `mode=random` usa el 0.030.
+`mode=random`, `n_nodes=8` y `n_gateways=2` en `[nodes]`. El modo
+aleatorio de la línea de comandos y el `.txt` con `mode=random` usan los
+mismos valores por defecto (por ejemplo `battery_drain` 0.030).
 
 ### Caso 7 — Los 5 escenarios con 10 semillas
 

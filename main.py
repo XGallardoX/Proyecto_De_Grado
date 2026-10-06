@@ -133,7 +133,6 @@ def construir_simulacion(config_path=None, n_nodes=2, n_gateways=1,
             "n_gateways": n_gateways,
             "rango_comm": 16.0,
             "timeout": 30.0,
-            "battery_drain": 0.02,
         }
 
     if static:
