@@ -22,8 +22,8 @@ archivo, en el mismo commit.
   escenario, métrica "Reconvergencia de rutas BATMAN" y escenarios de
   fallo del Capítulo 5 en `escenarios/fallos/` (historia y hallazgos en
   `DECISIONES_FASE3.md`).
-- **Pruebas:** 288 en verde (`venv/bin/python -m unittest discover -s
-  tests`). En macOS además corre `tests/test_web_frontend.py`, que en
+- **Pruebas:** 305 en verde (`venv/bin/python -m unittest discover -s
+  tests`; en Windows, `venv\Scripts\python`). En macOS además corre `tests/test_web_frontend.py`, que en
   Linux se omite porque necesita el `jsc` de macOS.
 - **Documento de tesis** (`Plantilla/`): sólo el Capítulo 2. Se escribe
   **al final**, cuando estén los resultados (paso 6).
@@ -142,13 +142,34 @@ nombre de quien usa la sesión y **sin** `Co-Authored-By` (ver
   --static`: TQ medio 0.740 en `base`, 0.514 en `denso`, 0.711 en
   `particion` (antes ≈ 1.0). La tabla del caso 4 de la guía ya está
   actualizada; el resto de las cifras, en el paso 4.
-- [ ] **Paso 4 — Nueva línea base.** Volver a correr
+- [x] **Paso 4 — Nueva línea base.** Volver a correr
   `lotes/ejemplo.json`, `casos.json`, `movilidad.json`, `fallos.json` y
   `capitulo5_fallos.json`, y los comandos de los casos de
   `docs/guia_ejecucion.md`. Actualizar todos los números citados en la
   guía, el README, `docs/arquitectura.md`, `DECISIONES_FASE3.md` (sólo
   si cita cifras vigentes) y este archivo. Las cifras nuevas son la
   referencia de regresión de ahí en adelante.
+  *Hecho (2026-10-05).* Se compararon los 5 lotes contra `f925c79`
+  (antes de D2 y D1). Cambian el TQ medio y los saltos medios en todos
+  los escenarios. Las alertas cambian solo donde un Gateway vuelve o un
+  enlace parpadea, porque ahora cada alerta se apaga y puede volver a
+  encenderse (D2): `denso` con `repartir` pasa de 38.9 a 54.7; los
+  escenarios del Cap. 5 suben entre 0.4 y 1.1; `puente_40s` pasa de 5.7
+  a 5.9. La reconvergencia de rutas apenas se mueve
+  (`fallo_redundante` 7.75 → 7.65 y `fallo_puente` 19.85 → 19.45). El
+  resto de las métricas da idéntico: entrega, componentes, alcanzables,
+  particiones, reconvergencia física y cobertura media. Referencia
+  nueva, con semillas 1-10:
+  - TQ medio: `base` 0.889, `colapso_progresivo` 0.861, `particion`
+    0.978, `rescatista_perdido` 0.790, `denso` 0.816, `base_static`
+    0.762.
+  - Escenarios del Cap. 5: TQ entre 0.32 y 0.36.
+  - Cobertura media: `fallo_borde` 0.938 y `fallo_cascada` 0.736 (1.0
+    en los demás).
+
+  Se actualizaron en la guía los casos 3, 7, 9, 11, 12 (los saltos de
+  G4 a los 60 s), 13 y 14. Los casos 1 y 6 salen igual. README y
+  `docs/arquitectura.md` no citaban cifras que cambiaran.
 - [ ] **Paso 5 — Resultados del Capítulo 5.** Correr
   `lotes/capitulo5_fallos.json` con `"figuras": true` (y la comparación
   de movilidad, `lotes/movilidad.json`, como resultado secundario).

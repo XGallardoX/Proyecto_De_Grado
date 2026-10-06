@@ -228,8 +228,8 @@ líneas `[reporter] Reporte exportado a …`:
 ============================================================
  Corrida headless · escenario 'base' · 50 s simulados
 ============================================================
-  TQ medio de rutas                     : 0.990
-  Saltos medios por ruta                : 1.25
+  TQ medio de rutas                     : 0.888
+  Saltos medios por ruta                : 1.33
   Tasa de entrega del radio             : 0.667
   Componentes de la malla al final      : 1
   Nodos de usuario alcanzables al final : 1
@@ -240,6 +240,7 @@ líneas `[reporter] Reporte exportado a …`:
   Alertas de gateway perdido            : 0
   Primera alerta (s)                    : no aplica
   Reconvergencia de rutas BATMAN (s)    : no aplica
+  Cobertura media de Nodos de usuario   : 0.340
   Eventos registrados                   : 0
 ------------------------------------------------------------
  Figura y reportes en reportes/base_<fecha_hora>/
@@ -364,11 +365,24 @@ todas):
 | `denso` | 0.756 ± 0.032 | 1.00 | 3.20 ± 1.55 | 8.00 | 0.0 | 0.00 | no aplica |
 | `base` fijo (`base_static`) | 0.716 ± 0.006 | 1.00 | 0.00 | 4.00 | 0.0 | 0.00 | no aplica |
 
-(Donde no hay "±", la desviación es 0.) El TQ medio sale entre 0.99 y
-1.0 en todos, y las dos reconvergencias (la de la partición y la de las
-rutas BATMAN), "no aplica" en todos. Las dos cosas son esperables con el
-código actual: ver la
-[sección 5](#5-dónde-quedan-los-resultados-y-cómo-leerlos).
+(Donde no hay "±", la desviación es 0.) Las dos reconvergencias (la de
+la partición y la de las rutas BATMAN) dan "no aplica" en todos, porque
+en estos escenarios ninguna partición se reunifica y ningún Gateway
+vuelve (ver la [sección 5](#5-dónde-quedan-los-resultados-y-cómo-leerlos)).
+
+El TQ medio y la cobertura media, que no entran en la tabla de arriba:
+
+| Escenario | TQ medio | Cobertura media |
+|---|---|---|
+| `base` | 0.889 ± 0.026 | 0.399 ± 0.189 |
+| `colapso_progresivo` | 0.861 ± 0.025 | 0.360 ± 0.067 |
+| `particion` | 0.978 ± 0.007 | 0.667 |
+| `rescatista_perdido` | 0.790 ± 0.030 | 0.909 ± 0.009 |
+| `denso` | 0.816 ± 0.023 | 0.510 ± 0.072 |
+| `base_static` | 0.762 ± 0.012 | 0.000 |
+
+El TQ baja donde las rutas cruzan enlaces con más pérdidas o más
+saltos. En `particion` es alto porque cada grupo tiene enlaces cortos.
 
 Para tu propio lote, copia `lotes/ejemplo.json` y cambia la lista. El
 formato completo está en el README ("Archivo de lote").
@@ -402,15 +416,15 @@ Este lote corre los casos 9 y 10 juntos (100 simulaciones, unos 5 s).
 Para el alcance compara `base` con nodos fijos a 16 m (el valor por defecto),
 20 m y 24 m (`escenarios/casos/base_rango20.txt` y `base_rango24.txt`):
 
-| Alcance | N alcanzables al final | Entrega del radio | Saltos medios |
-|---|---|---|---|
-| 16 m (`alcance_16m`) | 0 | 0.716 ± 0.006 | 1.18 ± 0.02 |
-| 20 m (`alcance_20m`) | 1 | 0.688 ± 0.003 | 1.35 ± 0.06 |
-| 24 m (`alcance_24m`) | 3 | 0.515 ± 0.004 | 1.72 ± 0.09 |
+| Alcance | N alcanzables al final | Entrega del radio | Saltos medios | TQ medio |
+|---|---|---|---|---|
+| 16 m (`alcance_16m`) | 0 | 0.716 ± 0.006 | 1.17 ± 0.08 | 0.762 ± 0.012 |
+| 20 m (`alcance_20m`) | 1 | 0.688 ± 0.003 | 1.37 ± 0.06 | 0.723 ± 0.026 |
+| 24 m (`alcance_24m`) | 3 | 0.515 ± 0.004 | 1.71 ± 0.10 | 0.614 ± 0.040 |
 
 Más alcance da más cobertura (de 0 a 3 nodos de usuario), pero a costa
-de enlaces más largos y débiles: la entrega baja y las rutas tienen más
-saltos. Con los nodos fijos, la cobertura depende sólo de la geometría,
+de enlaces más largos y débiles: la entrega y el TQ bajan, y las rutas
+tienen más saltos. Con los nodos fijos, la cobertura depende sólo de la geometría,
 por eso no varía entre semillas.
 
 **Para barrer otro parámetro:** copia el escenario, cambia el valor en
@@ -493,8 +507,11 @@ alcance de radio y la malla de Gateways se parte: en `base` queda en 3
 grupos casi toda la corrida, y en `denso` termina en dos grupos en 7 de
 las 10 semillas (en las otras 3, los dos Gateway que sobran la mantienen
 unida). Los enlaces son más largos y la entrega cae casi a la mitad. Las
-alertas de gateway perdido se disparan (en `denso`, de 0 a 39 de media),
-porque cada separación se detecta como un Gateway que dejó de oírse. En
+alertas de gateway perdido se disparan (en `denso`, de 0 a 55 de media),
+porque cada separación se detecta como un Gateway que dejó de oírse, y
+cada reconexión la apaga, así que un enlace que parpadea vuelve a
+alertar. El TQ medio también cae (en `denso`, de 0.82 a 0.50): las
+rutas son más largas y cruzan enlaces débiles. En
 `rescatista_perdido` casi no cambia nada: el Gateway que se aleja ya
 cubría la otra punta del edificio.
 
@@ -532,7 +549,7 @@ el siguiente chequeo de `FaultManager`.
 
 1. Pausa cerca de t = 60 s (Espacio; `⏭ Paso` avanza de a 0.5 s) y
    selecciona G4 (tecla `4`). Pulsa `L` ("ver como este nodo"): G4
-   todavía tiene rutas a G1, G2 y G3 (de 2, 3 y 2 saltos) aunque la
+   todavía tiene rutas a G1, G2 y G3 (de 4, 1 y 1 saltos) aunque la
    radio ya no lo conecte con ellos. En la pestaña **Red**, la matriz
    muestra esas celdas como "vigente" con borde punteado: lo que el nodo
    cree contra lo que hay.
@@ -577,6 +594,7 @@ python main.py --headless --config escenarios/casos/puente.txt --duracion 160 --
   Alertas de gateway perdido            : 6
   Primera alerta (s)                    : 75.0
   Reconvergencia de rutas BATMAN (s)    : 5.0
+  Cobertura media de Nodos de usuario   : 1.000
 ```
 
 y en la cronología de `reporte.txt`: G2 cae a los 60 s, la malla se
@@ -616,7 +634,7 @@ python main.py --batch lotes/fallos.json
 
 | G2 caído | Malla partida (s) | Tiempo de reconvergencia (s) | Reconvergencia de rutas BATMAN (s) | Alertas |
 |---|---|---|---|---|
-| 40 s (`puente_40s`) | 40.0 | 40.0 | 14.8 ± 5.7 | 5.70 ± 0.48 |
+| 40 s (`puente_40s`) | 40.0 | 40.0 | 14.8 ± 5.7 | 5.90 ± 0.57 |
 | 10 s (`puente_10s`) | 10.0 | 10.0 | 1.6 ± 2.6 | 1.10 ± 0.88 |
 
 Con la caída corta, más corta que el `timeout` de 30 s, las rutas hacia
@@ -663,15 +681,16 @@ python main.py --batch lotes/capitulo5_fallos.json
 (o, en la interfaz, "⚗ Laboratorio" → Cargar `lotes/capitulo5_fallos.json`
 → Correr: mismos números, con la tabla y una gráfica por métrica.)
 
-| Experimento | Malla partida (s) | Tiempo de reconvergencia (s) | Reconvergencia de rutas BATMAN (s) | Alertas | N alcanzables al final |
-|---|---|---|---|---|---|
-| `cobertura_edificio` (control) | 0.0 | no aplica | no aplica | 3.00 ± 2.58 | 6 |
-| `fallo_redundante` | 0.0 | no aplica | 7.8 ± 3.7 | 15.90 ± 2.08 | 6 |
-| `fallo_puente` | 90.0 | 90.0 | 19.9 ± 6.7 | 20.90 ± 0.99 | 6 |
-| `fallo_borde` | 0.0 | no aplica | 17.1 ± 9.0 | 11.40 ± 1.07 | 6 |
-| `fallo_cascada` | 40.0 | no aplica | no aplica | 20.10 ± 0.32 | 3 |
+| Experimento | Malla partida (s) | Tiempo de reconvergencia (s) | Reconvergencia de rutas BATMAN (s) | Alertas | N alcanzables al final | Cobertura media |
+|---|---|---|---|---|---|---|
+| `cobertura_edificio` (control) | 0.0 | no aplica | no aplica | 3.10 ± 2.60 | 6 | 1.000 |
+| `fallo_redundante` | 0.0 | no aplica | 7.7 ± 3.7 | 16.80 ± 2.44 | 6 | 1.000 |
+| `fallo_puente` | 90.0 | 90.0 | 19.4 ± 6.7 | 22.00 ± 1.76 | 6 | 1.000 |
+| `fallo_borde` | 0.0 | no aplica | 17.1 ± 9.0 | 11.80 ± 1.69 | 6 | 0.938 |
+| `fallo_cascada` | 40.0 | no aplica | no aplica | 20.10 ± 0.32 | 3 | 0.736 |
 
-(240 s simulados, semillas 1-10; la entrega del radio es 0.60 en todos.)
+(240 s simulados, semillas 1-10; la entrega del radio es 0.60 y el TQ
+medio, entre 0.32 y 0.36, en todos.)
 
 **Cómo leerlo:**
 
@@ -684,15 +703,19 @@ python main.py --batch lotes/capitulo5_fallos.json
 - **En la cascada** la partición dura 40 s y no se "reunifica": termina
   cuando cae G7, el último Gateway del lado aislado. Al final quedan 3
   de 6 Nodos de usuario cubiertos (N2, N5 y N6 dependían de G3, G6 y G7).
-- **La cobertura durante una caída no sale en el resumen.** En
-  `fallo_borde`, N6 se queda sin cobertura de los 60 a los 150 s, pero
-  "N alcanzables al final" es 6 porque G7 ya volvió. Se ve en la serie
-  `nodos_alcanzables` de cada `reporte.csv` (y en el panel 2 de la
-  figura). Una métrica de cobertura media en el tiempo sería una
-  decisión de métricas aparte.
-- **Las alertas incluyen falsas alarmas** (3 en el control, por los
-  enlaces con pérdidas) y las alertas a varios saltos que no se apagan
-  (hallazgo 4 de `DECISIONES_FASE3.md`).
+- **La cobertura media sí ve la caída del borde.** En `fallo_borde`, N6
+  se queda sin cobertura de los 60 a los 150 s; "N alcanzables al
+  final" es 6 porque G7 ya volvió, pero la cobertura media es 0.938: un
+  Nodo de 6 sin cubrir durante 90 de los 240 s (1 − 90/240/6). En la
+  cascada, 0.736. La caída del puente no le quita cobertura a nadie,
+  porque los Nodos del piso 3 siguen con su Gateway aunque la malla se
+  parta.
+- **Las alertas incluyen falsas alarmas** (unas 3 en el control, por
+  los enlaces con pérdidas). Cada alerta se apaga cuando vuelve a llegar
+  un OGM del Gateway, así que un enlace que parpadea puede alertar
+  varias veces.
+- **El TQ es bajo (≈ 0.33)** porque las rutas cruzan casi 3 saltos con
+  entrega 0.60: el TQ se multiplica salto a salto.
 
 ---
 
