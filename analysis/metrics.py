@@ -156,6 +156,7 @@ METRICAS_CORRIDA = [
     ("alertas_gateway", "Alertas de gateway perdido", 2),
     ("t_primera_alerta_s", "Primera alerta (s)", 1),
     ("tiempo_reconvergencia_rutas_s", "Reconvergencia de rutas BATMAN (s)", 1),
+    ("cobertura_media", "Cobertura media de Nodos de usuario", 3),
 ]
 
 
@@ -208,10 +209,17 @@ def resumen_corrida(sim):
       desde que vuelve un Gateway (RECOVER) o se reunifica la malla (HEAL)
       hasta que todo par de Gateways conectados por radio tiene ruta
       vigente (ver ruta_vigente). None si ninguno se cerró.
+    - cobertura_media: promedio en el tiempo de la fracción de Nodos de
+      usuario vivos que están alcanzables (node_reach / alive_N). Se saltan
+      las muestras sin Nodos vivos; None si no queda ninguna. A diferencia
+      de nodos_alcanzables_finales, cuenta cuánta cobertura se perdió
+      mientras un Gateway estuvo caído.
     """
     reconv = [fin - ini for ini, fin, _causa
               in getattr(sim.recorder, "reconv_rutas", []) if fin is not None]
     rec = sim.recorder
+    fracciones = [alc / vivos for alc, vivos in zip(rec.node_reach, rec.alive_N)
+                  if vivos > 0]
     n = len(rec.t)
     episodios = episodios_particion(rec.t, rec.comp_G, rec.alive_G)
     cerrados = [fin - ini for ini, fin, reunificada in episodios
@@ -234,4 +242,6 @@ def resumen_corrida(sim):
         "t_primera_alerta_s": min(alertas) if alertas else None,
         "tiempo_reconvergencia_rutas_s": (sum(reconv) / len(reconv)
                                           if reconv else None),
+        "cobertura_media": (sum(fracciones) / len(fracciones)
+                            if fracciones else None),
     }

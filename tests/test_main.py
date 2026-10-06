@@ -89,7 +89,7 @@ class ResumenCorridaTests(unittest.TestCase):
             t=[0.5, 1.0, 1.5, 2.0],
             avg_tq=[0.0, 1.0, 1.0, 1.0], avg_hops=[0, 1, 2, 1],
             comp_G=[1, 2, 1, 2], node_reach=[0, 1, 2, 3],
-            alive_G=[4, 4, 4, 3],
+            alive_G=[4, 4, 4, 3], alive_N=[4, 4, 4, 4],
             events=[(1.0, "ALERT_ON", "G1 no oye a G4"),
                     (2.0, "FAIL", "G4 sin batería"),
                     (2.0, "ALERT_ON", "G2 no oye a G4")])
@@ -102,12 +102,36 @@ class ResumenCorridaTests(unittest.TestCase):
             "tiempo_reconvergencia_s": 0.5,    # sólo se cerró 1.0 -> 1.5
             "alertas_gateway": 2, "t_primera_alerta_s": 1.0,
             "tiempo_reconvergencia_rutas_s": None,   # sin episodios
+            "cobertura_media": 0.375,   # (0 + 1/4 + 2/4 + 3/4) / 4
         })
+
+    def test_cobertura_media_usa_los_nodos_vivos_de_cada_muestra(self):
+        sim = self._sim(
+            t=[0.5, 1.0, 1.5], avg_tq=[1, 1, 1], avg_hops=[1, 1, 1],
+            comp_G=[1, 1, 1], node_reach=[2, 1, 1], alive_G=[2, 2, 2],
+            alive_N=[2, 2, 1])
+        # 2/2, 1/2 y 1/1: un Nodo caído no cuenta como cobertura perdida
+        self.assertAlmostEqual(resumen_corrida(sim)["cobertura_media"],
+                               (1.0 + 0.5 + 1.0) / 3)
+
+    def test_cobertura_media_salta_las_muestras_sin_nodos_vivos(self):
+        sim = self._sim(
+            t=[0.5, 1.0, 1.5], avg_tq=[1, 1, 1], avg_hops=[1, 1, 1],
+            comp_G=[1, 1, 1], node_reach=[1, 0, 0], alive_G=[1, 1, 1],
+            alive_N=[1, 0, 0])
+        self.assertEqual(resumen_corrida(sim)["cobertura_media"], 1.0)
+
+    def test_cobertura_media_no_aplica_sin_nodos_de_usuario(self):
+        sim = self._sim(
+            t=[0.5, 1.0], avg_tq=[1, 1], avg_hops=[1, 1], comp_G=[1, 1],
+            node_reach=[0, 0], alive_G=[2, 2], alive_N=[0, 0])
+        self.assertIsNone(resumen_corrida(sim)["cobertura_media"])
 
     def test_particion_resuelta_por_perdida_no_da_reconvergencia(self):
         sim = self._sim(
             t=[0.5, 1.0, 1.5], avg_tq=[1, 1, 1], avg_hops=[1, 1, 1],
-            comp_G=[1, 2, 1], node_reach=[1, 1, 1], alive_G=[3, 3, 2])
+            comp_G=[1, 2, 1], node_reach=[1, 1, 1], alive_G=[3, 3, 2],
+            alive_N=[1, 1, 1])
         r = resumen_corrida(sim)
         self.assertEqual(r["particiones"], 1)
         self.assertEqual(r["tiempo_particionado_s"], 0.5)
@@ -115,10 +139,12 @@ class ResumenCorridaTests(unittest.TestCase):
 
     def test_sin_datos_las_metricas_no_aplican(self):
         sim = self._sim(t=[], delivered=0, attempted=0, avg_tq=[],
-                        avg_hops=[], comp_G=[], node_reach=[], alive_G=[])
+                        avg_hops=[], comp_G=[], node_reach=[], alive_G=[],
+                        alive_N=[])
         r = resumen_corrida(sim)
         for clave in ("tq_medio", "tasa_entrega", "componentes_finales",
-                      "tiempo_reconvergencia_s", "t_primera_alerta_s"):
+                      "tiempo_reconvergencia_s", "t_primera_alerta_s",
+                      "cobertura_media"):
             self.assertIsNone(r[clave], clave)
         self.assertEqual(r["particiones"], 0)
 
@@ -139,6 +165,11 @@ class ConstruirSimulacionTests(unittest.TestCase):
         esperado = os.path.splitext(os.path.basename(ruta))[0]
         self.assertEqual(sim.escenario, esperado)
         self.assertEqual(info["escenario"], esperado)
+
+    def test_modo_aleatorio_usa_el_drenaje_por_defecto(self):
+        sim, _ = main_mod.construir_simulacion(None, n_nodes=4, n_gateways=1)
+        self.assertEqual(sim.cfg["battery_drain"],
+                         main_mod.DEFAULTS["battery_drain"])
 
     def test_parametros_invalidos_lanzan_value_error(self):
         for kwargs in (dict(n_nodes=1), dict(n_nodes=3, n_gateways=3),

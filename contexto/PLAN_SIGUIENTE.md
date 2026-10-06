@@ -101,11 +101,20 @@ Cada paso: pruebas en verde, commits chicos (uno por unidad lógica) a
 nombre de quien usa la sesión y **sin** `Co-Authored-By` (ver
 `contexto/CLAUDE.md`), y `git push` a `main` al terminar el paso.
 
-- [ ] **Paso 1 — D4 y D6.** Quitar el 0.02 del modo aleatorio. Agregar
+- [x] **Paso 1 — D4 y D6.** Quitar el 0.02 del modo aleatorio. Agregar
   `cobertura_media` a `analysis/metrics.py` (`METRICAS_CORRIDA`,
   `resumen_corrida`) con pruebas. Regresión: con D6, las columnas
   existentes de `lotes/ejemplo.json` y `lotes/movilidad.json` dan
   idéntico; D4 sólo cambia corridas `-n`/`-g`.
+  *Hecho (2026-10-05).* Regresión verificada contra `HEAD` anterior: 0
+  celdas distintas en las columnas existentes de los dos lotes (63 y 100
+  corridas); la única diferencia es la columna `cobertura_media`. El caso
+  6 de la guía (`-n 8 -g 2 --seed 7 --duracion 100`) da las mismas cifras
+  porque en 100 s ningún Gateway agota la batería con 0.02 ni con 0.030:
+  D4 sólo se nota en corridas largas del modo aleatorio. Pruebas: 292
+  (de 288). La etiqueta en los reportes es "Cobertura media de Nodos de
+  usuario". Las guías con bloques de salida completos (`guia_ejecucion.md`)
+  no muestran aún esa línea: se refrescan en el paso 4.
 - [ ] **Paso 2 — D2.** Recuperar la alerta con un OGM nuevo, en
   `sim/sim_node.py` y `mesh/node.py`, con una prueba en el caso
   `escenarios/casos/puente.txt`: G1 y G3 dejan de creerse caídos después

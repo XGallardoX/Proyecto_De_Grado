@@ -301,9 +301,6 @@ mismos valores por defecto, así que da igual en cuál va cada clave):
 | `move_speed` | `0.32` | Metros por paso de un Gateway (`0` = nodos fijos, ver `--static`) |
 | `movilidad` | `seguir` | Cómo eligen su destino los Gateway: `seguir` (el Nodo de usuario más cercano) o `repartir` (uno por Nodo de usuario). Ver `--movilidad` |
 
-En modo aleatorio desde la línea de comandos (`-n`/`-g`, sin archivo),
-`battery_drain` vale `0.02` en vez de `0.030`.
-
 ### Formato `.txt` (equivalente al JSON, más fácil de editar a mano)
 
 ```bash
@@ -538,6 +535,7 @@ escenario) sale de la serie temporal que ya registra
 | Alertas de gateway perdido | Eventos `ALERT_ON`: un Gateway dejó de oír a otro durante más de `timeout` segundos (cada Gateway que lo detecta cuenta una). |
 | Primera alerta (s) | Instante de la primera de esas alertas; "no aplica" si no hubo. |
 | Reconvergencia de rutas BATMAN (s) | Duración media de los episodios de reconvergencia de rutas. Un episodio empieza cuando vuelve un Gateway (`RECOVER`) o se reunifica la malla (`HEAL`), y termina en la primera muestra en que todo par de Gateways conectados por radio tiene una ruta vigente: la ruta existe en su `BatmanRouter` y un OGM la refrescó hace menos que el `timeout`. Si llega otro disparador con un episodio abierto, se suma a ese. "No aplica" si ningún episodio se cerró. |
+| Cobertura media de Nodos de usuario | Promedio en el tiempo de la fracción de Nodos de usuario vivos que están alcanzables (`nodos_alcanzables` dividido por los Nodos vivos en cada muestra; se saltan las muestras sin Nodos vivos). A diferencia del valor al final, mide cuánta cobertura se perdió mientras un Gateway estuvo caído: 1.0 = todos los Nodos vivos cubiertos todo el tiempo. "No aplica" si nunca hubo Nodos de usuario vivos. |
 
 Dos advertencias para interpretarlas:
 
