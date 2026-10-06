@@ -115,10 +115,15 @@ nombre de quien usa la sesión y **sin** `Co-Authored-By` (ver
   (de 288). La etiqueta en los reportes es "Cobertura media de Nodos de
   usuario". Las guías con bloques de salida completos (`guia_ejecucion.md`)
   no muestran aún esa línea: se refrescan en el paso 4.
-- [ ] **Paso 2 — D2.** Recuperar la alerta con un OGM nuevo, en
+- [x] **Paso 2 — D2.** Recuperar la alerta con un OGM nuevo, en
   `sim/sim_node.py` y `mesh/node.py`, con una prueba en el caso
   `escenarios/casos/puente.txt`: G1 y G3 dejan de creerse caídos después
   de que G2 vuelve.
+  *Hecho (2026-10-05).* En `puente.txt` (semilla 1) G1 y G3 se
+  recuperan mutuamente a los 103.5 y 105 s; las cifras del resumen del
+  caso 13 no cambian. Prueba también del nodo real
+  (`MeshNode._handle_bcast`): un OGM nuevo recupera, una copia repetida
+  no. Pruebas: 294.
 - [ ] **Paso 3 — D1.** Corregir la ventana del TQ en `mesh/router.py`,
   con pruebas: OGM salteados bajan el TQ, los duplicados no lo tocan y
   un enlace sin pérdidas sigue en 1.0. Revisar la elección de rutas (que

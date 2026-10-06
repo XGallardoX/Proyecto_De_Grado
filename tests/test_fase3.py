@@ -200,6 +200,51 @@ class ReconvergenciaRutasTests(unittest.TestCase):
         self.assertIsNone(resumen_corrida(sim)["tiempo_reconvergencia_rutas_s"])
 
 
+class AlertaSeApagaConOgmTests(unittest.TestCase):
+    """D2 (contexto/PLAN_SIGUIENTE.md): un OGM nuevo de un origen apaga
+    su alerta. Antes sólo la apagaba un beacon directo, y un Gateway a
+    varios saltos quedaba caído para siempre (hallazgo 4)."""
+
+    def _puente(self):
+        main_mod.fijar_semilla(1)
+        sim, _ = main_mod.construir_simulacion(
+            os.path.join(main_mod.ESCENARIOS_DIR, "casos", "puente.txt"))
+        return sim
+
+    def test_g1_y_g3_dejan_de_creerse_caidos_cuando_vuelve_el_puente(self):
+        sim = self._puente()
+        g1, g3 = sim.nodes[1], sim.nodes[3]
+        _hasta(sim, 100)       # G2 cayó a los 60 s y todavía no volvió
+        # cada extremo da por caídos al puente y al otro extremo, al que
+        # sólo oía a través de G2
+        self.assertEqual(g1.fault.failed, {2, 3})
+        self.assertEqual(g3.fault.failed, {1, 2})
+        _hasta(sim, 160)
+        self.assertEqual(g1.fault.failed, set())
+        self.assertEqual(g3.fault.failed, set())
+        textos = [txt for _, tipo, txt in sim.recorder.events
+                  if tipo == "ALERT_OFF"]
+        self.assertIn("G1 recuperó señal de G3", textos)
+        self.assertIn("G3 recuperó señal de G1", textos)
+
+    def test_el_nodo_real_hace_lo_mismo(self):
+        from types import SimpleNamespace
+        from mesh.fault_manager import FaultManager
+        from mesh.node import MeshNode
+        from mesh.router import BatmanRouter
+        nodo = SimpleNamespace(node_id=1, router=BatmanRouter(1),
+                               fault_mgr=FaultManager(1))
+        nodo.fault_mgr.failed.add(3)
+        ogm = {"type": "OGM", "origin_id": 3, "seq": 7, "ttl": 1,
+               "path": [3, 2], "tq": 1.0, "alerts": []}
+        MeshNode._handle_bcast(nodo, ogm, "10.0.0.2")
+        self.assertEqual(nodo.fault_mgr.failed, set())
+        # una copia repetida no es un OGM nuevo: no recupera nada
+        nodo.fault_mgr.failed.add(3)
+        MeshNode._handle_bcast(nodo, ogm, "10.0.0.2")
+        self.assertEqual(nodo.fault_mgr.failed, {3})
+
+
 class CriterioWebTests(unittest.TestCase):
     """La tabla de rutas y la matriz de la interfaz usan ruta_vigente: una
     ruta que ningún OGM refrescó sale obsoleta aunque el vecino se oiga

@@ -112,9 +112,9 @@ def ruta_vigente(sim, origen, destino_id):
     No mira las alertas: `PeerInfo.in_alert` se contagia (cada OGM lleva
     la lista de caídos de quien lo emite y marca en alerta a esos nodos en
     todos los que lo reciben, aunque los oigan bien), y
-    `FaultManager.failed` sólo se limpia con un beacon directo, así que
-    un Gateway a varios saltos queda marcado para siempre. Con cualquiera
-    de las dos, en `denso` con `repartir` ningún episodio se cerraba.
+    `FaultManager.failed` sólo se limpia cuando llega un beacon directo o
+    un OGM nuevo del nodo, así que tarda en apagarse. Con cualquiera de
+    las dos, en `denso` con `repartir` ningún episodio se cerraba.
 
     Es el mismo criterio para la métrica tiempo_reconvergencia_rutas_s y
     para la interfaz web (tabla de rutas y matriz de conocimiento).

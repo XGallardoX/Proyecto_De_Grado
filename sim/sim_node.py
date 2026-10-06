@@ -170,21 +170,18 @@ class SimNode:
                         p.in_alert = False
 
 
-                genuino = nid in self.fault.failed
-                self.fault.recover(nid, now)
-                if genuino and self.role == 'G' and \
-                        self.sim.is_gateway(nid):
-                    lbl = self.sim.label_of(nid)
-                    self.sim.event('ALERT_OFF',
-                                   f"{self.label} recuperó señal de {lbl}")
-                    self.sim.log(
-                        f"{self.label}: señal de {lbl} recuperada", "ok")
+                self._recuperar(nid, now)
 
             elif mt == 'OGM':
                 is_new = self.router.receive_ogm(msg, from_ip, now)
                 self.ogms_procesados += 1
                 if is_new:
                     self.ogms_nuevos += 1
+                    # un OGM nuevo prueba que el origen está vivo: apaga su
+                    # alerta, con el mismo criterio con que se detectó (el
+                    # last_seen que refrescan los OGM). Sin esto, un
+                    # Gateway a varios saltos quedaba caído para siempre.
+                    self._recuperar(msg['origin_id'], now)
                 if is_new and msg.get('ttl', 0) > 1:
                     fwd = dict(msg)
                     fwd['ttl'] = msg['ttl'] - 1
@@ -194,6 +191,16 @@ class SimNode:
                     self.sim.medium.broadcast(self, fwd, self.sim.C_OGM)
                 for aid in msg.get('alerts', []):
                     self.router.mark_alert(aid)
+
+    def _recuperar(self, nid, now):
+        """FaultManager.recover() y, si `nid` estaba de verdad marcado
+        caído, el evento ALERT_OFF."""
+        genuino = nid in self.fault.failed
+        self.fault.recover(nid, now)
+        if genuino and self.role == 'G' and self.sim.is_gateway(nid):
+            lbl = self.sim.label_of(nid)
+            self.sim.event('ALERT_OFF', f"{self.label} recuperó señal de {lbl}")
+            self.sim.log(f"{self.label}: señal de {lbl} recuperada", "ok")
 
     # ── movilidad ──
     def move(self, now):

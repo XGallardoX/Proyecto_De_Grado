@@ -346,9 +346,9 @@ para el repo.
 - **Recuperar un nodo no es un arranque en frío**: conserva su secuencia
   de OGM. `BatmanRouter` no contempla que una secuencia vuelva a 0 (ver
   "Limitaciones conocidas" en `docs/arquitectura.md`).
-- **Una alerta sobre un Gateway a varios saltos no se apaga**:
-  `FaultManager` sólo la borra con un beacon directo (ver
-  `contexto/DECISIONES_FASE3.md`, hallazgo 4).
 
-Ninguna se "arregla" en este trabajo: son decisiones abiertas del
-proyecto (`contexto/ESTADO_PROYECTO.md`, punto 4 de "Falta").
+Hasta el 2026-10-05 había una más: una alerta sobre un Gateway a varios
+saltos no se apagaba, porque `FaultManager` sólo la borraba con un
+beacon directo (`contexto/DECISIONES_FASE3.md`, hallazgo 4). Ahora la
+apaga también un OGM nuevo de ese origen (decisión D2 de
+`contexto/PLAN_SIGUIENTE.md`).

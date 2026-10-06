@@ -183,6 +183,10 @@ class MeshNode:
 
         elif mt == 'OGM':
             is_new = self.router.receive_ogm(msg, from_ip, now)
+            if is_new:
+                # un OGM nuevo prueba que el origen está vivo (mismo
+                # criterio que la detección, que mira el last_seen)
+                self.fault_mgr.recover(msg['origin_id'], now)
             if is_new and msg.get('ttl', 0) > 1:
                 fwd = dict(msg)
                 fwd['ttl']  = msg['ttl'] - 1

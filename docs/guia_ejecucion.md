@@ -598,12 +598,12 @@ vuelve a los 100 s y la malla se reunifica a los 100.5 s.
   intermitente (a dos saltos, por enlaces que pierden casi la mitad de
   los paquetes), y lo último que sabía de él era más viejo que la
   caída.
-- **G1 y G3 se siguen creyendo caídos hasta el final.** En el simulador,
-  `FaultManager` sólo borra a un nodo de su lista de caídos cuando le
-  llega un beacon directo de él, y G1 y G3 no se oyen directo. Sus
-  rutas sí se refrescan (por eso la reconvergencia de rutas se cierra),
-  pero la alerta queda. Es comportamiento del código real
-  (`mesh/fault_manager.py` y la réplica de `MeshNode._handle_bcast`).
+- **G1 y G3 dejan de creerse caídos pocos segundos después de que G2
+  vuelve** (`ALERT_OFF` a los 103.5 s y a los 105 s). No se oyen
+  directo: la alerta se apaga con el primer OGM nuevo del otro que G2
+  les reenvía, con el mismo criterio con que se encendió (los OGM son
+  los que refrescan el `last_seen` del vecino). Igual en el simulador y
+  en el nodo real (`MeshNode._handle_bcast`).
 
 **Con 10 semillas** ([`lotes/fallos.json`](../lotes/fallos.json), que
 también corre la variante
