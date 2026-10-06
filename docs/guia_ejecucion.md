@@ -270,15 +270,15 @@ python main.py --inspect --config escenarios/casos/cadena.txt --duracion 60 --se
   Tabla de rutas BATMAN (a quien / por quien / con que calidad):
     destino  via(sig.salto)  hops  TQ    seq  edad
     -------  --------------  ----  ----  ---  ----
-    N1       N1              1     1.00  15   0.5s
-    N2       N1              2     1.00  13   8.5s
-    N3       N1              3     1.00  14   5.5s
+    N1       N1              1     0.38  15   0.5s
+    N2       N1              2     0.42  13   8.5s
+    N3       N1              3     0.04  14   5.5s
 ```
 
 Para llegar a N3, G1 manda por N1 (su siguiente salto) y la ruta tiene
-3 saltos. Fíjate en que el TQ dice 1.00 aunque cada enlace entrega
-menos de la mitad de los paquetes (tasa de entrega 0.45). Es la
-limitación conocida del TQ, explicada en la [sección 5](#5-dónde-quedan-los-resultados-y-cómo-leerlos).
+3 saltos. El TQ refleja que cada enlace entrega menos de la mitad de los
+paquetes (tasa de entrega 0.46): la ruta a N3, que cruza tres enlaces
+con pérdidas, queda casi en 0.
 Con menos duración, alguna ruta puede no haber aparecido todavía: con
 pérdidas altas, los OGMs tardan en atravesar la cadena.
 
@@ -734,10 +734,11 @@ reportes/
 **Tres cosas a tener en cuenta al interpretar** (detalle en
 "Limitaciones conocidas" de [`arquitectura.md`](arquitectura.md)):
 
-1. **El TQ vale 1.0 en toda ruta que existe.** El router no registra
-   los OGMs perdidos, así que el "TQ medio" mide cuánto tiempo hubo
-   rutas, no su calidad. Para la calidad de los enlaces, usa la **tasa
-   de entrega del radio**.
+1. **El TQ es la calidad de las rutas según BATMAN**: la fracción de
+   OGM recibidos de las últimas 16 secuencias, multiplicada salto a
+   salto. El "TQ medio" vale 0 mientras no hay rutas, así que también
+   pesa cuánto tiempo las hubo. La **tasa de entrega del radio** mide el
+   medio directamente, sin pasar por el protocolo.
 2. **"Tiempo de reconvergencia: no aplica"** es lo normal con la
    movilidad actual: ninguna partición se reunifica en los escenarios
    predefinidos (el Gateway que se separa no vuelve). Ojo: esa métrica
@@ -766,4 +767,3 @@ reportes/
 | `Error: La cantidad de Gateways debe ser menor que el total de nodos.` | Con `-n`/`-g`, `-g` tiene que ser menor que `-n`. |
 | La ventana no abre (sin pantalla, por SSH) | Usa `--headless` o `--inspect`: no necesitan pantalla. |
 | No encuentro los reportes | Están en `reportes/`, dentro del directorio desde el que corriste el comando. |
-| El TQ sale ≈ 1.0 siempre | Es la limitación conocida del router, no un error de tu corrida (ver la sección 5). |

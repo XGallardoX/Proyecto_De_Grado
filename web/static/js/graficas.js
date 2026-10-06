@@ -27,7 +27,7 @@ const PANELES = [
     series: [{ campo: "avg_tq", color: "#1D9E75", nombre: "TQ medio de rutas" },
              { campo: "avg_hops", color: "#E8A838", nombre: "Saltos medios", derecho: true, punteada: true }],
     eventos: ["FAIL", "RECOVER", "PARTITION", "HEAL"], desdeCero: true,
-    nota: "TQ calculado por el BatmanRouter real; hoy no refleja pérdidas (ver docs/arquitectura.md). La calidad del medio está en el panel 5." },
+    nota: "TQ calculado por el BatmanRouter real: fracción de OGM recibidos de las últimas 16 secuencias, salto a salto. La calidad del medio está en el panel 5." },
   { titulo: "4 · Detección de gateway perdido (regla de timeout)",
     series: [{ campo: "max_silence", color: "#C0392B", nombre: "Máx. s sin oír a un gateway" }],
     sombra: { campo: "alerts_active", si: (v) => v > 0, color: "#E67E2226" },

@@ -203,18 +203,20 @@ se retiró del repo; queda en el historial de git.)
 
 ## Limitaciones conocidas
 
-- **El TQ de `BatmanRouter` no refleja pérdidas.** `receive_ogm()`
-  (`mesh/router.py`) agrega un `1` a la ventana deslizante de cada
-  (origen, vecino) por cada OGM que recibe, pero nunca un `0` por los
-  que se pierden; `link_quality()` promedia esa ventana. Resultado:
-  toda ruta existente tiene TQ = 1.0, aunque el medio pierda entre un 5
-  y un 25 % de los paquetes según el escenario (verificado en los 5
-  escenarios predefinidos). El prototipo original (`batman_node.py`)
-  hacía lo mismo. Mientras no se corrija, el "TQ medio" de la figura y
-  de los reportes mide cuánto tiempo hubo rutas, no su calidad. Es
-  código de la capa del protocolo real (lo usa también `mesh/node.py`),
-  así que corregirlo cambia el protocolo y todos los resultados: queda
-  como decisión aparte.
+- **El TQ de `BatmanRouter` no reflejaba pérdidas** (corregido el
+  2026-10-05, decisión D1 de `contexto/PLAN_SIGUIENTE.md`). Antes,
+  `receive_ogm()` agregaba un `1` a la ventana de cada (origen, vecino)
+  por cada OGM recibido y nunca un `0` por los perdidos, así que toda
+  ruta tenía TQ = 1.0. Ahora guarda la última secuencia vista por cada
+  (origen, vecino) y agrega un `0` por cada secuencia salteada (hasta
+  16, el tamaño de la ventana) antes del `1`. Las copias duplicadas o
+  viejas no tocan la ventana. La ruta se queda con el vecino de mayor
+  TQ: antes ganaba la primera copia de cada secuencia, sin mirar el TQ.
+  Ahora el vecino actual la refresca, y otro la reemplaza sólo si su TQ
+  supera el del actual, descontadas las secuencias que el actual se
+  perdió. Cualquier copia no vieja mantiene vigente la ruta
+  (`last_seen`). Como `mesh/node.py` usa el mismo router, el arreglo
+  vale también para el nodo real.
 - **Con la movilidad por defecto, las particiones no se reunifican.**
   En `lotes/ejemplo.json` (5 escenarios × 10 semillas, 200 s) ningún
   episodio de partición terminó en reunificación: `particion` arranca

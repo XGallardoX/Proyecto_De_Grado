@@ -124,12 +124,24 @@ nombre de quien usa la sesión y **sin** `Co-Authored-By` (ver
   caso 13 no cambian. Prueba también del nodo real
   (`MeshNode._handle_bcast`): un OGM nuevo recupera, una copia repetida
   no. Pruebas: 294.
-- [ ] **Paso 3 — D1.** Corregir la ventana del TQ en `mesh/router.py`,
+- [x] **Paso 3 — D1.** Corregir la ventana del TQ en `mesh/router.py`,
   con pruebas: OGM salteados bajan el TQ, los duplicados no lo tocan y
   un enlace sin pérdidas sigue en 1.0. Revisar la elección de rutas (que
   la de mejor TQ gane) y los textos que dicen "TQ = 1.0": README,
   `docs/arquitectura.md`, `docs/interfaz_web.md` y los rótulos de la
   interfaz.
+  *Hecho (2026-10-05).* La elección de rutas también se corrigió: antes
+  ganaba la primera copia de cada secuencia sin mirar el TQ, y las copias
+  por otros vecinos se descartaban antes de compararlas. Ahora el vecino
+  actual refresca la ruta; otro la reemplaza sólo con TQ mayor que el del
+  actual, descontadas las secuencias que el actual se perdió; y cualquier
+  copia no vieja mantiene vigente el `last_seen` (sin esto, una ruta por
+  un vecino mejor cuya copia se perdió quedaba vieja aunque llegaran OGM
+  por otro, y la reconvergencia de rutas no se cerraba). Pruebas en
+  `tests/test_router_tq.py`; 305 en total. Ejemplos con `--seed 1
+  --static`: TQ medio 0.740 en `base`, 0.514 en `denso`, 0.711 en
+  `particion` (antes ≈ 1.0). La tabla del caso 4 de la guía ya está
+  actualizada; el resto de las cifras, en el paso 4.
 - [ ] **Paso 4 — Nueva línea base.** Volver a correr
   `lotes/ejemplo.json`, `casos.json`, `movilidad.json`, `fallos.json` y
   `capitulo5_fallos.json`, y los comandos de los casos de

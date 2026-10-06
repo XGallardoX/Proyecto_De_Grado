@@ -539,13 +539,14 @@ escenario) sale de la serie temporal que ya registra
 
 Dos advertencias para interpretarlas:
 
-- **El TQ vale 1.0 en toda ruta que existe.** `BatmanRouter`
-  (`mesh/router.py`) sólo agrega un `1` a su ventana deslizante cuando
-  recibe un OGM y nunca registra los que se pierden, así que la calidad
-  de enlace no baja de 1.0 aunque el medio pierda paquetes. El "TQ
-  medio" termina midiendo durante cuánto tiempo hubo rutas (vale 0
-  hasta que llega el primer OGM), no la calidad de los enlaces. Ver
-  "Limitaciones conocidas" en [`docs/arquitectura.md`](docs/arquitectura.md).
+- **El TQ mide la calidad de las rutas, y también cuánto tiempo hubo
+  rutas.** `BatmanRouter` (`mesh/router.py`) lleva, por cada (origen,
+  vecino), una ventana de las últimas 16 secuencias de OGM: un 1 por
+  cada una recibida y un 0 por cada una salteada. El TQ de una ruta es
+  el TQ que trae el OGM por esa calidad de enlace, y baja con cada salto
+  con pérdidas. El "TQ medio" promedia en el tiempo y vale 0 mientras no
+  hay rutas (al arrancar), así que las primeras muestras lo bajan un
+  poco. Ver [`docs/arquitectura.md`](docs/arquitectura.md).
 - **Particiones y "tiempo de reconvergencia" miden conectividad de
   radio, no tablas de rutas.** Dos Gateways están en el mismo componente
   si hay un camino de enlaces en rango entre ellos (lo mismo que el panel

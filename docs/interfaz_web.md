@@ -328,9 +328,6 @@ para el repo.
 
 ## 5. Limitaciones conocidas (la interfaz no las maquilla)
 
-- **El TQ vale siempre 1.0** en toda ruta que existe: `BatmanRouter` no
-  registra los OGM perdidos. Se rotula así en las gráficas, el panel
-  "Real / modelo" y la lente; la calidad del medio es la tasa de entrega.
 - **El ancho de banda es una heurística** (100 − 5·d Mbps hacia el
   Gateway más cercano), rotulada como estimación.
 - **Grupos y nodos alcanzables se calculan sobre los enlaces de radio**
@@ -347,7 +344,10 @@ para el repo.
   de OGM. `BatmanRouter` no contempla que una secuencia vuelva a 0 (ver
   "Limitaciones conocidas" en `docs/arquitectura.md`).
 
-Hasta el 2026-10-05 había una más: una alerta sobre un Gateway a varios
+Hasta el 2026-10-05 había dos más. El TQ valía siempre 1.0 porque
+`BatmanRouter` no registraba los OGM perdidos (decisión D1 de
+`contexto/PLAN_SIGUIENTE.md`): ahora sí los registra, y las gráficas y
+el panel "Real / modelo" lo muestran tal cual. Y una alerta sobre un Gateway a varios
 saltos no se apagaba, porque `FaultManager` sólo la borraba con un
 beacon directo (`contexto/DECISIONES_FASE3.md`, hallazgo 4). Ahora la
 apaga también un OGM nuevo de ese origen (decisión D2 de
