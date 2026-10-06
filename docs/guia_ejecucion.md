@@ -717,6 +717,27 @@ medio, entre 0.32 y 0.36, en todos.)
 - **El TQ es bajo (≈ 0.33)** porque las rutas cruzan casi 3 saltos con
   entrega 0.60: el TQ se multiplica salto a salto.
 
+**Tablas y figuras para el documento.** Con la salida de este lote y la
+de `lotes/movilidad.json` (caso 11) en `reportes/`:
+
+```bash
+python -m analysis.capitulo5
+```
+
+Toma el último lote de cada uno, o los que se le pasen con `--fallos` y
+`--movilidad`, y escribe en `Plantilla/` lo que el Capítulo 5 incluye
+con `\input{}` y `\includegraphics{}`:
+- las tablas `MainMatter/Cap5/tablas/fallos.tex`, `calidad.tex` y
+  `movilidad.tex`;
+- las figuras `Images/Cap5/cobertura_tiempo.pdf` (cobertura en el
+  tiempo, con las caídas sombreadas), `comparacion_fallos.pdf` y
+  `movilidad.pdf`.
+
+No corre simulaciones: las cifras son las del `resumen.json` del lote.
+Con `"figuras": true` en el lote, además, cada corrida guarda su figura
+de 6 paneles (`analisis_red.png`) en `reportes/`. Con esa opción las
+cifras salen idénticas: se verificó.
+
 ---
 
 ## 5. Dónde quedan los resultados y cómo leerlos

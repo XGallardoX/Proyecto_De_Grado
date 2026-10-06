@@ -170,10 +170,25 @@ nombre de quien usa la sesión y **sin** `Co-Authored-By` (ver
   Se actualizaron en la guía los casos 3, 7, 9, 11, 12 (los saltos de
   G4 a los 60 s), 13 y 14. Los casos 1 y 6 salen igual. README y
   `docs/arquitectura.md` no citaban cifras que cambiaran.
-- [ ] **Paso 5 — Resultados del Capítulo 5.** Correr
+- [x] **Paso 5 — Resultados del Capítulo 5.** Correr
   `lotes/capitulo5_fallos.json` con `"figuras": true` (y la comparación
   de movilidad, `lotes/movilidad.json`, como resultado secundario).
   Dejar tablas y figuras listas para el documento.
+  *Hecho (2026-10-05).* Se corrió con `"figuras": true` desde una copia
+  del lote, para no dejar la opción activada en el repo. El resumen sale
+  idéntico al de la corrida sin figuras. Nuevo `analysis/capitulo5.py`
+  (`python -m analysis.capitulo5`, con pruebas en
+  `tests/test_capitulo5.py`; 309 pruebas en total). Escribe:
+  - Tablas, para `\input{MainMatter/Cap5/tablas/...}`:
+    `Plantilla/MainMatter/Cap5/tablas/fallos.tex` (respuesta a cada
+    fallo), `calidad.tex` (TQ, saltos, entrega) y `movilidad.tex`
+    (*seguir* / *repartir*, secundario).
+  - Figuras vectoriales: `Plantilla/Images/Cap5/cobertura_tiempo.pdf`,
+    `comparacion_fallos.pdf` y `movilidad.pdf`.
+
+  Etiquetas para citarlas: `tab:cap5-fallos`, `tab:cap5-calidad` y
+  `tab:cap5-movilidad`. No se compiló el PDF en esta máquina (no tiene
+  TeX Live). Las tablas usan solo `array`, que la plantilla ya carga.
 - [ ] **Paso 6 — Documento de tesis** (`Plantilla/`, lo último). Escribir
   los capítulos 0, 1, 3, 4, 5 y 9 con el encuadre del director
   (*"la necesidad de un simulador hecho a la medida para redes

@@ -1,0 +1,24 @@
+% Generado por python -m analysis.capitulo5 (no editar a mano).
+\begin{table}[htbp!]
+    \centering
+    \caption{Respuesta de la malla a cada fallo}
+    \label{tab:cap5-fallos}
+    \footnotesize
+    \begin{tabular}{|>{\raggedright\arraybackslash}p{2.9cm}|>{\raggedright\arraybackslash}p{1.7cm}|>{\raggedright\arraybackslash}p{2.2cm}|>{\raggedright\arraybackslash}p{1.9cm}|>{\raggedright\arraybackslash}p{2.2cm}|>{\raggedright\arraybackslash}p{1.7cm}|}
+        \hline
+        \textbf{Experimento} & \textbf{Malla partida (s)} & \textbf{Reconvergencia de rutas (s)} & \textbf{Alertas} & \textbf{Cobertura media} & \textbf{Nodos cubiertos al final} \\
+        \hline
+        Control (sin fallos) & 0.0 & no aplica & 3.1 $\pm$ 2.6 & 1.000 & 6 \\
+        \hline
+        Gateway redundante & 0.0 & 7.7 $\pm$ 3.7 & 16.8 $\pm$ 2.4 & 1.000 & 6 \\
+        \hline
+        Gateway puente & 90.0 & 19.4 $\pm$ 6.7 & 22.0 $\pm$ 1.8 & 1.000 & 6 \\
+        \hline
+        Gateway de borde & 0.0 & 17.1 $\pm$ 9.0 & 11.8 $\pm$ 1.7 & 0.938 & 6 \\
+        \hline
+        Cascada & 40.0 & no aplica & 20.1 $\pm$ 0.3 & 0.736 & 3 \\
+        \hline
+    \end{tabular}
+
+    \vspace{0.4em}\parbox{13.8cm}{\scriptsize Media $\pm$ desviación estándar muestral de 10 corridas de 240 s simulados (semillas 1 a 10); sin $\pm$, la desviación es 0. ``No aplica'': ningún episodio de reconvergencia se cerró.}
+\end{table}
