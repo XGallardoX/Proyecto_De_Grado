@@ -109,6 +109,9 @@ class ResumenCorridaTests(unittest.TestCase):
             "perdida_destino_caido": None, "perdida_sin_camino": None,
             "perdida_sin_ruta": None, "perdida_ruta_vieja": None,
             "perdida_enlace": None, "perdida_bucle": None,
+            # el doble de prueba no registra series de conocimiento
+            "exactitud_conocimiento": None, "rutas_fantasma": None,
+            "rutas_faltantes": None, "nodos_criticos_medio": None,
         })
 
     def test_cobertura_media_usa_los_nodos_vivos_de_cada_muestra(self):

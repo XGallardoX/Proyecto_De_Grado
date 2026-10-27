@@ -51,9 +51,10 @@ def _mark_events(ax, events, tipos):
             ax.axvline(t, color=col, linestyle=ls, linewidth=1.0, alpha=0.55)
 
 def build_analysis_figure(sim, out_dir=None, verbose=True):
-    """Construye la figura de 6 paneles que explica el comportamiento de
-    la red a lo largo del tiempo (7 si hubo tráfico de datos: el 7.º es la
-    entrega del plano de datos), la guarda como PNG y exporta los
+    """Construye la figura de paneles que explica el comportamiento de
+    la red a lo largo del tiempo, más el de descentralización (8.º) y, si
+    hubo tráfico de datos, el de entrega del plano de datos (7.º); la
+    guarda como PNG y exporta los
     reportes CSV/JSON/TXT en la misma carpeta.
 
     Sin `out_dir` usa una carpeta nueva reportes/<escenario>_<fecha_hora>/.
@@ -64,15 +65,14 @@ def build_analysis_figure(sim, out_dir=None, verbose=True):
         return None
 
     con_datos = bool(getattr(rec, "datos_enviados", None)) and rec.datos_enviados[-1] > 0
-    fig = plt.figure(figsize=(16, 13 if con_datos else 10), facecolor=sim.C_BG)
+    fig = plt.figure(figsize=(16, 13), facecolor=sim.C_BG)
     fig.suptitle(
         f"Análisis de la red ad-hoc BATMAN · escenario '{sim.escenario}' · "
         f"timeout={sim.cfg['timeout']:.0f}s  rango={sim.cfg['rango_comm']:.0f}m  "
         f"falloff={sim.cfg['falloff']:.2f}",
         fontsize=13, y=0.985)
-    gs = fig.add_gridspec(4 if con_datos else 3, 2, hspace=0.42, wspace=0.20,
-                          left=0.07, right=0.97,
-                          top=0.935 if con_datos else 0.92, bottom=0.06)
+    gs = fig.add_gridspec(4, 2, hspace=0.42, wspace=0.20,
+                          left=0.07, right=0.97, top=0.935, bottom=0.06)
 
     # 1) Nodos vivos en el tiempo
     ax1 = fig.add_subplot(gs[0, 0])
@@ -173,7 +173,7 @@ def build_analysis_figure(sim, out_dir=None, verbose=True):
 
     # 7) Plano de datos (sólo si hubo tráfico)
     if con_datos:
-        ax7 = fig.add_subplot(gs[3, :])
+        ax7 = fig.add_subplot(gs[3, 0])
         ax7.plot(t, rec.entrega_datos, color='#A855F7', linewidth=1.8,
                  label='Datos entregados / enviados (últimos 20 s)')
         _mark_events(ax7, rec.events, {'FAIL', 'RECOVER', 'PARTITION', 'HEAL'})
@@ -184,6 +184,31 @@ def build_analysis_figure(sim, out_dir=None, verbose=True):
         ax7.set_xlabel("tiempo (s)")
         ax7.legend(fontsize=8, loc='lower left')
         ax7.grid(alpha=0.25)
+
+    # 8) Descentralización: cuánto sabe cada nodo y puntos únicos de falla
+    ax8 = fig.add_subplot(gs[3, 1] if con_datos else gs[3, :])
+    ax8.plot(t, rec.exactitud, color='#0E9F6E', linewidth=1.8,
+             label='Exactitud del conocimiento de rutas')
+    ax8.plot(t, rec.rutas_fantasma, color='#E0393E', linewidth=1.0,
+             label='Pares con ruta fantasma')
+    ax8.plot(t, rec.rutas_faltantes, color='#C27803', linewidth=1.0,
+             label='Pares con ruta faltante')
+    ax8.set_ylim(-0.02, 1.05)
+    ax8.set_ylabel("fracción de pares")
+    ax8b = ax8.twinx()
+    ax8b.step(t, rec.nodos_criticos, where='post', color='#7C5CFF',
+              linewidth=1.4, linestyle='--', label='Nodos críticos')
+    ax8b.set_ylabel("nodos críticos", color='#7C5CFF')
+    ax8b.set_ylim(bottom=0)
+    _mark_events(ax8, rec.events, {'FAIL', 'RECOVER', 'PARTITION', 'HEAL'})
+    ax8.set_title("8 · Descentralización: lo que cada nodo cree y los "
+                  "puntos únicos de falla")
+    ax8.set_xlabel("tiempo (s)")
+    lineas = ax8.get_legend_handles_labels()
+    lineas2 = ax8b.get_legend_handles_labels()
+    ax8.legend(lineas[0] + lineas2[0], lineas[1] + lineas2[1], fontsize=8,
+               loc='center right')
+    ax8.grid(alpha=0.25)
 
     if out_dir is None:
         ts = time.strftime('%Y%m%d_%H%M%S')

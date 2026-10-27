@@ -22,6 +22,10 @@ COLUMNAS_METRICAS = [
     ("datos_enviados", "datos_enviados"),
     ("datos_entregados", "datos_entregados"),
     ("entrega_datos_ventana", "entrega_datos"),
+    ("exactitud_conocimiento", "exactitud"),
+    ("rutas_fantasma", "rutas_fantasma"),
+    ("rutas_faltantes", "rutas_faltantes"),
+    ("nodos_criticos", "nodos_criticos"),
 ]
 COLUMNAS_EVENTO = ["tipo_evento", "descripcion_evento"]
 

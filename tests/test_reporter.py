@@ -19,7 +19,8 @@ COLUMNAS_CSV = [
     "nodos_alcanzables", "calidad_ruta_promedio_tq", "saltos_promedio",
     "silencio_maximo_s", "tasa_entrega_paquetes", "alertas_activas",
     "ancho_banda_total_mbps", "datos_enviados", "datos_entregados",
-    "entrega_datos_ventana", "tipo_evento", "descripcion_evento",
+    "entrega_datos_ventana", "exactitud_conocimiento", "rutas_fantasma",
+    "rutas_faltantes", "nodos_criticos", "tipo_evento", "descripcion_evento",
 ]
 CAMPOS_RESUMEN = {
     "tiempo_final_s", "nodos_por_rol", "componentes_finales",

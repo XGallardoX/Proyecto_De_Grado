@@ -19,6 +19,12 @@ class Recorder:
         self.datos_enviados = []
         self.datos_entregados = []
         self.entrega_datos = []
+        # descentralización: qué fracción de los pares (a, b) cree lo
+        # correcto sobre si puede llegar a b, y cuántos nodos son críticos
+        self.exactitud = []
+        self.rutas_fantasma = []
+        self.rutas_faltantes = []
+        self.nodos_criticos = []
         self.events = []
         # Episodios de reconvergencia de rutas: [inicio, fin, causa]. Los
         # abre el motor al recuperar un Gateway (RECOVER) o al reunificarse
@@ -103,6 +109,12 @@ class Recorder:
         self.datos_entregados.append(datos.entregados if datos else 0)
         self.entrega_datos.append(datos.entrega_reciente(sim.t) if datos else 1.0)
 
+        exacta, fantasma, faltante = conocimiento(sim)
+        self.exactitud.append(exacta)
+        self.rutas_fantasma.append(fantasma)
+        self.rutas_faltantes.append(faltante)
+        self.nodos_criticos.append(len(puntos_articulacion(sim)))
+
         # sólo se mira mientras haya un episodio abierto: no cuesta nada
         # en las corridas sin recuperaciones ni reunificaciones
         if self._reconv_abierta is not None and rutas_convergidas(sim):
@@ -134,6 +146,103 @@ def ruta_vigente(sim, origen, destino_id):
     """
     ruta = origen.router.routes.get(destino_id)
     return ruta is not None and sim.t - ruta.last_seen <= sim.cfg['timeout']
+
+
+def conocimiento(sim):
+    """Cuánto coincide lo que cree cada nodo con la realidad, sobre los
+    pares ordenados (a, b) de nodos vivos distintos. Devuelve fracciones
+    (exactos, fantasmas, faltantes):
+    - exacto: a tiene ruta vigente hacia b si y sólo si la radio los
+      conecta (mismo grupo de radio);
+    - fantasma: a tiene ruta vigente, pero la radio ya no los conecta;
+    - faltante: la radio los conecta, pero a no tiene ruta vigente.
+    Con menos de dos nodos vivos, (1.0, 0.0, 0.0). Ver ruta_vigente."""
+    vivos, find, idx = sim._union_find()
+    pares = fantasmas = faltantes = 0
+    for a in vivos:
+        for b in vivos:
+            if a is b:
+                continue
+            pares += 1
+            fisico = find(idx[a.id]) == find(idx[b.id])
+            cree = ruta_vigente(sim, a, b.id)
+            fantasmas += cree and not fisico
+            faltantes += fisico and not cree
+    if not pares:
+        return 1.0, 0.0, 0.0
+    return (1 - (fantasmas + faltantes) / pares, fantasmas / pares,
+            faltantes / pares)
+
+
+def _adyacencia(sim, vivos):
+    return {a.id: [b.id for b in vivos
+                   if b is not a and sim.medium.reliability(a, b) > 0.0]
+            for a in vivos}
+
+
+def puntos_articulacion(sim):
+    """Ids de los nodos vivos cuya caída parte su grupo de radio en dos o
+    más (puntos de articulación del grafo de enlaces): los puntos únicos de
+    falla de la malla. Tarjan iterativo, en orden de id (determinista)."""
+    vivos = sorted((n for n in sim.nodes.values() if n.alive), key=lambda n: n.id)
+    ady = _adyacencia(sim, vivos)
+    orden, bajo, criticos = {}, {}, set()
+    contador = 0
+    for raiz in ady:
+        if raiz in orden:
+            continue
+        orden[raiz] = bajo[raiz] = contador
+        contador += 1
+        hijos_raiz = 0
+        pila = [(raiz, None, iter(ady[raiz]))]
+        while pila:
+            v, padre, vecinos = pila[-1]
+            avanzo = False
+            for w in vecinos:
+                if w == padre:
+                    continue
+                if w in orden:
+                    bajo[v] = min(bajo[v], orden[w])
+                else:
+                    orden[w] = bajo[w] = contador
+                    contador += 1
+                    if v == raiz:
+                        hijos_raiz += 1
+                    pila.append((w, v, iter(ady[w])))
+                    avanzo = True
+                    break
+            if avanzo:
+                continue
+            pila.pop()
+            if padre is not None:
+                bajo[padre] = min(bajo[padre], bajo[v])
+                if padre != raiz and bajo[v] >= orden[padre]:
+                    criticos.add(padre)
+        if hijos_raiz > 1:
+            criticos.add(raiz)
+    return sorted(criticos)
+
+
+def nodos_cortados(sim, nid):
+    """Cuántos nodos vivos quedarían separados del grupo de radio más
+    grande si `nid` cayera (sin contar a `nid`). 0 si no es crítico."""
+    vivos = [n for n in sim.nodes.values() if n.alive and n.id != nid]
+    ady = _adyacencia(sim, vivos)
+    vistos, mayor = set(), 0
+    for inicio in ady:
+        if inicio in vistos:
+            continue
+        grupo, pila = 0, [inicio]
+        vistos.add(inicio)
+        while pila:
+            v = pila.pop()
+            grupo += 1
+            for w in ady[v]:
+                if w not in vistos:
+                    vistos.add(w)
+                    pila.append(w)
+        mayor = max(mayor, grupo)
+    return len(vivos) - mayor
 
 
 def rutas_convergidas(sim):
@@ -180,6 +289,10 @@ METRICAS_CORRIDA = [
     ("perdida_ruta_vieja", "Datos perdidos: ruta vieja", 3),
     ("perdida_enlace", "Datos perdidos: la radio perdió el salto", 3),
     ("perdida_bucle", "Datos perdidos: bucle", 3),
+    ("exactitud_conocimiento", "Exactitud del conocimiento de rutas", 3),
+    ("rutas_fantasma", "Pares con ruta fantasma", 3),
+    ("rutas_faltantes", "Pares con ruta faltante", 3),
+    ("nodos_criticos_medio", "Nodos críticos (articulación), media", 2),
 ]
 
 
@@ -248,6 +361,12 @@ def resumen_corrida(sim):
       el instante del envío (1.0 = BATMAN eligió un camino mínimo).
     - perdida_*: fracción de los enviados que se perdió por cada causa de
       sim.datos.CAUSAS; suman 1 - entrega_datos.
+    - exactitud_conocimiento / rutas_fantasma / rutas_faltantes: promedio
+      en el tiempo de conocimiento(): la fracción de pares (a, b) de nodos
+      vivos en que a cree lo correcto sobre si puede llegar a b, y las
+      que cree tener sin que la radio los conecte o al revés.
+    - nodos_criticos_medio: promedio en el tiempo de la cantidad de puntos
+      de articulación de la malla (puntos únicos de falla).
     """
     reconv = [fin - ini for ini, fin, _causa
               in getattr(sim.recorder, "reconv_rutas", []) if fin is not None]
@@ -279,7 +398,15 @@ def resumen_corrida(sim):
         "cobertura_media": (sum(fracciones) / len(fracciones)
                             if fracciones else None),
         **_resumen_datos(getattr(sim, "datos", None)),
+        "exactitud_conocimiento": _media(getattr(rec, "exactitud", [])),
+        "rutas_fantasma": _media(getattr(rec, "rutas_fantasma", [])),
+        "rutas_faltantes": _media(getattr(rec, "rutas_faltantes", [])),
+        "nodos_criticos_medio": _media(getattr(rec, "nodos_criticos", [])),
     }
+
+
+def _media(xs):
+    return sum(xs) / len(xs) if xs else None
 
 
 def _resumen_datos(datos):
