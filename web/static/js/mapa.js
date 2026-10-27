@@ -9,8 +9,9 @@ import { colorCss } from "./util.js";
 
 const MARGEN = 2.5;
 const RADIO = 9;
-const PALETA_GRUPOS = ["#378ADD", "#E8A838", "#1D9E75", "#9B59B6",
-                       "#E24B4A", "#16A085", "#D4AC0D", "#8E44AD"];
+const PALETA_GRUPOS = ["#5B8CFF", "#F2A93B", "#12B886", "#A78BFA",
+                       "#EF5A5F", "#14B8A6", "#EAB308", "#C084FC"];
+const FUENTE = "Inter, system-ui, sans-serif";
 
 export const CAPAS = [
   ["enlaces", "Enlaces"], ["paquetes", "Paquetes"], ["estelas", "Estelas"],
@@ -18,11 +19,14 @@ export const CAPAS = [
   ["vigilancia", "Vigilancia"], ["cobertura", "Cobertura"],
 ];
 
-function colorEnlace(f) {
-  return f > 0.66 ? "#1D9E75" : f > 0.33 ? "#E8A838" : "#E24B4A";
-}
-
 function lerp(a, b, t) { return a + (b - a) * t; }
+
+// "#RRGGBB" + alfa (0..1) -> "#RRGGBBAA"
+function conAlfa(hex, a) {
+  const h = String(hex).trim();
+  if (!/^#[0-9a-fA-F]{6}/.test(h)) return h;
+  return h.slice(0, 7) + Math.round(Math.max(0, Math.min(1, a)) * 255).toString(16).padStart(2, "0");
+}
 
 function envolvente(puntos) {
   // casco convexo (cadena monótona); sólo geometría de dibujo
@@ -53,7 +57,7 @@ export class Mapa {
     this.intervalo = 55;
     this.seleccionId = null;
     this.herramienta = "seleccionar";
-    this.capas = { enlaces: true, paquetes: true, estelas: true, burbujas: true,
+    this.capas = { enlaces: true, paquetes: true, estelas: true, burbujas: false,
                    alcance: true, envolventes: true, vigilancia: true, cobertura: false };
     this.lente = null;          // {id, detalle} — "ver como este nodo"
     this.filtroOrigen = null;   // sólo los OGM de este origen
@@ -65,6 +69,7 @@ export class Mapa {
     this.compositor = { origen: null, destino: null };
     this.escalaUI = 1;
     this._pos = new Map();
+    this._pulsos = new Map();   // id -> instante (ms) del último beacon
     this._arrastre = null;
     this._tr = null;
     this.refrescarTema();
@@ -75,10 +80,19 @@ export class Mapa {
   }
 
   refrescarTema() {
+    const t = (n) => colorCss(n);
     this._ui = {
-      bg: colorCss("--bg"), tinta: colorCss("--tinta"), tenue: colorCss("--tenue"),
-      borde: colorCss("--borde"), piso: colorCss("--piso"), panel: colorCss("--panel"),
+      bg: t("--lienzo") || t("--bg"), tinta: t("--tinta"), tenue: t("--tenue"), suave: t("--suave"),
+      borde: t("--borde"), piso: t("--piso"), pisoBorde: t("--piso-borde"), panel: t("--panel"),
+      escalera: t("--escalera"), usuario: t("--nodo-usuario"), acento: t("--acento"),
+      alerta: t("--alerta"), ok: t("--ok"), aviso: t("--aviso"),
+      bueno: t("--enlace-bueno"), medio: t("--enlace-medio"), malo: t("--enlace-malo"),
     };
+  }
+
+  _colorEnlace(f) {
+    const ui = this._ui;
+    return f > 0.66 ? ui.bueno : f > 0.33 ? ui.medio : ui.malo;
   }
 
   redimensionar() {
@@ -102,6 +116,16 @@ export class Mapa {
       this.prev = null;
       this._prevPorId = new Map();
       this.mensajes = [];
+      this._pulsos.clear();
+    }
+    // un beacon nuevo (el flag pasa a true) dispara un pulso en el mapa;
+    // a velocidades altas el flag se reactiva antes de que termine la
+    // animación, así que no se reinicia un pulso en curso
+    for (const n of f.nodos) {
+      const t0 = this._pulsos.get(n.id);
+      if (n.beacon && !this._prevPorId.get(n.id)?.beacon && !(t0 != null && ahora - t0 < 1100)) {
+        this._pulsos.set(n.id, ahora);
+      }
     }
     this.cur = f;
     this.tLlegada = ahora;
@@ -121,9 +145,9 @@ export class Mapa {
         const v = valores[j * nx + i];
         const k = ((ny - 1 - j) * nx + i) * 4;   // fila 0 de la imagen = arriba
         if (v <= 0) { img.data[k + 3] = 0; continue; }
-        const [r, g, b] = v > 0.66 ? [29, 158, 117] : v > 0.33 ? [232, 168, 56] : [226, 75, 74];
+        const [r, g, b] = v > 0.66 ? [18, 184, 134] : v > 0.33 ? [242, 169, 59] : [239, 90, 95];
         img.data[k] = r; img.data[k + 1] = g; img.data[k + 2] = b;
-        img.data[k + 3] = Math.round(255 * (0.18 + 0.32 * v));
+        img.data[k + 3] = Math.round(255 * (0.16 + 0.3 * v));
       }
     }
     c.putImageData(img, 0, 0);
@@ -267,33 +291,63 @@ export class Mapa {
       porId.set(n.id, n);
     }
     const pos = (id) => this._pos.get(id);
+    const colorNodo = (n) => (!n.vivo ? col.caido : n.rol === "G" ? n.color : ui.usuario);
 
     ctx.clearRect(0, 0, this.ancho, this.alto);
     ctx.fillStyle = ui.bg;
     ctx.fillRect(0, 0, this.ancho, this.alto);
 
-    // edificio: pisos y hueco de escalera
+    // edificio: pisos como tarjetas, cuadrícula de 2 m y hueco de escalera
     const { piso_h, n_pisos, ancho, alto, stair_xy, stair_half_w } = f.edificio;
-    ctx.font = `${12 * k}px system-ui, sans-serif`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
+    const separacion = Math.min(4, piso_h * escala * 0.04);
     for (let p = 0; p < n_pisos; p++) {
       const [x0, y0] = w2s(0, (p + 1) * piso_h);
       const [x1, y1] = w2s(ancho, p * piso_h);
+      const yA = y0 + separacion, yB = y1 - separacion;
       ctx.fillStyle = ui.piso;
-      ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
-      ctx.strokeStyle = ui.borde;
+      ctx.strokeStyle = ui.pisoBorde;
       ctx.lineWidth = 1;
-      ctx.strokeRect(x0, y0, x1 - x0, y1 - y0);
-      ctx.fillStyle = ui.tenue;
-      ctx.fillText(`P${p + 1}`, ...w2s(-1.3, p * piso_h + piso_h / 2));
+      ctx.beginPath();
+      ctx.roundRect(x0, yA, x1 - x0, yB - yA, 10);
+      ctx.fill(); ctx.stroke();
+      // cuadrícula de puntos
+      ctx.fillStyle = ui.pisoBorde;
+      for (let gx = 2; gx < ancho; gx += 2) {
+        for (let gy = p * piso_h + 2; gy < (p + 1) * piso_h - 0.5; gy += 2) {
+          const [sx, sy] = w2s(gx, gy);
+          ctx.fillRect(sx - 0.75, sy - 0.75, 1.5, 1.5);
+        }
+      }
+      ctx.font = `600 ${10 * k}px ${FUENTE}`;
+      ctx.textAlign = "left";
+      ctx.textBaseline = "top";
+      ctx.fillStyle = ui.suave;
+      ctx.fillText(`PISO ${p + 1}`, x0 + 10, yA + 8);
     }
     {
       const [sx0, sy0] = w2s(stair_xy[0] - stair_half_w, alto);
       const [sx1, sy1] = w2s(stair_xy[0] + stair_half_w, 0);
-      ctx.fillStyle = "rgba(29,158,117,0.10)";
+      ctx.fillStyle = ui.escalera;
       ctx.fillRect(sx0, sy0, sx1 - sx0, sy1 - sy0);
+      ctx.save();
+      ctx.beginPath(); ctx.rect(sx0, sy0, sx1 - sx0, sy1 - sy0); ctx.clip();
+      ctx.strokeStyle = conAlfa(ui.ok, 0.12);
+      ctx.lineWidth = 1;
+      for (let d = -(sy1 - sy0); d < sx1 - sx0; d += 9) {
+        ctx.beginPath(); ctx.moveTo(sx0 + d, sy1); ctx.lineTo(sx0 + d + (sy1 - sy0), sy0); ctx.stroke();
+      }
+      ctx.restore();
+      ctx.save();
+      ctx.translate((sx0 + sx1) / 2, sy1 - 10);
+      ctx.rotate(-Math.PI / 2);
+      ctx.font = `600 ${9 * k}px ${FUENTE}`;
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = conAlfa(ui.ok, 0.6);
+      ctx.fillText("ESCALERA", 0, 0);
+      ctx.restore();
     }
+    ctx.textBaseline = "middle";
 
     // cobertura
     if (this.capas.cobertura && this._imgCobertura) {
@@ -324,10 +378,15 @@ export class Mapa {
         h.forEach(([x, y], j) => (j ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
         if (h.length > 2) ctx.closePath();
         if (h.length === 1) ctx.lineTo(h[0][0] + 0.01, h[0][1]);
-        ctx.strokeStyle = c + "26";
-        ctx.lineWidth = 38 * k;
+        ctx.strokeStyle = c + "22";
+        ctx.lineWidth = 42 * k;
         ctx.stroke();
-        if (h.length > 2) { ctx.fillStyle = c + "26"; ctx.fill(); }
+        if (h.length > 2) { ctx.fillStyle = c + "22"; ctx.fill(); }
+        ctx.setLineDash([5, 5]);
+        ctx.lineWidth = 1.2;
+        ctx.strokeStyle = c + "88";
+        if (h.length > 2) ctx.stroke();
+        ctx.setLineDash([]);
       });
     }
 
@@ -335,23 +394,29 @@ export class Mapa {
     const sel = porId.get(this.seleccionId);
     if (this.capas.alcance && sel?.vivo) {
       const [cx, cy] = pos(sel.id);
-      ctx.beginPath();
-      ctx.arc(cx, cy, (f.cfg.rango_comm || 16) * escala, 0, Math.PI * 2);
-      ctx.strokeStyle = sel.color + "66";
-      ctx.setLineDash([4, 4]);
-      ctx.lineWidth = 1;
+      const r = (f.cfg.rango_comm || 16) * escala;
+      const c = colorNodo(sel);
+      const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+      g.addColorStop(0, conAlfa(c, 0.10));
+      g.addColorStop(1, conAlfa(c, 0.02));
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = conAlfa(c, 0.55);
+      ctx.setLineDash([5, 6]);
+      ctx.lineWidth = 1.2;
       ctx.stroke();
       ctx.setLineDash([]);
     }
 
     // enlaces de radio (verdad física)
     if (this.capas.enlaces) {
+      ctx.lineCap = "round";
       for (const [ia, ib, fiab] of f.enlaces) {
         const a = pos(ia), b = pos(ib);
         if (!a || !b) continue;
-        ctx.strokeStyle = colorEnlace(fiab);
-        ctx.globalAlpha = lente ? 0.08 : 0.3 + 0.4 * fiab;
-        ctx.lineWidth = Math.max(1, 1 + 2 * fiab);
+        ctx.strokeStyle = this._colorEnlace(fiab);
+        ctx.globalAlpha = lente ? 0.07 : 0.25 + 0.5 * fiab;
+        ctx.lineWidth = (1 + 2.4 * fiab) * k;
         ctx.beginPath(); ctx.moveTo(...a); ctx.lineTo(...b); ctx.stroke();
       }
       ctx.globalAlpha = 1;
@@ -359,14 +424,18 @@ export class Mapa {
 
     // estelas
     if (this.capas.estelas) {
-      ctx.lineWidth = 1;
+      ctx.lineWidth = 1.5;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
       for (const n of f.nodos) {
         if (n.estela.length < 2) continue;
-        ctx.strokeStyle = n.color + (lente ? "18" : "48");
+        ctx.strokeStyle = conAlfa(colorNodo(n), lente ? 0.08 : 0.3);
+        ctx.setLineDash([2, 4]);
         ctx.beginPath();
         n.estela.forEach(([x, y], i) => (i ? ctx.lineTo(...w2s(x, y)) : ctx.moveTo(...w2s(x, y))));
         ctx.stroke();
       }
+      ctx.setLineDash([]);
     }
 
     // paquetes en vuelo (extrapolados entre frames por el avance de t).
@@ -381,39 +450,45 @@ export class Mapa {
         const prog = Math.min(1, progreso + extra);
         if (prog >= 1) continue;
         const [sx, sy] = w2s(lerp(x0, x1, prog), lerp(y0, y1, prog));
-        ctx.globalAlpha = Math.max(0.15, 1 - prog) * (lente && !filtrado ? 0.3 : 1);
-        ctx.fillStyle = tipo === "OGM" ? col.ogm : col.bcn;
-        ctx.beginPath(); ctx.arc(sx, sy, (filtrado ? 5 : 3.5) * k, 0, Math.PI * 2); ctx.fill();
+        const a = Math.max(0.15, 1 - prog) * (lente && !filtrado ? 0.3 : 1);
+        const c = tipo === "OGM" ? col.ogm : col.bcn;
+        const r = (filtrado ? 4.5 : 3) * k;
+        ctx.globalAlpha = a * 0.28;
+        ctx.fillStyle = c;
+        ctx.beginPath(); ctx.arc(sx, sy, r * 2.3, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = a;
+        ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI * 2); ctx.fill();
         if (filtrado && ttl != null) {
           ctx.globalAlpha = 1;
           ctx.fillStyle = ui.tinta;
-          ctx.font = `${10 * k}px system-ui, sans-serif`;
-          ctx.fillText(`ttl ${ttl}`, sx, sy - 9 * k);
+          ctx.font = `600 ${10 * k}px ${FUENTE}`;
+          ctx.textAlign = "center";
+          ctx.fillText(`ttl ${ttl}`, sx, sy - 11 * k);
         }
       }
       ctx.globalAlpha = 1;
       if (!filtrado && f.paquetes_total > f.paquetes.length) {
-        ctx.font = `${11 * k}px system-ui, sans-serif`;
+        ctx.font = `${11 * k}px ${FUENTE}`;
         ctx.textAlign = "left";
-        ctx.fillStyle = ui.tenue;
+        ctx.fillStyle = ui.suave;
         ctx.fillText(`Paquetes: se dibuja una muestra de ${f.paquetes.length} de ${f.paquetes_total} en vuelo`,
-                     8, this.alto - 10);
-        ctx.textAlign = "center";
+                     12, this.alto - 14);
       }
     }
 
     // vigilancia: anillos que se llenan con el silencio contra el timeout
     if (this.capas.vigilancia && sel?.rol === "G" && sel.vivo && !lente) {
+      ctx.lineCap = "round";
       for (const v of f.vigilancia) {
         if (v.observador !== sel.id) continue;
         const p = pos(v.observado);
         if (!p) continue;
         const frac = Math.min(1, v.silencio / v.timeout);
-        const r = 16 * k;
+        const r = 17 * k;
         ctx.lineWidth = 3;
         ctx.strokeStyle = ui.borde;
         ctx.beginPath(); ctx.arc(p[0], p[1], r, 0, Math.PI * 2); ctx.stroke();
-        ctx.strokeStyle = v.cree_caido ? "#C0392B" : frac > 0.66 ? "#E67E22" : "#1D9E75";
+        ctx.strokeStyle = v.cree_caido ? ui.alerta : frac > 0.66 ? ui.aviso : ui.ok;
         ctx.beginPath();
         ctx.arc(p[0], p[1], r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (v.cree_caido ? 1 : frac));
         ctx.stroke();
@@ -423,63 +498,97 @@ export class Mapa {
     // lente: lo que el nodo cree saber
     if (lente) this._dibujarLente(lente, pos, porId, k);
 
-    // nodos
-    ctx.textBaseline = "alphabetic";
+    // nodos: halos y pulsos de beacon primero, para que queden debajo
+    for (const n of f.nodos) {
+      if (!n.vivo || (lente && !visiblesLente.has(n.id))) continue;
+      const [sx, sy] = pos(n.id);
+      const c = colorNodo(n);
+      if (n.rol === "G") {
+        const g = ctx.createRadialGradient(sx, sy, 0, sx, sy, 26 * k);
+        g.addColorStop(0, conAlfa(c, 0.28));
+        g.addColorStop(1, conAlfa(c, 0));
+        ctx.fillStyle = g;
+        ctx.beginPath(); ctx.arc(sx, sy, 26 * k, 0, Math.PI * 2); ctx.fill();
+      }
+      const t0 = this._pulsos.get(n.id);
+      if (t0 != null) {
+        const e = (ahora - t0) / 1100;
+        if (e < 1) {
+          ctx.strokeStyle = conAlfa(n.rol === "G" ? c : col.bcn, 0.55 * (1 - e));
+          ctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.arc(sx, sy, (RADIO + 4 + 26 * e) * k, 0, Math.PI * 2); ctx.stroke();
+        }
+      }
+    }
+
+    // cuerpos de los nodos
+    const etiquetas = [];
     for (const n of f.nodos) {
       const [sx, sy] = pos(n.id);
       const tenue = lente && !visiblesLente.has(n.id);
       ctx.globalAlpha = tenue ? 0.22 : 1;
-      const c = n.en_alerta ? col.alerta : (n.vivo ? n.color : col.caido);
+      const c = colorNodo(n);
+      const r = (n.rol === "G" ? RADIO : RADIO - 1) * k;
       ctx.fillStyle = c;
-      ctx.strokeStyle = "#fff";
-      ctx.lineWidth = 2;
-      const r = RADIO * k;
+      ctx.strokeStyle = ui.bg;
+      ctx.lineWidth = 2.5;
       ctx.beginPath();
       if (n.rol === "G") ctx.arc(sx, sy, r, 0, Math.PI * 2);
-      else { ctx.moveTo(sx, sy - r); ctx.lineTo(sx + r, sy); ctx.lineTo(sx, sy + r); ctx.lineTo(sx - r, sy); ctx.closePath(); }
+      else {
+        // rombo: un cuadrado redondeado girado 45°
+        ctx.save();
+        ctx.translate(sx, sy); ctx.rotate(Math.PI / 4);
+        ctx.roundRect(-r * 0.72, -r * 0.72, r * 1.44, r * 1.44, 2.5 * k);
+        ctx.restore();
+      }
       ctx.fill(); ctx.stroke();
+      if (n.rol === "G" && n.vivo) {
+        // "antena": punto central del color del fondo
+        ctx.fillStyle = ui.bg;
+        ctx.beginPath(); ctx.arc(sx, sy, 2.6 * k, 0, Math.PI * 2); ctx.fill();
+      }
       if (!n.vivo) {
-        ctx.strokeStyle = "#fff";
+        ctx.strokeStyle = ui.bg;
+        ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.moveTo(sx - 4 * k, sy - 4 * k); ctx.lineTo(sx + 4 * k, sy + 4 * k);
-        ctx.moveTo(sx + 4 * k, sy - 4 * k); ctx.lineTo(sx - 4 * k, sy + 4 * k);
+        ctx.moveTo(sx - 3.5 * k, sy - 3.5 * k); ctx.lineTo(sx + 3.5 * k, sy + 3.5 * k);
+        ctx.moveTo(sx + 3.5 * k, sy - 3.5 * k); ctx.lineTo(sx - 3.5 * k, sy + 3.5 * k);
         ctx.stroke();
       }
+      if (n.en_alerta) {
+        const pul = 0.5 + 0.5 * Math.sin(ahora / 180);
+        ctx.strokeStyle = conAlfa(ui.alerta, 0.5 + 0.5 * pul);
+        ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.arc(sx, sy, (13 + 2 * pul) * k, 0, Math.PI * 2); ctx.stroke();
+      }
       if (n.id === this.seleccionId) {
-        ctx.strokeStyle = n.vivo ? n.color : col.caido;
-        ctx.beginPath(); ctx.arc(sx, sy, 14 * k, 0, Math.PI * 2); ctx.stroke();
+        ctx.strokeStyle = ui.acento;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.arc(sx, sy, 15 * k, 0, Math.PI * 2); ctx.stroke();
       }
       if (n.id === this.filtroOrigen) {
         ctx.strokeStyle = col.ogm;
+        ctx.lineWidth = 2;
         ctx.setLineDash([3, 3]);
-        ctx.beginPath(); ctx.arc(sx, sy, 18 * k, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.arc(sx, sy, 19 * k, 0, Math.PI * 2); ctx.stroke();
         ctx.setLineDash([]);
       }
-      let tag = n.etiqueta + (!n.vivo ? " ×" : n.en_alerta ? " !" : "");
-      tag += ` ${Math.round(n.bateria)}%`;
-      ctx.font = `${n.id === this.seleccionId ? "600 " : ""}${11 * k}px system-ui, sans-serif`;
-      ctx.textAlign = "center";
-      ctx.fillStyle = n.en_alerta ? col.alerta : ui.tinta;
-      ctx.fillText(tag, sx, sy - 14 * k);
-      if (this.capas.burbujas && n.beacon && n.ultimo_mensaje && !lente) {
-        ctx.font = `italic ${10 * k}px system-ui, sans-serif`;
-        ctx.textAlign = "left";
-        ctx.fillStyle = ui.tenue;
-        ctx.fillText(`“${n.ultimo_mensaje}”`, sx + 12 * k, sy + 18 * k);
-      }
+      etiquetas.push({ n, sx, sy, tenue });
     }
     ctx.globalAlpha = 1;
+    this._dibujarEtiquetas(etiquetas, ui, col, lente, k);
 
     // compositor: origen / destino elegidos
     for (const [id, letra] of [[this.compositor.origen, "de"], [this.compositor.destino, "a"]]) {
       const p = id != null && pos(id);
       if (!p) continue;
       ctx.strokeStyle = col.mensaje;
-      ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.arc(p[0], p[1], 17 * k, 0, Math.PI * 2); ctx.stroke();
+      ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.arc(p[0], p[1], 18 * k, 0, Math.PI * 2); ctx.stroke();
       ctx.fillStyle = col.mensaje;
-      ctx.font = `600 ${10 * k}px system-ui, sans-serif`;
-      ctx.fillText(letra, p[0] + 20 * k, p[1] + 4 * k);
+      ctx.font = `700 ${10 * k}px ${FUENTE}`;
+      ctx.textAlign = "left";
+      ctx.fillText(letra, p[0] + 21 * k, p[1] + 1);
     }
 
     // resaltados (clic en la línea de tiempo)
@@ -487,13 +596,62 @@ export class Mapa {
       if (hasta < ahora) { this.resaltados.delete(id); continue; }
       const p = pos(id);
       if (!p) continue;
-      const pulso = 20 * k + 5 * Math.sin(ahora / 140);
-      ctx.strokeStyle = "#E67E22";
+      const pulso = 21 * k + 5 * Math.sin(ahora / 140);
+      ctx.strokeStyle = ui.aviso;
       ctx.lineWidth = 3;
       ctx.beginPath(); ctx.arc(p[0], p[1], pulso, 0, Math.PI * 2); ctx.stroke();
     }
 
     this._dibujarMensajes(pos, col, ahora, k);
+  }
+
+  // Etiquetas en píldoras (nombre + batería) sobre cada nodo. Si chocan
+  // con otra ya puesta (nodos apilados) se corren hacia arriba.
+  _dibujarEtiquetas(lista, ui, col, lente, k) {
+    const { ctx } = this;
+    const puestas = [];
+    const choca = (r) => puestas.some((q) => r.x < q.x + q.w && q.x < r.x + r.w && r.y < q.y + q.h && q.y < r.y + r.h);
+    // el seleccionado primero: su etiqueta queda en el lugar natural
+    lista.sort((a, b) => (b.n.id === this.seleccionId) - (a.n.id === this.seleccionId));
+    ctx.textBaseline = "middle";
+    for (const { n, sx, sy, tenue } of lista) {
+      const elegido = n.id === this.seleccionId;
+      const texto = n.etiqueta + (!n.vivo ? " ×" : n.en_alerta ? " !" : "");
+      ctx.font = `${elegido ? 700 : 600} ${11 * k}px ${FUENTE}`;
+      const tw = ctx.measureText(texto).width;
+      const barra = 16 * k;
+      const w = tw + barra + 18 * k, h = 17 * k;
+      const r = { x: sx - w / 2, y: sy - 15 * k - h, w, h };
+      for (let i = 0; i < 8 && choca(r); i++) r.y -= h + 2;
+      puestas.push(r);
+      ctx.globalAlpha = tenue ? 0.25 : 1;
+      if (r.y < sy - 15 * k - h - 1) {
+        // conector hasta el nodo cuando la etiqueta se corrió
+        ctx.strokeStyle = ui.borde;
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(sx, sy - 10 * k); ctx.lineTo(sx, r.y + h); ctx.stroke();
+      }
+      ctx.fillStyle = conAlfa(ui.panel, 0.92);
+      ctx.strokeStyle = elegido ? ui.acento : n.en_alerta ? ui.alerta : ui.borde;
+      ctx.lineWidth = elegido ? 1.5 : 1;
+      ctx.beginPath(); ctx.roundRect(r.x, r.y, r.w, r.h, h / 2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = n.en_alerta ? ui.alerta : n.vivo ? ui.tinta : ui.suave;
+      ctx.textAlign = "left";
+      ctx.fillText(texto, r.x + 7 * k, r.y + h / 2 + 0.5);
+      // batería
+      const bx = r.x + 11 * k + tw, by = r.y + h / 2 - 2 * k;
+      const b = Math.max(0, Math.min(1, n.bateria / 100));
+      ctx.fillStyle = ui.borde;
+      ctx.beginPath(); ctx.roundRect(bx, by, barra, 4 * k, 2 * k); ctx.fill();
+      ctx.fillStyle = b < 0.2 ? ui.alerta : b < 0.45 ? ui.aviso : ui.ok;
+      if (b > 0) { ctx.beginPath(); ctx.roundRect(bx, by, Math.max(2, barra * b), 4 * k, 2 * k); ctx.fill(); }
+      if (this.capas.burbujas && n.beacon && n.ultimo_mensaje && !lente) {
+        ctx.font = `italic ${10 * k}px ${FUENTE}`;
+        ctx.fillStyle = ui.tenue;
+        ctx.fillText(`“${n.ultimo_mensaje}”`, sx + 13 * k, sy + 16 * k);
+      }
+    }
+    ctx.globalAlpha = 1;
   }
 
   _flecha(a, b, color, ancho, recorte = 12) {
@@ -505,6 +663,7 @@ export class Mapa {
     const x0 = a[0] + ux * recorte, y0 = a[1] + uy * recorte;
     const x1 = b[0] - ux * recorte, y1 = b[1] - uy * recorte;
     ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = ancho;
+    ctx.lineCap = "round";
     ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
     ctx.beginPath();
     ctx.moveTo(x1, y1);
@@ -521,27 +680,28 @@ export class Mapa {
     // rutas: siguiente salto (flecha) y destino final (línea punteada)
     const saltos = new Map();
     for (const r of d.rutas) {
-      const color = r.obsoleta ? "#C0392B" : "#2E6FB7";
+      const color = r.obsoleta ? ui.alerta : ui.acento;
       const v = pos(r.via), dst = pos(r.destino);
       if (v && !saltos.has(r.via)) saltos.set(r.via, color);
       if (v && dst && r.via !== r.destino) {
         ctx.setLineDash([4, 5]);
-        ctx.strokeStyle = color + "AA";
+        ctx.strokeStyle = conAlfa(color, 0.65);
         ctx.lineWidth = 1.5;
         ctx.beginPath(); ctx.moveTo(...v); ctx.lineTo(...dst); ctx.stroke();
         ctx.setLineDash([]);
       }
       if (dst) {
-        ctx.font = `${10 * k}px system-ui, sans-serif`;
+        ctx.font = `500 ${10 * k}px ${FUENTE}`;
         ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
         const texto = `${r.hops} salto${r.hops === 1 ? "" : "s"} · TQ ${r.tq.toFixed(2)} · hace ${r.edad_s.toFixed(0)}s`;
-        const w = ctx.measureText(texto).width + 8;
-        ctx.fillStyle = ui.panel;
-        ctx.globalAlpha = 0.9;
-        ctx.fillRect(dst[0] - w / 2, dst[1] + 13 * k, w, 14 * k);
-        ctx.globalAlpha = 1;
-        ctx.fillStyle = r.obsoleta ? "#C0392B" : ui.tinta;
-        ctx.fillText(texto, dst[0], dst[1] + 24 * k);
+        const w = ctx.measureText(texto).width + 12;
+        ctx.fillStyle = conAlfa(ui.panel, 0.94);
+        ctx.strokeStyle = r.obsoleta ? ui.alerta : ui.borde;
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.roundRect(dst[0] - w / 2, dst[1] + 14 * k, w, 16 * k, 8 * k); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = r.obsoleta ? ui.alerta : ui.tinta;
+        ctx.fillText(texto, dst[0], dst[1] + 22 * k);
       }
     }
     for (const [via, color] of saltos) this._flecha(yo, pos(via), color, 2.5);
@@ -549,20 +709,21 @@ export class Mapa {
     for (const c of d.cree_caidos) {
       const p = pos(c.id);
       if (!p) continue;
-      ctx.strokeStyle = "#C0392B"; ctx.lineWidth = 2.5;
+      ctx.strokeStyle = ui.alerta; ctx.lineWidth = 2.5;
       ctx.beginPath(); ctx.arc(p[0], p[1], 19 * k, 0, Math.PI * 2); ctx.stroke();
     }
     // lo que la radio alcanza pero el nodo todavía no conoce
     for (const a of d.alcanzables_sin_ruta) {
       const p = pos(a.id);
       if (!p) continue;
-      ctx.strokeStyle = "#D9922A"; ctx.lineWidth = 2;
+      ctx.strokeStyle = ui.aviso; ctx.lineWidth = 2;
       ctx.setLineDash([3, 3]);
       ctx.beginPath(); ctx.arc(p[0], p[1], 17 * k, 0, Math.PI * 2); ctx.stroke();
       ctx.setLineDash([]);
       ctx.globalAlpha = 1;
-      ctx.fillStyle = "#D9922A";
-      ctx.font = `600 ${11 * k}px system-ui, sans-serif`;
+      ctx.fillStyle = ui.aviso;
+      ctx.font = `700 ${11 * k}px ${FUENTE}`;
+      ctx.textAlign = "center";
       ctx.fillText("?", p[0] + 18 * k, p[1] - 10 * k);
     }
   }
@@ -577,8 +738,10 @@ export class Mapa {
         return p || m.ultimas.get(id);
       }).filter(Boolean);
       if (pts.length < 2) continue;
-      ctx.strokeStyle = col.mensaje + "99";
-      ctx.lineWidth = 3;
+      ctx.strokeStyle = conAlfa(col.mensaje, 0.55);
+      ctx.lineWidth = 3.5;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
       ctx.beginPath();
       pts.forEach((p, i) => (i ? ctx.lineTo(...p) : ctx.moveTo(...p)));
       ctx.stroke();
@@ -594,23 +757,26 @@ export class Mapa {
       } else {
         [x, y] = pts.at(-1);
       }
+      ctx.fillStyle = conAlfa(col.mensaje, 0.3);
+      ctx.beginPath(); ctx.arc(x, y, 12 * k, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = col.mensaje;
       ctx.strokeStyle = "#fff";
       ctx.lineWidth = 2;
       ctx.beginPath(); ctx.arc(x, y, 6 * k, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
       let texto = `${m.origen}→${m.destino}: ${m.texto}`;
       if (texto.length > 46) texto = texto.slice(0, 45) + "…";
-      ctx.font = `600 ${12 * k}px system-ui, sans-serif`;
+      ctx.font = `600 ${12 * k}px ${FUENTE}`;
       ctx.textAlign = "left";
-      const w = ctx.measureText(texto).width + 12;
-      const bx = Math.min(Math.max(x + 12, 4), this.ancho - w - 4);
-      const by = Math.max(y - 24 * k, 4);
+      ctx.textBaseline = "middle";
+      const w = ctx.measureText(texto).width + 16;
+      const bx = Math.min(Math.max(x + 14, 4), this.ancho - w - 4);
+      const by = Math.max(y - 28 * k, 4);
       ctx.fillStyle = col.mensaje;
       ctx.beginPath();
-      ctx.roundRect(bx, by, w, 18 * k, 5);
+      ctx.roundRect(bx, by, w, 20 * k, 10 * k);
       ctx.fill();
       ctx.fillStyle = "#fff";
-      ctx.fillText(texto, bx + 6, by + 13 * k);
+      ctx.fillText(texto, bx + 8, by + 10 * k + 0.5);
     }
   }
 }

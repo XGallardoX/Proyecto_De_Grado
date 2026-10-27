@@ -22,6 +22,15 @@ function ctx2d() {
       if (p in t) return t[p];
       if (p === "measureText") return (s) => ({ width: String(s).length * 6 });
       if (p === "createImageData") return (w, h) => ({ width: w, height: h, data: new Uint8ClampedArray(w * h * 4) });
+      if (p === "createLinearGradient" || p === "createRadialGradient") {
+        return (...args) => {
+          registro.llamadasCanvas++;
+          if (args.some((a) => !Number.isFinite(a))) registro.errores.push(`ctx.${p}(${args.join(", ")})`);
+          return { addColorStop(o, c) {
+            if (!Number.isFinite(o) || /NaN|undefined|null/.test(String(c))) registro.errores.push(`addColorStop(${o}, ${c})`);
+          } };
+        };
+      }
       return (...args) => {
         registro.llamadasCanvas++;
         for (const a of args) {

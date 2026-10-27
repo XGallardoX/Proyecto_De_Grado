@@ -2,7 +2,7 @@
 // formato de lotes/*.json) y lo corre en el servidor con
 // `python main.py --batch` en un subproceso. Acá sólo se arma el lote y se
 // muestran el progreso y el resumen agregado que calcula Python.
-import { bloqueComando, colorCss, esc, num } from "../util.js";
+import { bloqueComando, colorCss, esc, icono, num } from "../util.js";
 
 const ESTADOS = {
   inactivo: "sin correr", corriendo: "corriendo…", cancelando: "cancelando…",
@@ -191,7 +191,9 @@ export class Laboratorio {
     this.c.querySelector("#lab-cancelar").disabled = s.estado !== "corriendo";
     const pct = s.total ? Math.round(100 * s.hechas / s.total) : 0;
     prog.innerHTML = s.estado === "inactivo"
-      ? '<p class="detalle">Todavía no se corrió ningún lote en esta sesión.</p>'
+      ? `<div class="tarjeta vacio" style="text-align:center;padding:2.5rem 1rem">${icono("lab")}
+           <p>Todavía no se corrió ningún lote en esta sesión.</p>
+           <p class="detalle">Arma las entradas a la izquierda y presiona <b>Correr</b>.</p></div>`
       : `<h3>${esc(s.nombre || "")} — ${ESTADOS[s.estado] || esc(s.estado)}</h3>
          <div class="lab-barra-progreso" role="progressbar" aria-valuemin="0" aria-valuemax="${s.total}" aria-valuenow="${s.hechas}">
            <div style="width:${pct}%"></div></div>

@@ -42,15 +42,20 @@ document.addEventListener("click", (ev) => {
   if (b) copiar(b.dataset.copiar);
 });
 
+// Ícono del sprite de index.html (<symbol id="i-...">).
+export function icono(nombre) {
+  return `<svg class="ico" aria-hidden="true"><use href="#i-${nombre}"/></svg>`;
+}
+
 export const ICONOS_EVENTO = {
-  FAIL: ["✕", "#C0392B", "Caída"],
-  RECOVER: ["↺", "#1D9E75", "Recuperación"],
-  ALERT_ON: ["!", "#E67E22", "Alerta: un Gateway dejó de oír a otro"],
-  ALERT_OFF: ["✓", "#2ECC71", "Fin de alerta"],
-  PARTITION: ["⫽", "#8E44AD", "La malla se partió"],
-  HEAL: ["∪", "#16A085", "La malla se reunificó"],
-  PARAM: ["⚙", "#888888", "Cambio de parámetro"],
-  MSG_OK: ["✉", "#9B59B6", "Mensaje entregado"],
-  MSG_FAIL: ["✉", "#C0392B", "Mensaje no entregado"],
-  MOVE: ["↔", "#888888", "Nodo movido"],
+  FAIL: ["✕", "#EF4444", "Caída"],
+  RECOVER: ["↺", "#10B981", "Recuperación"],
+  ALERT_ON: ["!", "#F59E0B", "Alerta: un Gateway dejó de oír a otro"],
+  ALERT_OFF: ["✓", "#22C55E", "Fin de alerta"],
+  PARTITION: ["⫽", "#8B5CF6", "La malla se partió"],
+  HEAL: ["∪", "#14B8A6", "La malla se reunificó"],
+  PARAM: ["⚙", "#64748B", "Cambio de parámetro"],
+  MSG_OK: ["✉", "#A855F7", "Mensaje entregado"],
+  MSG_FAIL: ["✉", "#EF4444", "Mensaje no entregado"],
+  MOVE: ["↔", "#64748B", "Nodo movido"],
 };

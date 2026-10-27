@@ -15,7 +15,7 @@ import { abrirMenu, cerrarMenu, menuAbierto } from "./paneles/menu.js";
 import { prepararInicio } from "./paneles/inicio.js";
 import { Editor } from "./paneles/editor.js";
 import { Laboratorio } from "./paneles/laboratorio.js";
-import { bloqueComando, esc, ICONOS_EVENTO, num, toast } from "./util.js";
+import { bloqueComando, esc, icono, ICONOS_EVENTO, num, toast } from "./util.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -37,6 +37,12 @@ const intentar = (accion, datos) => comando(accion, datos).catch(() => null);
 const etiqueta = (id) => frame?.nodos.find((n) => n.id === id)?.etiqueta ?? `?${id}`;
 const nodo = (id) => frame?.nodos.find((n) => n.id === id);
 const panelVisible = (nombre) => $(`panel-${nombre}`).classList.contains("activo");
+
+// ── tema ──────────────────────────────────────────────────────────────
+// Se aplica antes de crear el mapa y las gráficas: leen los colores de
+// los tokens CSS al construirse.
+const raiz = document.documentElement;
+try { const t = localStorage.getItem("tema"); if (t) raiz.dataset.tema = t; } catch { /* sin storage */ }
 
 // ── mapa ──────────────────────────────────────────────────────────────
 const mapa = new Mapa($("mapa"), {
@@ -103,7 +109,8 @@ async function refrescarNodo() {
     if (mapa.lente && mapa.lente.id === id) { mapa.lente.detalle = d; pintarBannerLente(d); }
     if (panelVisible("nodo") && mapa.seleccionId != null) {
       const sel = d && d.id === mapa.seleccionId ? d : await api.obtenerNodo(mapa.seleccionId);
-      pintarPanelNodo($("panel-nodo"), sel, { lenteActiva: !!mapa.lente, etiqueta });
+      pintarPanelNodo($("panel-nodo"), sel, { lenteActiva: !!mapa.lente, etiqueta,
+        color: (i) => nodo(i)?.color, enAlerta: (i) => nodo(i)?.en_alerta });
     }
   } finally {
     pidiendoNodo = false;
@@ -145,11 +152,12 @@ function tooltip(info, px, py) {
 
 // ── menú contextual ───────────────────────────────────────────────────
 function menuMapa(id, cx, cy, w) {
+  tooltip(null);
   const n = id != null ? nodo(id) : null;
   if (n) {
     seleccionar(id);
     abrirMenu(cx, cy, `${n.etiqueta} · ${n.rol === "G" ? "Gateway" : "Nodo de usuario"}`, [
-      { texto: "👁 Ver la red como este nodo", accion: () => activarLente(id) },
+      { texto: "Ver la red como este nodo (L)", accion: () => activarLente(id) },
       n.vivo ? { texto: "Caer (F)", accion: () => intentar("caer", { id }) }
              : { texto: "Recuperar (G)", accion: () => intentar("recuperar", { id }) },
       { texto: "Mensaje desde acá", accion: () => abrirCompositor(id) },
@@ -249,13 +257,14 @@ async function refrescarPaquetesOrigen() {
 // ── leyenda y capas ───────────────────────────────────────────────────
 function pintarLeyenda(col) {
   const simbolos = [
-    ["●", col.gateway[0], "Gateway"], ["◆", col.nodo, "Nodo de usuario"],
-    ["●", col.alerta, "En alerta"], ["●", col.caido, "Caído"],
-    ["━", "#1D9E75", "Enlace fiable"], ["━", "#E24B4A", "Enlace débil"],
-    ["•", col.ogm, "OGM"], ["•", col.bcn, "Beacon"],
+    ["circulo", col.gateway[0], "Gateway"], ["rombo", "var(--nodo-usuario)", "Nodo de usuario"],
+    ["anillo", "var(--alerta)", "En alerta"], ["circulo", col.caido, "Caído"],
+    ["linea", "var(--enlace-bueno)", "Enlace fiable"], ["linea", "var(--enlace-malo)", "Enlace débil"],
+    ["punto", col.ogm, "OGM"], ["punto", col.bcn, "Beacon"],
   ];
-  $("leyenda").innerHTML = `<div class="simbolos">${simbolos.map(([s, c, t]) =>
-      `<span><span class="sim" style="color:${c}">${s}</span>${t}</span>`).join("")}</div>
+  $("leyenda").innerHTML = `<div class="simbolos">${simbolos.map(([forma, c, t]) =>
+      `<span><span class="sim ${forma}" style="background:${c};color:${c}"></span>${t}</span>`).join("")}</div>
+    <div class="capas-titulo">${icono("capas")}Capas</div>
     <div class="capas">${CAPAS.map(([k, t]) =>
       `<button data-capa="${k}" aria-pressed="${mapa.capas[k]}">${t}</button>`).join("")}</div>`;
   $("leyenda").querySelectorAll("[data-capa]").forEach((b) => b.addEventListener("click", () => {
@@ -341,7 +350,13 @@ function pintarBarra(f) {
   $("aviso-intervenciones").textContent = `${f.intervenciones} ${f.intervenciones === 1 ? "intervención" : "intervenciones"}`;
   $("aviso-error").hidden = !f.error;
   $("aviso-error").textContent = f.error ? `Error: ${f.error} — Reiniciar` : "";
-  $("btn-pausar").textContent = f.pausado ? "▶ Reanudar" : "⏸ Pausar";
+  const play = $("btn-pausar");
+  if (play.dataset.pausado !== String(f.pausado)) {
+    play.dataset.pausado = String(f.pausado);
+    play.innerHTML = icono(f.pausado ? "play" : "pausa") +
+      `<span class="rotulo">${f.pausado ? "Reanudar" : "Pausar"}</span>`;
+    play.title = `${f.pausado ? "Reanudar" : "Pausar"} (Espacio)`;
+  }
   $("btn-paso").disabled = !f.pausado;
   const vel = $("sel-velocidad");
   if (document.activeElement !== vel) vel.value = String(f.velocidad);
@@ -492,9 +507,7 @@ function alternarPresentacion() {
   mapa.escalaUI = activo ? 1.45 : 1;
 }
 
-// tema
-const raiz = document.documentElement;
-try { const t = localStorage.getItem("tema"); if (t) raiz.dataset.tema = t; } catch { /* sin storage */ }
+// tema (el elegido se aplica arriba, antes de crear el mapa)
 $("btn-tema").addEventListener("click", () => {
   const oscuroAhora = raiz.dataset.tema
     ? raiz.dataset.tema === "oscuro"

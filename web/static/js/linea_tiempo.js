@@ -29,7 +29,9 @@ export class LineaTiempo {
     const eje = document.createElement("div");
     eje.className = "eje";
     c.append(eje);
-    const pasoMarca = tmax > 600 ? 120 : tmax > 200 ? 60 : tmax > 60 ? 20 : 10;
+    // un paso "redondo" que deje como mucho ~12 marcas
+    const pasoMarca = [10, 20, 30, 60, 120, 300, 600, 1200, 1800, 3600, 7200]
+      .find((p) => tmax / p <= 12) ?? Math.ceil(tmax / 12 / 3600) * 3600;
     for (let s = 0; s <= tmax; s += pasoMarca) {
       const m = document.createElement("span");
       m.className = "marca-t";
@@ -42,7 +44,7 @@ export class LineaTiempo {
       const b = document.createElement("button");
       b.className = "ev";
       b.style.left = `${(ev.t / tmax) * 100}%`;
-      b.style.color = color;
+      b.style.background = color;
       b.textContent = icono;
       b.title = `[${ev.t.toFixed(1)} s] ${nombre}: ${ev.texto}`;
       b.setAttribute("aria-label", b.title);

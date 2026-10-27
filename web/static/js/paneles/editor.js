@@ -4,7 +4,7 @@
 // acá no se duplica ninguna regla.
 
 import * as api from "../api.js";
-import { bloqueComando, colorCss, esc, toast } from "../util.js";
+import { bloqueComando, colorCss, esc, icono, toast } from "../util.js";
 
 const CAMPOS_EDIFICIO = [["ancho", "Ancho (m)"], ["alto", "Alto (m)"],
                          ["piso_h", "Alto de piso (m)"], ["n_pisos", "Pisos"]];
@@ -174,7 +174,7 @@ export class Editor {
         <td><input type="number" step="0.1" data-k="x" value="${n.x}" style="width:4.5em"></td>
         <td><input type="number" step="0.1" data-k="y" value="${n.y}" style="width:4.5em"></td>
         <td><input type="number" step="1" min="0" max="100" data-k="battery" value="${n.battery ?? ""}" placeholder="100" style="width:4em"></td>
-        <td><button data-borrar title="Borrar">✕</button></td></tr>`).join("");
+        <td><button data-borrar class="icono-boton" title="Borrar">${icono("cerrar")}</button></td></tr>`).join("");
     t.querySelectorAll("tr[data-i]").forEach((tr) => {
       const n = this.datos.nodes[Number(tr.dataset.i)];
       tr.querySelectorAll("[data-k]").forEach((inp) => inp.addEventListener("change", () => {
@@ -286,33 +286,42 @@ export class Editor {
     const { w2s, escala, ancho, alto } = this._tr();
     const b = this.datos.building;
     const pisoH = Number(b.piso_h) || 10, nPisos = Number(b.n_pisos) || 3;
-    ctx.fillStyle = colorCss("--bg"); ctx.fillRect(0, 0, r.width, r.height);
-    ctx.font = "12px system-ui, sans-serif"; ctx.textAlign = "center";
+    ctx.fillStyle = colorCss("--lienzo"); ctx.fillRect(0, 0, r.width, r.height);
+    ctx.font = "600 10px Inter, system-ui, sans-serif";
     for (let p = 0; p < nPisos; p++) {
       const [x0, y0] = w2s(0, Math.min(alto, (p + 1) * pisoH));
       const [x1, y1] = w2s(ancho, p * pisoH);
-      ctx.fillStyle = colorCss("--piso"); ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
-      ctx.strokeStyle = colorCss("--borde"); ctx.strokeRect(x0, y0, x1 - x0, y1 - y0);
-      ctx.fillStyle = colorCss("--tenue");
-      ctx.fillText(`P${p + 1}`, ...w2s(-1, p * pisoH + pisoH / 2));
+      ctx.fillStyle = colorCss("--piso"); ctx.strokeStyle = colorCss("--piso-borde");
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.roundRect(x0, y0 + 2, x1 - x0, y1 - y0 - 4, 8); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = colorCss("--suave");
+      ctx.textAlign = "left";
+      ctx.fillText(`PISO ${p + 1}`, x0 + 9, y0 + 15);
     }
+    ctx.textAlign = "center";
+    ctx.font = "600 11px Inter, system-ui, sans-serif";
+    const cG = colorCss("--acento"), cN = colorCss("--nodo-usuario"), fondo = colorCss("--lienzo");
     const rango = Number(this.datos.medium.rango_comm) || 16;
     const et = this._etiquetas();
     for (const n of this.datos.nodes) {
       const [x, y] = w2s(n.x, n.y);
       if (n.role === "G") {
-        ctx.strokeStyle = "#378ADD33"; ctx.setLineDash([4, 4]);
+        ctx.strokeStyle = cG.slice(0, 7) + "40"; ctx.setLineDash([4, 5]);
         ctx.beginPath(); ctx.arc(x, y, rango * escala, 0, Math.PI * 2); ctx.stroke();
         ctx.setLineDash([]);
       }
     }
     for (const n of this.datos.nodes) {
       const [x, y] = w2s(n.x, n.y);
-      ctx.fillStyle = n.role === "G" ? "#378ADD" : "#E24B4A";
-      ctx.strokeStyle = "#fff"; ctx.lineWidth = 2;
+      ctx.fillStyle = n.role === "G" ? cG : cN;
+      ctx.strokeStyle = fondo; ctx.lineWidth = 2.5;
       ctx.beginPath();
       if (n.role === "G") ctx.arc(x, y, 9, 0, Math.PI * 2);
-      else { ctx.moveTo(x, y - 9); ctx.lineTo(x + 9, y); ctx.lineTo(x, y + 9); ctx.lineTo(x - 9, y); ctx.closePath(); }
+      else {
+        ctx.save(); ctx.translate(x, y); ctx.rotate(Math.PI / 4);
+        ctx.roundRect(-6.5, -6.5, 13, 13, 2.5);
+        ctx.restore();
+      }
       ctx.fill(); ctx.stroke();
       ctx.fillStyle = colorCss("--tinta");
       ctx.fillText(`${et.get(n.id)} (${n.x}, ${n.y})`, x, y - 14);

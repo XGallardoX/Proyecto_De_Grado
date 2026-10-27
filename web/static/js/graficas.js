@@ -3,7 +3,7 @@
 // Recorder y las mismas marcas de eventos. Los datos llegan de
 // /api/series; acá sólo se dibujan.
 
-import { colorCss } from "./util.js";
+import { colorCss, esc } from "./util.js";
 
 const ESTILO_EVENTO = {
   FAIL: ["#C0392B", []], RECOVER: ["#1D9E75", []],
@@ -63,6 +63,14 @@ export class Graficas {
     this.paneles = PANELES.map((p) => {
       const div = document.createElement("div");
       div.className = "grafica";
+      const titulo = document.createElement("div");
+      titulo.className = "titulo-grafica";
+      titulo.textContent = p.titulo;
+      const leyenda = document.createElement("div");
+      leyenda.className = "series-grafica";
+      leyenda.innerHTML = p.series.filter((se) => !se.fino).map((se) =>
+        `<span><i style="background:${se.color}"></i>${esc(se.nombre)}</span>`).join("");
+      div.append(titulo, leyenda);
       const canvas = document.createElement("canvas");
       const tip = document.createElement("div");
       tip.className = "tip";
@@ -104,23 +112,19 @@ export class Graficas {
   _dibujarPanel(panel) {
     const { canvas, spec } = panel;
     const dpr = window.devicePixelRatio || 1;
-    const W = canvas.clientWidth || 360, H = 150;
+    const W = canvas.clientWidth || 360, H = 128;
     canvas.width = W * dpr; canvas.height = H * dpr;
     canvas.style.height = `${H}px`;
     const ctx = canvas.getContext("2d");
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     const tinta = colorCss("--tinta"), tenue = colorCss("--tenue"), borde = colorCss("--borde");
     ctx.clearRect(0, 0, W, H);
-    ctx.font = "600 11px system-ui, sans-serif";
-    ctx.fillStyle = tinta;
-    ctx.textAlign = "left";
-    ctx.fillText(spec.titulo, 2, 11);
 
     const r = this._rango();
     if (!r) return;
     const s = this.datos.series;
     const tieneDerecho = spec.series.some((x) => x.derecho);
-    const L = 34, R = tieneDerecho ? 34 : 8, T = 20, B = 18;
+    const L = 34, R = tieneDerecho ? 34 : 8, T = 6, B = 18;
     const pw = W - L - R, ph = H - T - B;
     const t = s.t.slice(r.i0);
     const X = (v) => L + ((v - r.tmin) / (r.tmax - r.tmin)) * pw;
@@ -151,22 +155,31 @@ export class Graficas {
     const izq = escala(false), der = tieneDerecho ? escala(true) : null;
     panel.geo = { L, pw, X, t, i0: r.i0, valores, izq, der };
 
-    // marco y ejes
+    // cuadrícula (tres líneas) y ejes
     ctx.strokeStyle = borde; ctx.lineWidth = 1;
-    ctx.strokeRect(L, T, pw, ph);
-    ctx.fillStyle = tenue; ctx.font = "10px system-ui, sans-serif";
+    ctx.setLineDash([2, 4]);
+    for (const fr of [0, 0.5, 1]) {
+      const y = Math.round(T + ph * fr) + 0.5;
+      ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(L + pw, y); ctx.stroke();
+    }
+    ctx.setLineDash([]);
+    ctx.fillStyle = tenue; ctx.font = "500 10px Inter, system-ui, sans-serif";
     ctx.textAlign = "right";
+    ctx.textBaseline = "middle";
     const fmt = (v) => (Math.abs(v) >= 10 ? v.toFixed(0) : v.toFixed(2));
-    ctx.fillText(fmt(izq.hi), L - 3, T + 8);
-    ctx.fillText(fmt(izq.lo), L - 3, T + ph);
+    ctx.fillText(fmt(izq.hi), L - 5, T + 1);
+    ctx.fillText(fmt((izq.hi + izq.lo) / 2), L - 5, T + ph / 2);
+    ctx.fillText(fmt(izq.lo), L - 5, T + ph);
     if (der) {
       ctx.textAlign = "left";
-      ctx.fillText(fmt(der.hi), L + pw + 3, T + 8);
-      ctx.fillText(fmt(der.lo), L + pw + 3, T + ph);
+      ctx.fillText(fmt(der.hi), L + pw + 5, T + 1);
+      ctx.fillText(fmt(der.lo), L + pw + 5, T + ph);
     }
-    ctx.textAlign = "center";
-    ctx.fillText(`${r.tmin.toFixed(0)} s`, L + 12, H - 4);
-    ctx.fillText(`${r.tmax.toFixed(0)} s`, L + pw - 12, H - 4);
+    ctx.textBaseline = "alphabetic";
+    ctx.textAlign = "left";
+    ctx.fillText(`${r.tmin.toFixed(0)} s`, L, H - 3);
+    ctx.textAlign = "right";
+    ctx.fillText(`${r.tmax.toFixed(0)} s`, L + pw, H - 3);
 
     ctx.save();
     ctx.beginPath(); ctx.rect(L, T, pw, ph); ctx.clip();
@@ -197,23 +210,34 @@ export class Graficas {
       ctx.beginPath(); ctx.moveTo(L, izq.Y(l.valor)); ctx.lineTo(L + pw, izq.Y(l.valor)); ctx.stroke();
       ctx.setLineDash([]);
     }
-    // series
+    // series (la primera, con un relleno degradado debajo)
     const paso = Math.max(1, Math.floor(t.length / (pw * 2)));
-    for (const se of spec.series) {
+    spec.series.forEach((se, k) => {
       const v = valores[se.nombre];
-      if (!v) continue;
+      if (!v) return;
       const { Y } = se.derecho ? der : izq;
-      ctx.strokeStyle = se.color; ctx.lineWidth = se.fino ? 0.8 : 1.7;
+      ctx.strokeStyle = se.color; ctx.lineWidth = se.fino ? 0.8 : 2;
+      ctx.lineJoin = "round";
       ctx.setLineDash(se.punteada ? [5, 3] : []);
       ctx.beginPath();
+      let xUlt = L;
       for (let i = 0; i < t.length; i += paso) {
         const x = X(t[i]), y = Y(v[i]);
         if (i === 0) ctx.moveTo(x, y);
         else if (se.escalon) { ctx.lineTo(x, Y(v[i - paso])); ctx.lineTo(x, y); }
         else ctx.lineTo(x, y);
+        xUlt = x;
       }
       ctx.stroke();
-    }
+      if (k === 0 && !se.fino && !se.derecho) {
+        const g = ctx.createLinearGradient(0, T, 0, T + ph);
+        g.addColorStop(0, se.color.slice(0, 7) + "40");
+        g.addColorStop(1, se.color.slice(0, 7) + "00");
+        ctx.lineTo(xUlt, T + ph); ctx.lineTo(X(t[0]), T + ph); ctx.closePath();
+        ctx.fillStyle = g;
+        ctx.fill();
+      }
+    });
     ctx.restore();
     ctx.setLineDash([]);
   }
@@ -235,6 +259,6 @@ export class Graficas {
     panel.tip.innerHTML = lineas.join("<br>");
     panel.tip.hidden = false;
     panel.tip.style.left = `${Math.min(x + 10, panel.canvas.clientWidth - 170)}px`;
-    panel.tip.style.top = "22px";
+    panel.tip.style.top = "48px";
   }
 }
