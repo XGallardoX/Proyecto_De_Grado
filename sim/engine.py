@@ -2,7 +2,7 @@ import math
 import random
 from collections import deque
 
-from analysis.metrics import Recorder
+from analysis.metrics import Recorder, nodos_cortados
 from sim.datos import NOMBRE_CAUSA, PlanoDatos
 from sim.radio import RadioMedium
 from sim.sim_node import SimNode
@@ -79,8 +79,9 @@ class Simulation:
 
             self._eventos_programados = sorted(
                 (ev for ev in self.cfg.get("events", [])
-                 if ev["type"] in ("fail", "recover")
-                 and ev["node_id"] in self.nodes),
+                 if (ev["type"] in ("fail", "recover")
+                     and ev["node_id"] in self.nodes)
+                 or ev["type"] in ("fail_azar", "fail_critico")),
                 key=lambda ev: ev["t"])
             if self._eventos_programados:
                 self.log(f"Escenario: {len(self._eventos_programados)} "
@@ -340,8 +341,32 @@ class Simulation:
             self._prox_evento += 1
             if ev["type"] == "fail":
                 self.fail_node(ev["node_id"], origen="programado")
-            else:
+            elif ev["type"] == "recover":
                 self.recover_node(ev["node_id"], origen="programado")
+            else:
+                self._caida_elegida(ev["type"], ev.get("rol", "G"))
+
+    def _caida_elegida(self, tipo, rol):
+        """fail_azar / fail_critico: tumba un nodo vivo de `rol` ("G", "N"
+        o "*") elegido ahora. Al azar consume `random` (sólo si el
+        escenario tiene este evento); el más crítico es el que deja más
+        nodos separados del grupo de radio más grande (desempate: más
+        vecinos de radio, después el id menor)."""
+        candidatos = sorted(n.id for n in self.nodes.values()
+                            if n.alive and (rol == "*" or n.role == rol))
+        if not candidatos:
+            return
+        if tipo == "fail_azar":
+            self.fail_node(random.choice(candidatos), origen="al azar")
+            return
+        vivos = [n for n in self.nodes.values() if n.alive]
+
+        def criticidad(nid):
+            n = self.nodes[nid]
+            grado = sum(1 for m in vivos
+                        if m is not n and self.medium.reliability(n, m) > 0)
+            return (nodos_cortados(self, nid), grado, -nid)
+        self.fail_node(max(candidatos, key=criticidad), origen="dirigido")
 
     # ── operaciones interactivas ──
     def fail_node(self, nid, origen="manual"):

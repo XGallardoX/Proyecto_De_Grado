@@ -7,8 +7,14 @@ VALID_ROLES = {"G", "N"}
 # Tipos de evento del escenario. `wander` aleja un Gateway hasta `until`;
 # `fail`/`recover` hacen caer o volver un nodo en el instante `t` (los
 # aplica Simulation.step, igual que las teclas F/G o la interfaz web).
-TIPOS_EVENTO = ("wander", "fail", "recover")
+TIPOS_EVENTO = ("wander", "fail", "recover", "fail_azar", "fail_critico")
 EVENTOS_PROGRAMADOS = ("fail", "recover")
+# Caídas cuyo nodo se elige al llegar el instante `t`, entre los vivos de
+# `rol` ("G", "N" o "*"): uno al azar, o el más crítico (el que deja más
+# nodos separados del grupo de radio más grande). Para comparar fallos al
+# azar con ataques dirigidos.
+EVENTOS_ELEGIDOS = ("fail_azar", "fail_critico")
+ROLES_EVENTO = ("G", "N", "*")
 
 # Modelos de movilidad de los Gateway (clave "movilidad" de medium/protocol):
 #   seguir   -> cada Gateway camina hacia el Nodo de usuario más cercano
@@ -65,6 +71,7 @@ def load_scenario(path, default_building=None):
         wander   4  80     # tipo  node_id  until
         fail     2  60     # tipo  node_id  t
         recover  2  90
+        fail_critico  G  120   # tipo  rol (G/N/*)  t: el nodo se elige ahí
 
         [traffic]
         aleatorios=2       # flujos entre pares de Nodos de usuario al azar
@@ -207,6 +214,13 @@ def _parse_txt(path):
                     f"'wander node_id until' o 'fail|recover node_id t')"
                 )
             ev_type, nid, instante = parts
+            if ev_type in EVENTOS_ELEGIDOS:
+                try:
+                    data["events"].append(
+                        {"type": ev_type, "rol": nid, "t": float(instante)})
+                except ValueError:
+                    raise ValueError(f"{path}:{lineno}: evento inválido '{line}'")
+                continue
             clave = "t" if ev_type in EVENTOS_PROGRAMADOS else "until"
             try:
                 data["events"].append(
@@ -276,7 +290,8 @@ def _validate(data, path, default_building=None):
     alto = building.get("alto", 30.0)
 
     if "random" in data:
-        if any(isinstance(ev, dict) and ev.get("type") in EVENTOS_PROGRAMADOS
+        if any(isinstance(ev, dict) and ev.get("type") in
+               EVENTOS_PROGRAMADOS + EVENTOS_ELEGIDOS
                for ev in data.get("events", [])):
             raise ValueError(
                 f"{path}: los eventos 'fail'/'recover' necesitan nodos "
@@ -347,6 +362,18 @@ def _validate(data, path, default_building=None):
                 f"{path}: tipo de evento desconocido: {tipo} (válidos: "
                 f"{', '.join(TIPOS_EVENTO)})"
             )
+        if tipo in EVENTOS_ELEGIDOS:
+            if ev.setdefault("rol", "G") not in ROLES_EVENTO:
+                raise ValueError(
+                    f"{path}: evento '{tipo}' con rol {ev['rol']!r} (válidos: "
+                    f"{', '.join(ROLES_EVENTO)})"
+                )
+            instante = ev.get("t")
+            if (isinstance(instante, bool) or not isinstance(instante, (int, float))
+                    or instante < 0):
+                raise ValueError(f"{path}: evento '{tipo}' necesita un instante "
+                                 f"'t' numérico >= 0")
+            continue
         if ev.get("node_id") not in seen_ids:
             raise ValueError(
                 f"{path}: evento '{tipo}' referencia node_id "

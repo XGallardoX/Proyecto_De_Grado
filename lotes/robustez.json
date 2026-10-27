@@ -1,0 +1,17 @@
+{
+  "nombre": "robustez",
+  "duracion": 240,
+  "semillas": 10,
+  "escenarios": [
+    {
+      "config": "escenarios/fallos/robustez_azar.txt",
+      "etiqueta": "azar",
+      "trafico": 6
+    },
+    {
+      "config": "escenarios/fallos/robustez_dirigida.txt",
+      "etiqueta": "dirigida",
+      "trafico": 6
+    }
+  ]
+}
