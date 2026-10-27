@@ -122,6 +122,15 @@ class BatmanRouter:
             p.in_alert   = False
             return True
 
+    def next_hop(self, dest: int):
+        """Decisión de reenvío de BATMAN hacia `dest`: (via_id, via_ip) del
+        vecino por el que llegó el mejor OGM de `dest`, o None si la tabla
+        no tiene ruta. Cada nodo decide sólo con su propia tabla; nadie
+        conoce el camino completo."""
+        with self._lock:
+            r = self.routes.get(dest)
+            return (r.via_id, r.via_ip) if r is not None else None
+
     def link_quality(self, from_ip: str) -> float:
         with self._lock:
             vals = [v for (o,ip),dq in self._windows.items()
