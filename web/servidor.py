@@ -30,6 +30,9 @@ DESCRIPCIONES_ESCENARIOS = {
     "rescatista_perdido": "Como base, pero un Gateway se aleja y pierde "
                          "el contacto con el resto.",
     "denso": "8 Gateway y 6 Nodos de usuario: una malla más poblada.",
+    "campo_abierto": "Un área abierta de 120 × 80 m (vista en planta): 6 "
+                     "Gateway salen de un mismo punto hacia tres grupos de "
+                     "usuarios que caminan, con 6 flujos de datos.",
 }
 
 

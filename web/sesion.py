@@ -18,7 +18,7 @@ import time
 
 from analysis.visualizer import (build_analysis_figure, interpretar_mensaje,
                                  siguiente_escenario)
-from sim.config_loader import MOVILIDADES
+from sim.config_loader import MOVILIDADES, PARAMETROS, valor_parametro
 from sim.datos import NOMBRE_CAUSA
 from web import estado
 
@@ -29,28 +29,8 @@ PUBLICAR_CADA = 1.0 / 18.0  # ritmo de publicación de frames (~18 Hz)
 MAX_PASOS_POR_LOTE = 400    # tope por iteración del hilo, por si acumula de más
 PRESUPUESTO_MAXIMA_S = 0.04  # s reales por iteración cuando velocidad="maxima"
 
-# Parámetros que 'parametro' puede tocar en vivo: sólo claves que el núcleo
-# vuelve a leer de sim.cfg en cada paso (verificado una por una):
-#   RadioMedium.reliability -> rango_comm, falloff, perdida_base,
-#     floor_atten (medium.cfg es el mismo dict que sim.cfg);
-#   SimNode.tick -> timeout, beacon_cada, batman_cada, battery_drain,
-#     battery_drain_nodo; SimNode._make_ogm -> ttl;
-#   SimNode.move -> move_speed, movilidad.
-# (tipo, mínimo, máximo) o (str, opciones).
-PARAMETROS = {
-    "rango_comm": (float, 4.0, 60.0),
-    "falloff": (float, 0.0, 1.5),
-    "perdida_base": (float, 0.0, 1.0),
-    "floor_atten": (float, 0.0, 1.0),
-    "timeout": (float, 1.0, 300.0),
-    "ttl": (int, 1, 20),
-    "beacon_cada": (float, 0.5, 30.0),
-    "batman_cada": (float, 0.5, 30.0),
-    "battery_drain": (float, 0.0, 5.0),
-    "battery_drain_nodo": (float, 0.0, 5.0),
-    "move_speed": (float, 0.0, 2.0),
-    "movilidad": (str, MOVILIDADES),
-}
+# Parámetros que 'parametro' puede tocar en vivo: la tabla del núcleo
+# (sim.config_loader.PARAMETROS, con por qué cada uno se lee en vivo).
 PARAMETROS_EDITABLES = tuple(PARAMETROS)
 
 # Intervenciones que se pueden volver eventos del escenario (fail/recover)
@@ -59,19 +39,7 @@ INTERVENCIONES_EXPORTABLES = {"caer": "fail", "recuperar": "recover"}
 
 
 def _valor_parametro(clave, valor):
-    spec = PARAMETROS[clave]
-    if spec[0] is str:
-        if valor not in spec[1]:
-            raise ValueError(f"'{clave}' debe ser una de {', '.join(spec[1])}")
-        return valor
-    tipo, minimo, maximo = spec
-    try:
-        v = tipo(float(valor))
-    except (TypeError, ValueError):
-        raise ValueError(f"'{clave}' debe ser numérico")
-    if not (minimo <= v <= maximo):
-        raise ValueError(f"'{clave}' debe estar entre {minimo:g} y {maximo:g}")
-    return v
+    return valor_parametro(clave, valor)
 
 
 def generar_semilla():
@@ -224,7 +192,8 @@ class Sesion:
                 raise ValueError("trafico debe ser un entero >= 0")
         build_args = dict(config_path=config_path, n_nodes=n_nodes,
                           n_gateways=n_gateways, static=static,
-                          movilidad=movilidad, trafico=trafico)
+                          movilidad=movilidad, trafico=trafico,
+                          parametros=self.build_args.get("parametros"))
         with self.lock:
             self._reconstruir(build_args, semilla)
         return {"semilla": semilla, "escenario": self.sim.escenario}
@@ -486,6 +455,8 @@ class Sesion:
             partes += ["--movilidad", a["movilidad"]]
         if a.get("trafico") is not None:
             partes += ["--trafico", str(a["trafico"])]
+        for clave, valor in (a.get("parametros") or {}).items():
+            partes += ["--param", f"{clave}={valor}"]
         partes += ["--seed", str(self.semilla)]
         partes += ["--duracion", str(round(self.sim.t, 1))]
         return " ".join(partes)
@@ -594,7 +565,7 @@ def _ruta_escenario_segura(nombre):
 
 def construir_sesion(config_path=None, n_nodes=2, n_gateways=1,
                      static=False, movilidad=None, semilla=None,
-                     velocidad=1.0, trafico=None):
+                     velocidad=1.0, trafico=None, parametros=None):
     """Arma una Sesion lista para correr: fija la semilla (una generada al
     azar con `secrets` si no se pasa ninguna) y construye la Simulation con
     main.construir_simulacion, exactamente como --headless/--inspect.
@@ -605,6 +576,7 @@ def construir_sesion(config_path=None, n_nodes=2, n_gateways=1,
     fijar_semilla(semilla)
     build_args = dict(config_path=config_path, n_nodes=n_nodes,
                       n_gateways=n_gateways, static=static,
-                      movilidad=movilidad, trafico=trafico)
+                      movilidad=movilidad, trafico=trafico,
+                      parametros=parametros or None)
     sim, info = construir_simulacion(**build_args)
     return Sesion(sim, info, build_args, semilla, velocidad=velocidad)

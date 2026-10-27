@@ -3,6 +3,7 @@ import json
 import os
 
 VALID_ROLES = {"G", "N"}
+TIPOS_MAPA = ("edificio", "campo")
 
 # Tipos de evento del escenario. `wander` aleja un Gateway hasta `until`;
 # `fail`/`recover` hacen caer o volver un nodo en el instante `t` (los
@@ -26,6 +27,68 @@ ROLES_EVENTO = ("G", "N", "*")
 # seguir y repartir miran las posiciones de todos los nodos: son la línea
 # base centralizada contra la que se compara la descentralizada.
 MOVILIDADES = ("seguir", "repartir", "descentralizada")
+
+# Cómo viajan los datos (sim/datos.py): "batman" = salto a salto por las
+# tablas de BatmanRouter; "inundacion" = cada nodo reenvía una vez cada
+# paquete nuevo, sin tablas (el protocolo de comparación).
+PROTOCOLOS_DATOS = ("batman", "inundacion")
+
+# Movilidad de los Nodos de usuario (SimNode.move): "quietos" = casi
+# estáticos (un temblor mínimo, como siempre); "random_waypoint" = cada uno
+# va a un punto al azar, espera y elige otro; "grupos" = de a tres, el
+# primero hace random waypoint y los demás lo siguen (RPGM).
+MOVILIDADES_USUARIOS = ("quietos", "random_waypoint", "grupos")
+
+# Parámetros del simulador que se pueden fijar con --param clave=valor, con
+# "parametros" en una entrada de lote o en vivo desde la interfaz web: sólo
+# claves que el núcleo vuelve a leer de sim.cfg en cada paso (verificado
+# una por una):
+#   RadioMedium.reliability -> rango_comm, falloff, perdida_base,
+#     floor_atten (medium.cfg es el mismo dict que sim.cfg);
+#   SimNode.tick -> timeout, beacon_cada, batman_cada, battery_drain,
+#     battery_drain_nodo; SimNode._make_ogm -> ttl;
+#   SimNode.move -> move_speed, movilidad, movilidad_usuarios,
+#     velocidad_usuarios; PlanoDatos.enviar -> protocolo_datos.
+# (tipo, mínimo, máximo) o (str, opciones).
+PARAMETROS = {
+    "rango_comm": (float, 4.0, 60.0),
+    "falloff": (float, 0.0, 1.5),
+    "perdida_base": (float, 0.0, 1.0),
+    "floor_atten": (float, 0.0, 1.0),
+    "timeout": (float, 1.0, 300.0),
+    "ttl": (int, 1, 20),
+    "beacon_cada": (float, 0.5, 30.0),
+    "batman_cada": (float, 0.5, 30.0),
+    "battery_drain": (float, 0.0, 5.0),
+    "battery_drain_nodo": (float, 0.0, 5.0),
+    "move_speed": (float, 0.0, 2.0),
+    "movilidad": (str, MOVILIDADES),
+    "movilidad_usuarios": (str, MOVILIDADES_USUARIOS),
+    "velocidad_usuarios": (float, 0.0, 2.0),
+    "protocolo_datos": (str, PROTOCOLOS_DATOS),
+}
+
+
+def valor_parametro(clave, valor):
+    """Valida y convierte el valor de un parámetro de PARAMETROS (ValueError
+    con un mensaje claro si la clave o el valor no valen)."""
+    if clave not in PARAMETROS:
+        raise ValueError(f"parámetro desconocido: {clave!r} (válidos: "
+                         f"{', '.join(PARAMETROS)})")
+    spec = PARAMETROS[clave]
+    if spec[0] is str:
+        if valor not in spec[1]:
+            raise ValueError(f"'{clave}' debe ser una de {', '.join(spec[1])}")
+        return valor
+    tipo, minimo, maximo = spec
+    try:
+        v = tipo(float(valor))
+    except (TypeError, ValueError):
+        raise ValueError(f"'{clave}' debe ser numérico")
+    if not (minimo <= v <= maximo):
+        raise ValueError(f"'{clave}' debe estar entre {minimo:g} y {maximo:g}")
+    return v
+
 
 # Sección "traffic" (plano de datos, sim/datos.py): flujos explícitos
 # {"src", "dst", "cada", "desde", "hasta"} y/o K flujos "aleatorios" entre
@@ -284,10 +347,29 @@ def _validate(data, path, default_building=None):
                 f"{path}: movilidad desconocida {valores['movilidad']!r} "
                 f"(válidas: {', '.join(MOVILIDADES)})"
             )
+        for clave in ("movilidad_usuarios", "protocolo_datos"):
+            if isinstance(valores, dict) and clave in valores:
+                try:
+                    valor_parametro(clave, valores[clave])
+                except ValueError as e:
+                    raise ValueError(f"{path}: {e}")
     building = dict(default_building or {})
     building.update(data.get("building", {}))
     ancho = building.get("ancho", 40.0)
     alto = building.get("alto", 30.0)
+    # "edificio": corte vertical con pisos y escalera; "campo": vista en
+    # planta de un área abierta (un solo "piso" del alto del área)
+    if building.get("tipo", "edificio") not in TIPOS_MAPA:
+        raise ValueError(f"{path}: building.tipo debe ser uno de "
+                         f"{', '.join(TIPOS_MAPA)}")
+    if building.get("tipo") == "campo":
+        # lo del escenario manda; si no lo dice, un solo "piso" sin escalera
+        # (pisa los valores por defecto del edificio)
+        propio = data.get("building", {})
+        for clave, valor in (("n_pisos", 1), ("piso_h", alto),
+                             ("stair_half_w", 0.0), ("stair_xy", [0.0, 0.0])):
+            if clave not in propio:
+                building[clave] = valor
 
     if "random" in data:
         if any(isinstance(ev, dict) and ev.get("type") in

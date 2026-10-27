@@ -22,7 +22,7 @@ Sólo "escenarios" es obligatorio. Cada entrada lleva exactamente uno de
 --config); "semillas" es un entero N (semillas 1..N) o una lista
 explícita; "duracion" y "semillas" de la entrada pisan los valores del
 lote, y "static"/"movilidad"/"trafico" hacen lo mismo que --static/
---movilidad/--trafico.
+--movilidad/--trafico; "parametros" ({clave: valor}) lo mismo que --param.
 Detalle en el README.
 """
 import csv
@@ -32,11 +32,11 @@ import re
 import statistics
 
 from analysis.metrics import METRICAS_CORRIDA
-from sim.config_loader import MOVILIDADES
+from sim.config_loader import MOVILIDADES, valor_parametro
 
 CLAVES_LOTE = ("nombre", "duracion", "semillas", "figuras", "escenarios")
 CLAVES_ENTRADA = ("escenario", "config", "etiqueta", "semillas", "duracion",
-                  "static", "movilidad", "trafico")
+                  "static", "movilidad", "trafico", "parametros")
 PATRON_ETIQUETA = re.compile(r"^[\w.-]+$")
 
 
@@ -132,6 +132,14 @@ def _entrada(entrada, donde, escenarios_disponibles, duracion, semillas,
         raise ValueError(f"{donde}: 'trafico' debe ser un entero >= 0 "
                          f"(flujos de datos aleatorios)")
 
+    parametros = entrada.get("parametros", {})
+    if not isinstance(parametros, dict):
+        raise ValueError(f"{donde}: 'parametros' debe ser un objeto {{clave: valor}}")
+    try:
+        parametros = {k: valor_parametro(k, v) for k, v in parametros.items()}
+    except ValueError as e:
+        raise ValueError(f"{donde}: {e}")
+
     if "semillas" in entrada:
         semillas = _semillas(entrada["semillas"], donde)
     elif semillas is None:
@@ -146,14 +154,15 @@ def _entrada(entrada, donde, escenarios_disponibles, duracion, semillas,
         base = escenario or os.path.splitext(os.path.basename(config))[0]
         etiqueta = (_a_etiqueta(base) + ("_static" if static else "")
                     + (f"_{movilidad}" if movilidad else "")
-                    + (f"_trafico{trafico}" if trafico else ""))
+                    + (f"_trafico{trafico}" if trafico else "")
+                    + "".join(f"_{v}" for v in parametros.values()))
     elif not isinstance(etiqueta, str) or not PATRON_ETIQUETA.match(etiqueta):
         raise ValueError(f"{donde}: 'etiqueta' debe usar sólo letras, "
                          f"números, '_', '-' o '.', se encontró {etiqueta!r}")
 
     return {"etiqueta": etiqueta, "escenario": escenario, "config": config,
             "static": static, "movilidad": movilidad, "trafico": trafico,
-            "semillas": semillas,
+            "parametros": parametros, "semillas": semillas,
             "duracion": duracion}
 
 
@@ -257,7 +266,8 @@ def formatear_resumen(lote, agregado, fecha):
         origen = e["escenario"] or e["config"]
         extra = (", nodos fijos" if e["static"] else "") + (
             f", movilidad {e['movilidad']}" if e["movilidad"] else "") + (
-            f", {e['trafico']} flujos de datos" if e.get("trafico") else "")
+            f", {e['trafico']} flujos de datos" if e.get("trafico") else "") + "".join(
+            f", {k}={v}" for k, v in (e.get("parametros") or {}).items())
         lineas += [
             "",
             f"{e['etiqueta']}  ({origen}{extra} · {e['duracion']:g} s "

@@ -99,12 +99,15 @@ class Simulation:
             n_nodes = self.cfg.get("n_nodes", 10)
 
             gateways = []
+            # a 5 m de los bordes (en el edificio de 40×30, 5..35 × 5..25)
             for i in range(n_gateways):
-                gateways.append((i + 1, random.uniform(5, 35), random.uniform(5, 25), 1))
+                gateways.append((i + 1, random.uniform(5, self.ANCHO - 5),
+                                 random.uniform(5, self.ALTO - 5), 1))
 
             nodes = []
             for i in range(n_nodes - n_gateways):
-                nodes.append((i + 1 + n_gateways, random.uniform(5, 35), random.uniform(5, 25), 1))
+                nodes.append((i + 1 + n_gateways, random.uniform(5, self.ANCHO - 5),
+                              random.uniform(5, self.ALTO - 5), 1))
 
             for nid, x, y, p in gateways:
                 gi += 1
@@ -137,6 +140,17 @@ class Simulation:
     def is_gateway(self, nid):
         n = self.nodes.get(nid)
         return bool(n and n.role == 'G')
+
+    def lider_de_grupo(self, usuario):
+        """Movilidad de usuarios "grupos": los Nodos de usuario se agrupan de
+        a tres por orden de id; el líder es el primero vivo del grupo (si
+        cae, lo reemplaza el siguiente)."""
+        ids = sorted(n.id for n in self.nodes.values() if n.role == 'N')
+        i = ids.index(usuario.id) // 3 * 3
+        for nid in ids[i:i + 3]:
+            if self.nodes[nid].alive:
+                return self.nodes[nid]
+        return usuario
 
     def objetivo_repartido(self, gateway):
         """Movilidad "repartir": el Nodo de usuario asignado a `gateway`, o

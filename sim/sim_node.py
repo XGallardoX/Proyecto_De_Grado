@@ -53,6 +53,11 @@ class SimNode:
         # id -> (x, y, rol, instante). Es la única información que usa la
         # movilidad "descentralizada" (nunca mira sim.nodes).
         self.oidos = {}
+        # movilidad de usuarios: punto de destino de random waypoint, hasta
+        # cuándo espera en él, y su desfase respecto del líder del grupo
+        self._wp = None
+        self._pausa_hasta = None
+        self._desfase = None
 
         # contadores de uso del código real (sólo informativos)
         self.ogms_procesados = 0    # llamadas a BatmanRouter.receive_ogm()
@@ -217,6 +222,15 @@ class SimNode:
         if not self.alive:
             return
 
+        modo_usuarios = self.sim.cfg.get('movilidad_usuarios', 'quietos')
+        if self.role == 'N' and modo_usuarios != 'quietos' \
+                and self.sim.cfg.get('velocidad_usuarios', 0) > 0:
+            # los usuarios que caminan lo hacen aunque los Gateway estén
+            # fijos (--static): infraestructura fija, gente que se mueve
+            self._mover_usuario(now, modo_usuarios)
+            self._record_history()
+            return
+
         if self.sim.cfg.get('move_speed', 0) <= 0:
             # move_speed=0: nodos estáticos, sin persecución ni jitter.
             self._record_history()
@@ -275,6 +289,44 @@ class SimNode:
             self._move_avoiding(tx_eff, ty_eff)
 
         self._record_history()
+
+    # ── movilidad de los Nodos de usuario ──
+    PAUSA_MAX = 10.0      # s de espera en cada punto de random waypoint
+    DESFASE_GRUPO = 2.5   # m: a cuánto del líder camina cada miembro
+
+    def _mover_usuario(self, now, modo):
+        sp = self.sim.cfg['velocidad_usuarios']
+        if modo == 'grupos':
+            lider = self.sim.lider_de_grupo(self)
+            if lider is not self:
+                if self._desfase is None:
+                    self._desfase = (random.uniform(-self.DESFASE_GRUPO, self.DESFASE_GRUPO),
+                                     random.uniform(-self.DESFASE_GRUPO, self.DESFASE_GRUPO))
+                tx = min(max(lider.x + self._desfase[0], 1.0), self.sim.ANCHO - 1.0)
+                ty = min(max(lider.y + self._desfase[1], 0.4), self.sim.ALTO - 0.4)
+                self._paso_hacia(tx, ty, sp * 1.3)   # un poco más rápido: alcanza
+                return
+        # random waypoint (también el líder de un grupo)
+        if self._wp is None or self.dist_xy(*self._wp) < 0.3:
+            if self._wp is not None and self._pausa_hasta is None:
+                self._pausa_hasta = now + random.uniform(0, self.PAUSA_MAX)
+            if self._pausa_hasta is not None and now < self._pausa_hasta:
+                return
+            self._wp = (random.uniform(1.0, self.sim.ANCHO - 1.0),
+                        random.uniform(0.4, self.sim.ALTO - 0.4))
+            self._pausa_hasta = None
+        self._paso_hacia(*self._wp, sp)
+
+    def _paso_hacia(self, tx, ty, sp):
+        """Un paso de largo `sp` hacia (tx, ty), por la escalera si cambia
+        de piso."""
+        if self.piso != max(1, min(self.N_PISOS, int(ty // self.PISO_H) + 1)) \
+                and abs(self.x - self.STAIR_XY[0]) > self.STAIR_HALF_W * 0.6:
+            tx = self.STAIR_XY[0]
+        if self.dist_xy(tx, ty) <= sp:
+            self._try_move(tx - self.x, ty - self.y)
+        else:
+            self._move_avoiding(tx, ty, sp)
 
     # ── movilidad descentralizada ──
     # Distancias de las fuerzas, como fracción del alcance de radio.
@@ -398,12 +450,14 @@ class SimNode:
         self.x, self.y = nx, ny
         return True
 
-    def _move_avoiding(self, tx, ty):
-        """Mueve hacia (tx,ty) sin salir del edificio.
+    def _move_avoiding(self, tx, ty, sp=None):
+        """Mueve hacia (tx,ty) sin salir del edificio, con pasos de `sp` m
+        (por defecto, move_speed).
 
         Si el paso recto no es válido se prueban ángulos de desvío;
         si nada funciona el nodo se queda quieto (atascado)."""
-        sp = self.sim.cfg['move_speed']
+        if sp is None:
+            sp = self.sim.cfg['move_speed']
         base = math.atan2(ty - self.y, tx - self.x)
         for k_deg in (0, 20, -20, 45, -45, 75, -75,
                       110, -110, 150, -150, 180):

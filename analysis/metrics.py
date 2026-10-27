@@ -289,6 +289,7 @@ METRICAS_CORRIDA = [
     ("perdida_ruta_vieja", "Datos perdidos: ruta vieja", 3),
     ("perdida_enlace", "Datos perdidos: la radio perdió el salto", 3),
     ("perdida_bucle", "Datos perdidos: bucle", 3),
+    ("transmisiones_por_dato", "Transmisiones por paquete de datos", 2),
     ("exactitud_conocimiento", "Exactitud del conocimiento de rutas", 3),
     ("rutas_fantasma", "Pares con ruta fantasma", 3),
     ("rutas_faltantes", "Pares con ruta faltante", 3),
@@ -361,6 +362,8 @@ def resumen_corrida(sim):
       el instante del envío (1.0 = BATMAN eligió un camino mínimo).
     - perdida_*: fracción de los enviados que se perdió por cada causa de
       sim.datos.CAUSAS; suman 1 - entrega_datos.
+    - transmisiones_por_dato: el costo del protocolo de datos (intentos
+      unicast de BATMAN o difusiones de la inundación) por paquete.
     - exactitud_conocimiento / rutas_fantasma / rutas_faltantes: promedio
       en el tiempo de conocimiento(): la fracción de pares (a, b) de nodos
       vivos en que a cree lo correcto sobre si puede llegar a b, y las
@@ -412,7 +415,8 @@ def _media(xs):
 def _resumen_datos(datos):
     """Las métricas del plano de datos de resumen_corrida."""
     claves = ("entrega_datos", "entrega_datos_con_camino", "saltos_datos",
-              "estiramiento_datos") + tuple(f"perdida_{c}" for c in CAUSAS)
+              "estiramiento_datos") + tuple(f"perdida_{c}" for c in CAUSAS) + (
+              "transmisiones_por_dato",)
     if datos is None or not datos.enviados:
         return dict.fromkeys(claves)
     env = datos.enviados
@@ -425,4 +429,5 @@ def _resumen_datos(datos):
         "saltos_datos": media(datos.saltos),
         "estiramiento_datos": media(datos.estiramientos),
         **{f"perdida_{c}": datos.perdidas[c] / env for c in CAUSAS},
+        "transmisiones_por_dato": datos.transmisiones / env,
     }

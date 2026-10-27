@@ -1,0 +1,25 @@
+{
+  "name": "campo_abierto",
+  "building": {"tipo": "campo", "ancho": 120, "alto": 80},
+  "medium": {"rango_comm": 30, "falloff": 0.6, "perdida_base": 0.02},
+  "protocol": {"move_speed": 0.6, "movilidad": "descentralizada",
+               "movilidad_usuarios": "grupos", "velocidad_usuarios": 0.3},
+  "nodes": [
+    {"id": 1, "role": "G", "x": 10, "y": 38},
+    {"id": 2, "role": "G", "x": 12, "y": 42},
+    {"id": 3, "role": "G", "x": 14, "y": 38},
+    {"id": 4, "role": "G", "x": 10, "y": 44},
+    {"id": 5, "role": "G", "x": 15, "y": 43},
+    {"id": 6, "role": "G", "x": 12, "y": 36},
+    {"id": 101, "role": "N", "x": 30, "y": 60},
+    {"id": 102, "role": "N", "x": 33, "y": 62},
+    {"id": 103, "role": "N", "x": 31, "y": 57},
+    {"id": 104, "role": "N", "x": 70, "y": 20},
+    {"id": 105, "role": "N", "x": 73, "y": 22},
+    {"id": 106, "role": "N", "x": 71, "y": 17},
+    {"id": 107, "role": "N", "x": 95, "y": 55},
+    {"id": 108, "role": "N", "x": 98, "y": 58},
+    {"id": 109, "role": "N", "x": 96, "y": 52}
+  ],
+  "traffic": {"aleatorios": 6}
+}

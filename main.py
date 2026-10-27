@@ -8,7 +8,7 @@ import time
 import numpy as np
 
 from sim.engine import Simulation
-from sim.config_loader import MOVILIDADES, load_scenario
+from sim.config_loader import MOVILIDADES, load_scenario, valor_parametro
 from analysis import lote
 from analysis.inspector import snapshot_red
 from analysis.metrics import METRICAS_CORRIDA, resumen_corrida
@@ -17,7 +17,7 @@ from analysis.visualizer import Visualizer, build_analysis_figure
 
 ESCENARIOS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "escenarios")
 ESCENARIOS_DISPONIBLES = ["base", "colapso_progresivo", "particion",
-                          "rescatista_perdido", "denso"]
+                          "rescatista_perdido", "denso", "campo_abierto"]
 
 # Edificio
 ANCHO  = 40.0
@@ -45,6 +45,9 @@ DEFAULTS = dict(
     battery_drain_nodo=0.012, # % por segundo (Nodos de usuario)
     move_speed=0.32,     # m por paso de un Gateway
     movilidad="descentralizada",  # o "seguir"/"repartir" (ver docs/movimiento_nodos.md)
+    movilidad_usuarios="quietos",  # o "random_waypoint"/"grupos"
+    velocidad_usuarios=0.25,  # m por paso de un Nodo de usuario que camina
+    protocolo_datos="batman",  # o "inundacion" (comparación, sim/datos.py)
 )
 
 # Colores
@@ -67,7 +70,8 @@ def ruta_escenario(nombre):
 
 
 def construir_simulacion(config_path=None, n_nodes=2, n_gateways=1,
-                         static=False, movilidad=None, trafico=None):
+                         static=False, movilidad=None, trafico=None,
+                         parametros=None):
     """Arma una Simulation lista para correr.
 
     Con `config_path` carga el escenario (.json o .txt) con
@@ -76,7 +80,8 @@ def construir_simulacion(config_path=None, n_nodes=2, n_gateways=1,
     se pasa, reemplaza la del escenario ("seguir" o "repartir").
     `trafico` (entero K), si se pasa, pone K flujos de datos aleatorios
     entre Nodos de usuario (reemplaza los aleatorios del escenario; sus
-    flujos explícitos se mantienen).
+    flujos explícitos se mantienen). `parametros` ({clave: valor} de
+    sim.config_loader.PARAMETROS, como --param) pisa los del escenario.
 
     Devuelve (sim, info), donde `info` resume la configuración para el
     banner de inicio. Lanza ValueError si el archivo de escenario o los
@@ -84,6 +89,7 @@ def construir_simulacion(config_path=None, n_nodes=2, n_gateways=1,
     """
     ancho, alto, piso_h, n_pisos = ANCHO, ALTO, PISO_H, N_PISOS
     stair_xy, stair_half_w = STAIR_XY, STAIR_HALF_W
+    tipo_mapa = "edificio"
 
     if config_path:
         scenario = load_scenario(
@@ -99,6 +105,7 @@ def construir_simulacion(config_path=None, n_nodes=2, n_gateways=1,
         n_pisos = building.get("n_pisos", N_PISOS)
         stair_xy = tuple(building.get("stair_xy", STAIR_XY))
         stair_half_w = building.get("stair_half_w", STAIR_HALF_W)
+        tipo_mapa = building.get("tipo", "edificio")
         escenario_nombre = (scenario.get("name") or
                             os.path.splitext(os.path.basename(config_path))[0])
 
@@ -144,6 +151,8 @@ def construir_simulacion(config_path=None, n_nodes=2, n_gateways=1,
         sim_config["move_speed"] = 0
     if movilidad is not None:
         sim_config["movilidad"] = movilidad
+    for clave, valor in (parametros or {}).items():
+        sim_config[clave] = valor_parametro(clave, valor)
     if trafico is not None:
         if isinstance(trafico, bool) or not isinstance(trafico, int) or trafico < 0:
             raise ValueError("el tráfico debe ser un entero >= 0 (flujos aleatorios)")
@@ -156,6 +165,7 @@ def construir_simulacion(config_path=None, n_nodes=2, n_gateways=1,
     sim.C_FLOOR = C_FLOOR
     sim.C_ALERT = C_ALERT
     sim.C_MSG = C_MSG
+    sim.TIPO_MAPA = tipo_mapa
 
     movimiento = ("nodos fijos" if sim.cfg.get("move_speed", 0) <= 0
                   else sim.cfg["movilidad"])
@@ -235,7 +245,8 @@ def ejecutar_lote(ruta_lote, out_dir=None):
         try:
             construir_simulacion(rutas[e["etiqueta"]], static=e["static"],
                                  movilidad=e["movilidad"],
-                                 trafico=e["trafico"])
+                                 trafico=e["trafico"],
+                                 parametros=e["parametros"])
         except ValueError as err:
             raise ValueError(f"escenario '{e['etiqueta']}': {err}")
 
@@ -254,7 +265,8 @@ def ejecutar_lote(ruta_lote, out_dir=None):
             sim, _ = construir_simulacion(rutas[e["etiqueta"]],
                                           static=e["static"],
                                           movilidad=e["movilidad"],
-                                          trafico=e["trafico"])
+                                          trafico=e["trafico"],
+                                          parametros=e["parametros"])
             correr(sim, e["duracion"])
             carpeta = os.path.join(e["etiqueta"], f"semilla_{semilla}")
             if spec["figuras"]:
@@ -363,6 +375,17 @@ def crear_parser():
              "tablas de BATMAN (reemplaza los aleatorios del escenario)."
     )
 
+    parser.add_argument(
+        "--param",
+        action="append",
+        default=None,
+        metavar="CLAVE=VALOR",
+        help="Fija un parámetro del simulador (repetible), p. ej. "
+             "--param protocolo_datos=inundacion --param "
+             "movilidad_usuarios=grupos --param rango_comm=20. Claves: las "
+             "de sim/config_loader.py (PARAMETROS). Pisa las del escenario."
+    )
+
     # --- Ejecución sin ventana ---
     parser.add_argument(
         "--headless",
@@ -434,14 +457,29 @@ def crear_parser():
 FLAGS_DEL_LOTE = {"escenario": "--escenario", "config": "--config",
                   "nodes": "--nodes", "gateways": "--gateways",
                   "static": "--static", "movilidad": "--movilidad",
-                  "trafico": "--trafico",
+                  "trafico": "--trafico", "param": "--param",
                   "duracion": "--duracion", "seed": "--seed",
                   "inspect": "--inspect"}
+
+
+def leer_parametros(lista):
+    """["clave=valor", ...] de --param -> {clave: valor} validado."""
+    parametros = {}
+    for item in lista or []:
+        clave, sep, valor = item.partition("=")
+        if not sep:
+            raise ValueError(f"--param espera clave=valor, se recibió {item!r}")
+        parametros[clave.strip()] = valor_parametro(clave.strip(), valor.strip())
+    return parametros
 
 
 def main(argv=None):
     parser = crear_parser()
     args = parser.parse_args(argv)
+    try:
+        parametros = leer_parametros(args.param)
+    except ValueError as e:
+        parser.error(str(e))
 
     if args.batch:
         conflictos = [flag for dest, flag in FLAGS_DEL_LOTE.items()
@@ -484,7 +522,8 @@ def main(argv=None):
         try:
             sesion = construir_sesion(config_path, args.nodes, args.gateways,
                                       args.static, args.movilidad,
-                                      semilla=args.seed, trafico=args.trafico)
+                                      semilla=args.seed, trafico=args.trafico,
+                                      parametros=parametros)
         except ValueError as e:
             if config_path:
                 print(f"Error en archivo de escenario: {e}")
@@ -517,7 +556,8 @@ def main(argv=None):
     try:
         sim, info = construir_simulacion(config_path, args.nodes,
                                          args.gateways, args.static,
-                                         args.movilidad, args.trafico)
+                                         args.movilidad, args.trafico,
+                                         parametros)
     except ValueError as e:
         if config_path:
             print(f"Error en archivo de escenario: {e}")
@@ -531,7 +571,8 @@ def main(argv=None):
         return construir_simulacion(ruta_escenario(nombre),
                                     static=args.static,
                                     movilidad=args.movilidad,
-                                    trafico=args.trafico)[0]
+                                    trafico=args.trafico,
+                                    parametros=parametros)[0]
 
     try:
         if args.inspect:

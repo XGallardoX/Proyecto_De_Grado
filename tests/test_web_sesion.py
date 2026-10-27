@@ -173,7 +173,9 @@ class ComandosTests(unittest.TestCase):
                    "floor_atten": 0.1, "timeout": 2.0, "ttl": 1,
                    "beacon_cada": 0.5, "batman_cada": 0.5,
                    "battery_drain": 4.0, "battery_drain_nodo": 4.0,
-                   "move_speed": 1.5, "movilidad": "repartir"}
+                   "move_speed": 1.5, "movilidad": "repartir",
+                   "movilidad_usuarios": "grupos", "velocidad_usuarios": 1.0,
+                   "protocolo_datos": "inundacion"}
         self.assertEqual(set(cambios), set(PARAMETROS))
 
         def huella(sim):
@@ -181,11 +183,16 @@ class ComandosTests(unittest.TestCase):
                     [round(n.x, 6) for n in sim.nodes.values()],
                     [round(n.battery, 6) for n in sim.nodes.values()],
                     len(sim.recorder.events),
-                    sum(n.ogms_procesados for n in sim.nodes.values()))
+                    sum(n.ogms_procesados for n in sim.nodes.values()),
+                    sim.datos.transmisiones, sim.datos.entregados)
 
+        # con usuarios que caminan y tráfico, para que los parámetros de la
+        # movilidad de usuarios y del protocolo de datos también cuenten
+        opciones = dict(semilla=2, trafico=3,
+                        parametros={"movilidad_usuarios": "random_waypoint"})
         for clave, valor in cambios.items():
-            a = construir_sesion(main_mod.ruta_escenario("denso"), semilla=2)
-            b = construir_sesion(main_mod.ruta_escenario("denso"), semilla=2)
+            a = construir_sesion(main_mod.ruta_escenario("denso"), **opciones)
+            b = construir_sesion(main_mod.ruta_escenario("denso"), **opciones)
             a.avanzar_sincrono(10)
             b.avanzar_sincrono(10)
             b.comando("parametro", {"clave": clave, "valor": valor})

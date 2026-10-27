@@ -18,7 +18,8 @@ ESQUEMA = 1
 CLAVES_MEDIUM = ("rango_comm", "perdida_base", "falloff", "floor_atten")
 CLAVES_PROTOCOL = ("timeout", "beacon_cada", "batman_cada", "ttl",
                    "battery_drain", "battery_drain_nodo", "move_speed",
-                   "movilidad")
+                   "movilidad", "movilidad_usuarios", "velocidad_usuarios",
+                   "protocolo_datos")
 
 _PATRON_ETIQUETA = re.compile(r"\b([GN]\d+)\b")
 
@@ -224,6 +225,7 @@ def frame(sim, *, velocidad=1.0, semilla=None, error=None, generacion=0,
             "piso_h": sim.PISO_H, "n_pisos": sim.N_PISOS,
             "stair_xy": list(sim.STAIR_XY),
             "stair_half_w": sim.STAIR_HALF_W,
+            "tipo": getattr(sim, "TIPO_MAPA", "edificio"),
         },
         "cfg": _cfg_editable(sim),
         "colores": _colores(sim),
@@ -443,7 +445,9 @@ def escenario_actual(sim, posiciones="iniciales"):
         "building": {"ancho": sim.ANCHO, "alto": sim.ALTO,
                      "piso_h": sim.PISO_H, "n_pisos": sim.N_PISOS,
                      "stair_xy": list(sim.STAIR_XY),
-                     "stair_half_w": sim.STAIR_HALF_W},
+                     "stair_half_w": sim.STAIR_HALF_W,
+                     **({"tipo": "campo"} if getattr(sim, "TIPO_MAPA", "edificio")
+                        == "campo" else {})},
         "medium": {k: sim.cfg[k] for k in CLAVES_MEDIUM if k in sim.cfg},
         "protocol": {k: sim.cfg[k] for k in CLAVES_PROTOCOL if k in sim.cfg},
         "nodes": nodos,

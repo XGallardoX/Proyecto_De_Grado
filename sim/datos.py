@@ -16,6 +16,12 @@ red real un salto tarda milisegundos, mucho menos que el paso de 0.5 s, así
 que la simulación no puede medir latencia; mide entrega, saltos, el
 estiramiento contra el camino más corto y por qué se pierde cada paquete.
 
+Protocolo de comparación (protocolo_datos = "inundacion"): sin tablas,
+cada nodo que recibe una copia nueva la difunde una vez (broadcast, sin
+reintentos: no hay ACK en broadcast). Entrega más a cambio de muchas más
+transmisiones; `transmisiones` cuenta las de los dos protocolos (cada
+intento unicast de BATMAN, cada difusión de la inundación).
+
 Sólo consume `random` cuando hay tráfico (flujos del escenario o mensajes
 a mano): una corrida sin tráfico da exactamente lo mismo que antes.
 """
@@ -66,6 +72,7 @@ class PlanoDatos:
         self.estiramientos = []   # saltos reales / saltos del camino más corto
         self.intentos_mac = 0
         self.exitos_mac = 0
+        self.transmisiones = 0    # unicast de BATMAN + difusiones de inundación
         self._recientes = deque()  # (t, entregado) de la última ventana
         self._configurar(trafico or {})
 
@@ -124,6 +131,10 @@ class PlanoDatos:
             causa = "destino_caido"
         elif optimo is None:
             causa = "sin_camino"
+        elif sim.cfg.get("protocolo_datos", "batman") == "inundacion":
+            camino = self._inundar(src_id, dst_id)
+            if camino[-1] != dst_id:
+                causa = "enlace"
         else:
             actual, ttl = a, TTL_DATOS
             while actual.id != dst_id:
@@ -159,11 +170,47 @@ class PlanoDatos:
         return {"entregado": entregado, "camino": camino, "causa": causa,
                 "optimo": optimo}
 
+    def _inundar(self, src_id, dst_id):
+        """Inundación: cada nodo que recibe una copia nueva la difunde una
+        vez (el destino no). Devuelve el camino de la primera copia que
+        llegó al destino, o [src_id] si no llegó ninguna."""
+        sim = self.sim
+        vivos = sorted((n for n in sim.nodes.values() if n.alive), key=lambda n: n.id)
+        padre = {src_id: None}
+        cola = deque([(src_id, TTL_DATOS)])
+        while cola:
+            nid, ttl = cola.popleft()
+            if ttl == 0:
+                continue
+            emisor = sim.nodes[nid]
+            self.transmisiones += 1
+            for receptor in vivos:
+                if receptor.id in padre:
+                    continue
+                rel = sim.medium.reliability(emisor, receptor)
+                if rel > 0.0 and random.random() <= rel:
+                    padre[receptor.id] = nid
+                    sim.medium.packets_visual.append(
+                        _Packet(emisor.x, emisor.y, receptor.x, receptor.y,
+                                getattr(sim, "C_MSG", "#9B59B6"), tipo="DATA",
+                                origen=src_id, ttl=ttl,
+                                emisor=emisor.id, receptor=receptor.id))
+                    if receptor.id != dst_id:
+                        cola.append((receptor.id, ttl - 1))
+        if dst_id not in padre:
+            return [src_id]
+        camino, nid = [], dst_id
+        while nid is not None:
+            camino.append(nid)
+            nid = padre[nid]
+        return camino[::-1]
+
     def _transmitir(self, emisor, receptor, rel, origen, ttl):
         """Unicast de un salto al alcance (`rel` > 0, la fiabilidad del
         RadioMedium) con los reintentos de la capa de enlace."""
         for _ in range(1 + REINTENTOS_MAC):
             self.intentos_mac += 1
+            self.transmisiones += 1
             if random.random() <= rel:
                 self.exitos_mac += 1
                 self.sim.medium.packets_visual.append(

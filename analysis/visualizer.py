@@ -264,12 +264,7 @@ class Visualizer:
         self.q_rect = pygame.Rect(px, 270, pw, 230)
         self.log_rect = pygame.Rect(px, 510, pw, self.H - 510 - 34)
 
-        # escala mundo→pantalla uniforme (equivalente a aspect='equal')
-        sx = self.map_rect.w / (self.WX1 - self.WX0)
-        sy = self.map_rect.h / (self.WY1 - self.WY0)
-        self.scale = min(sx, sy)
-        self._xoff = (self.map_rect.w - (self.WX1 - self.WX0) * self.scale) / 2
-        self._yoff = (self.map_rect.h - (self.WY1 - self.WY0) * self.scale) / 2
+        self._encuadrar()
 
         # colores RGB precomputados
         self.c_bg = self._rgb(sim.C_BG)
@@ -356,6 +351,18 @@ class Visualizer:
         pygame.draw.rect(surf, (255, 255, 255), r.inflate(8, 4),
                          border_radius=4)
         surf.blit(img, r)
+
+    def _encuadrar(self):
+        """Escala mundo→pantalla uniforme (equivalente a aspect='equal'),
+        con margen para las etiquetas: el edificio de 40×30 m da la ventana
+        de siempre (-3..44 × -3..35); un campo abierto, la suya."""
+        self.WX1 = self.sim.ANCHO + 4.0
+        self.WY1 = self.sim.ALTO + 5.0
+        sx = self.map_rect.w / (self.WX1 - self.WX0)
+        sy = self.map_rect.h / (self.WY1 - self.WY0)
+        self.scale = min(sx, sy)
+        self._xoff = (self.map_rect.w - (self.WX1 - self.WX0) * self.scale) / 2
+        self._yoff = (self.map_rect.h - (self.WY1 - self.WY0) * self.scale) / 2
 
     # ── dibujo del edificio + malla ──
     def _draw_map(self, surf):
@@ -770,6 +777,7 @@ class Visualizer:
             self.sim.log(f"No se pudo cargar el escenario '{nombre}': {e}",
                          "error")
             return
+        self._encuadrar()
         self._refresh_sel_ids()
         self.messages.clear()
 
