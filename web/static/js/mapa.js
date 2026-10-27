@@ -299,9 +299,12 @@ export class Mapa {
     ctx.fillStyle = ui.bg;
     ctx.fillRect(0, 0, this.ancho, this.alto);
 
-    // edificio: pisos como tarjetas, cuadrícula de 2 m y hueco de escalera
+    // edificio: pisos como tarjetas, cuadrícula y hueco de escalera; un
+    // campo abierto es una sola tarjeta, en planta, sin escalera
     const { piso_h, n_pisos, ancho, alto, stair_xy, stair_half_w } = f.edificio;
-    const separacion = Math.min(4, piso_h * escala * 0.04);
+    const campo = f.edificio.tipo === "campo";
+    const separacion = campo ? 0 : Math.min(4, piso_h * escala * 0.04);
+    const paso = Math.max(2, Math.round(Math.max(ancho, alto) / 25));
     for (let p = 0; p < n_pisos; p++) {
       const [x0, y0] = w2s(0, (p + 1) * piso_h);
       const [x1, y1] = w2s(ancho, p * piso_h);
@@ -314,8 +317,8 @@ export class Mapa {
       ctx.fill(); ctx.stroke();
       // cuadrícula de puntos
       ctx.fillStyle = ui.pisoBorde;
-      for (let gx = 2; gx < ancho; gx += 2) {
-        for (let gy = p * piso_h + 2; gy < (p + 1) * piso_h - 0.5; gy += 2) {
+      for (let gx = paso; gx < ancho; gx += paso) {
+        for (let gy = p * piso_h + paso; gy < (p + 1) * piso_h - 0.5; gy += paso) {
           const [sx, sy] = w2s(gx, gy);
           ctx.fillRect(sx - 0.75, sy - 0.75, 1.5, 1.5);
         }
@@ -324,9 +327,16 @@ export class Mapa {
       ctx.textAlign = "left";
       ctx.textBaseline = "top";
       ctx.fillStyle = ui.suave;
-      ctx.fillText(`PISO ${p + 1}`, x0 + 10, yA + 8);
+      if (campo) {
+        // abajo: arriba a la izquierda lo tapan las herramientas flotantes
+        ctx.textBaseline = "bottom";
+        ctx.fillText(`CAMPO ABIERTO · ${ancho} × ${alto} m`, x0 + 10, yB - 8);
+        ctx.textBaseline = "top";
+      } else {
+        ctx.fillText(`PISO ${p + 1}`, x0 + 10, yA + 8);
+      }
     }
-    {
+    if (!campo && stair_half_w > 0) {
       const [sx0, sy0] = w2s(stair_xy[0] - stair_half_w, alto);
       const [sx1, sy1] = w2s(stair_xy[0] + stair_half_w, 0);
       ctx.fillStyle = ui.escalera;

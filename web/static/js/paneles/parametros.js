@@ -20,6 +20,11 @@ export const PARAMETROS = [
     ["battery_drain_nodo", "Drenaje Nodo de usuario (%/s)", 0, 5, 0.005],
     ["move_speed", "Velocidad de los Gateway (m/paso, 0 = fijos)", 0, 2, 0.02],
     ["movilidad", "Movilidad", ["descentralizada", "seguir", "repartir"]],
+    ["movilidad_usuarios", "Movilidad de los Nodos de usuario", ["quietos", "random_waypoint", "grupos"]],
+    ["velocidad_usuarios", "Velocidad de los usuarios que caminan (m/paso)", 0, 2, 0.05],
+  ]],
+  ["Plano de datos", [
+    ["protocolo_datos", "Protocolo de datos", ["batman", "inundacion"]],
   ]],
 ];
 
