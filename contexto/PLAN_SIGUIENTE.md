@@ -22,7 +22,7 @@ archivo, en el mismo commit.
   escenario, métrica "Reconvergencia de rutas BATMAN" y escenarios de
   fallo del Capítulo 5 en `escenarios/fallos/` (historia y hallazgos en
   `DECISIONES_FASE3.md`).
-- **Pruebas:** 341 en verde (`venv/bin/python -m unittest discover -s
+- **Pruebas:** 353 en verde (`venv/bin/python -m unittest discover -s
   tests`; en Windows, `venv\Scripts\python`). En macOS además corre `tests/test_web_frontend.py`, que en
   Linux se omite porque necesita el `jsc` de macOS.
 - **Documento de tesis** (`Plantilla/`): sólo el Capítulo 2. Se escribe
@@ -332,7 +332,31 @@ nombre de quien usa la sesión y **sin** `Co-Authored-By` (ver
   Las cifras de la guía con movimiento quedan con `seguir` hasta el paso
   12 (nota al inicio de la guía). Pruebas:
   `tests/test_movilidad_descentralizada.py` (13); 341 en total.
-- [ ] **Paso 10 — C: métricas de descentralización** (D7).
+- [x] **Paso 10 — C: métricas de descentralización** (D7).
+  *Hecho (2026-10-26).* En `analysis/metrics.py`, funciones puras (sin
+  azar) que el `Recorder` muestrea en cada paso:
+  - `conocimiento()`: fracción de pares (a, b) de nodos vivos en que *a*
+    cree lo correcto (ruta vigente ⇔ conectados por radio), y las rutas
+    *fantasma* (cree tener ruta y la radio ya no los conecta) y
+    *faltantes*. Métricas `exactitud_conocimiento`, `rutas_fantasma`,
+    `rutas_faltantes`.
+  - `puntos_articulacion()` (Tarjan): nodos críticos de la malla; métrica
+    `nodos_criticos_medio`. `nodos_cortados()` mide cuántos separa cada
+    uno.
+  - Eventos `fail_azar` / `fail_critico` (rol `G`, `N` o `*`): el nodo se
+    elige al llegar `t`. Escenarios `escenarios/fallos/robustez_azar.txt`
+    y `robustez_dirigida.txt` (el despliegue del Cap. 5, dos caídas a
+    los 60 y 120 s) y `lotes/robustez.json` (10 semillas, 240 s,
+    `trafico` 6). Resultado: con fallos dirigidos la malla queda partida
+    180 s en las 10 semillas y la entrega de datos cae a 0.28 (0.50 al
+    azar, 42 s partida en promedio). La *cobertura media* casi no los
+    distingue (0.92 contra 0.93): cada mitad conserva algún Gateway. Sólo
+    el plano de datos muestra el daño, un argumento para el Cap. 5.
+  - Figura: panel 8 siempre (descentralización); la interfaz lo grafica
+    y marca los nodos críticos en el mapa (capa "Críticos").
+  Regresión: `capitulo5_fallos.json` da 0 celdas distintas en las 23
+  columnas comunes con la corrida del paso 8. Pruebas:
+  `tests/test_descentralizacion.py` (12); 353 en total.
 - [ ] **Paso 11 — D: mapas, movilidad estándar y protocolo de
   comparación** (D7).
 - [ ] **Paso 12 — Resultados de nuevo.** Volver a correr los lotes y el

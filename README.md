@@ -351,7 +351,11 @@ wander    1        60
   `mode=random`, `n_nodes=N`, `n_gateways=G` en vez de líneas de nodos
   (no se pueden mezclar los dos estilos en la misma sección).
 - `[events]` es opcional, una línea por evento: `wander node_id until`,
-  `fail node_id t` o `recover node_id t`.
+  `fail node_id t`, `recover node_id t`, o `fail_azar rol t` /
+  `fail_critico rol t` (`rol` = `G`, `N` o `*`): al llegar `t` cae un
+  nodo vivo de ese rol elegido al azar, o el más crítico (el que deja más
+  nodos separados del grupo de radio más grande). Sirven para comparar
+  fallos al azar con ataques dirigidos (`lotes/robustez.json`).
 - `[traffic]` es opcional: `aleatorios=K` (K flujos entre Nodos de
   usuario al azar), `cada=s` (segundos entre paquetes, 2 por defecto) y
   una línea por flujo explícito `src dst [cada] [desde] [hasta]`. En JSON
@@ -491,7 +495,7 @@ o al terminar una corrida `--headless`, se crea una carpeta nueva:
 
 ```
 reportes/<escenario>_<fecha_hora>/
-├── analisis_red.png   ← figura de 6 paneles, 7 con tráfico (matplotlib)
+├── analisis_red.png   ← figura de 7 paneles, 8 con tráfico (matplotlib)
 ├── reporte.csv         ← serie temporal, una fila por paso registrado
 ├── reporte.json        ← metadatos + resumen + serie temporal + eventos
 └── reporte.txt         ← resumen legible en texto plano
@@ -513,6 +517,8 @@ La carpeta `reportes/` está en `.gitignore` — no se commitea.
 6. Ancho de banda total de la red, con eventos marcados.
 7. Sólo si hubo tráfico de datos: la entrega del plano de datos (paquetes
    entregados / enviados en los últimos 20 s).
+8. Descentralización: exactitud del conocimiento de rutas, pares con
+   ruta fantasma y faltante, y nodos críticos.
 
 **`reporte.csv`** — una fila por paso registrado (un paso = 0.5 s
 simulados). Columnas: `tiempo_s`, `gateways_activos`, `nodos_activos`,
@@ -520,7 +526,8 @@ simulados). Columnas: `tiempo_s`, `gateways_activos`, `nodos_activos`,
 `saltos_promedio`, `silencio_maximo_s`, `tasa_entrega_paquetes`,
 `alertas_activas`, `ancho_banda_total_mbps`, `datos_enviados` y
 `datos_entregados` (acumulados), `entrega_datos_ventana` (fracción
-entregada en los últimos 20 s; 1.0 sin tráfico), y `tipo_evento` /
+entregada en los últimos 20 s; 1.0 sin tráfico), `exactitud_conocimiento`,
+`rutas_fantasma`, `rutas_faltantes`, `nodos_criticos`, y `tipo_evento` /
 `descripcion_evento` (si hubo algún evento en ese instante).
 
 **`reporte.json`** — `metadatos` (escenario, fecha, configuración
@@ -558,6 +565,9 @@ escenario) sale de la serie temporal que ya registra
 | Entrega de datos con camino por radio | Lo mismo, contando sólo los paquetes cuyo destino estaba vivo y tenía algún camino por radio al enviarse: cuánto entrega el enrutamiento cuando la física lo permite. |
 | Saltos de los datos entregados | Saltos medios de los paquetes que llegaron. |
 | Estiramiento | Media de saltos reales / saltos del camino más corto por radio en el instante del envío. 1.0 = BATMAN eligió siempre un camino mínimo. |
+| Exactitud del conocimiento de rutas | Promedio en el tiempo de la fracción de pares (a, b) de nodos vivos en que lo que *a* cree coincide con la realidad: tiene una ruta vigente hacia *b* si y sólo si la radio los conecta. Mide la descentralización: cada nodo tiene su propia visión y ésta dice cuán buena es. |
+| Pares con ruta fantasma / faltante | Las dos formas de equivocarse: *a* cree tener ruta vigente pero la radio ya no los conecta (fantasma, típico tras una caída, hasta el `timeout`), o la radio los conecta pero *a* no tiene ruta vigente (faltante: convergencia). |
+| Nodos críticos, media | Promedio en el tiempo de los puntos de articulación de la malla de radio: nodos que, si caen, la parten. Puntos únicos de falla. |
 | Datos perdidos: … | Fracción de los enviados que se perdió por cada causa (suman 1 − entrega). Físicas: *destino caído* y *sin camino por radio*. De enrutamiento: *sin ruta* (la tabla del nodo no tiene ruta al destino), *ruta vieja* (el siguiente salto de la tabla está caído o fuera de alcance), *la radio perdió el salto* (con sus 3 reintentos) y *bucle* (TTL de 50 agotado). |
 
 Dos advertencias para interpretarlas:
@@ -636,7 +646,7 @@ web/                      ← interfaz web local (servidor HTTP/SSE + frontend),
 escenarios/*.json, *.txt  ← escenarios predefinidos y de ejemplo
 escenarios/casos/         ← variantes usadas por los casos de la guía
 escenarios/fallos/        ← despliegue de cobertura y escenarios de fallo del Cap. 5
-lotes/*.json              ← lotes para --batch (ejemplo, casos, movilidad, fallos, capitulo5_fallos)
+lotes/*.json              ← lotes para --batch (ejemplo, casos, movilidad, fallos, capitulo5_fallos, robustez)
 tests/                    ← pruebas unitarias
 docs/                     ← guía de ejecución, arquitectura y notas de diseño
 ```
