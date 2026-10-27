@@ -9,7 +9,7 @@ import math
 import re
 
 from analysis.inspector import snapshot_red
-from analysis.metrics import ruta_vigente
+from analysis.metrics import puntos_articulacion, ruta_vigente
 from sim.radio import fiabilidad
 
 ESQUEMA = 1
@@ -234,6 +234,7 @@ def frame(sim, *, velocidad=1.0, semilla=None, error=None, generacion=0,
         "resumen": sim.summary(),
         "grupos": _grupos(sim),
         "nodos_alcanzables": sim.nodes_in_mesh(),
+        "criticos": puntos_articulacion(sim),
         "eventos_nuevos": [
             _evento(sim, desde + i, t, tipo, texto)
             for i, (t, tipo, texto) in enumerate(eventos)
@@ -317,7 +318,8 @@ def nodo_detalle(sim, nid):
 SERIES_CAMPOS = ("t", "alive_G", "alive_N", "comp_G", "node_reach",
                  "avg_tq", "avg_hops", "max_silence", "deliver_ratio",
                  "alerts_active", "bandwidth", "datos_enviados",
-                 "datos_entregados", "entrega_datos")
+                 "datos_entregados", "entrega_datos", "exactitud",
+                 "rutas_fantasma", "rutas_faltantes", "nodos_criticos")
 
 
 def series(sim, desde=0, desde_evento=0, ultimas=0):

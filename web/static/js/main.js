@@ -135,7 +135,8 @@ function tooltip(info, px, py) {
     const n = nodo(info.id);
     if (!n) { t.hidden = true; return; }
     t.innerHTML = `<b>${esc(n.etiqueta)} · ${n.rol === "G" ? "Gateway" : "Nodo de usuario"}</b>
-      ${n.vivo ? "activo" : "caído"}${n.en_alerta ? " · en alerta" : ""}<br>
+      ${n.vivo ? "activo" : "caído"}${n.en_alerta ? " · en alerta" : ""}${
+        frame.criticos?.includes(n.id) ? " · <b style='display:inline'>crítico</b>: si cae, parte la malla" : ""}<br>
       Batería ${num(n.bateria, 0)} % · piso ${n.piso} · (${num(n.x, 1)}, ${num(n.y, 1)})<br>
       ${n.n_vecinos} vecinos conocidos · ${n.n_rutas} rutas en su tabla` +
       (n.fuerza ? `<br>Movilidad descentralizada: ${{ cobertura: "cubre a un usuario",
@@ -269,7 +270,7 @@ function pintarLeyenda(col) {
     ["anillo", "var(--alerta)", "En alerta"], ["circulo", col.caido, "Caído"],
     ["linea", "var(--enlace-bueno)", "Enlace fiable"], ["linea", "var(--enlace-malo)", "Enlace débil"],
     ["punto", col.ogm, "OGM"], ["punto", col.bcn, "Beacon"],
-    ["punto", col.mensaje, "Datos"],
+    ["punto", col.mensaje, "Datos"], ["anillo", col.mensaje, "Nodo crítico"],
   ];
   $("leyenda").innerHTML = `<div class="simbolos">${simbolos.map(([forma, c, t]) =>
       `<span><span class="sim ${forma}" style="background:${c};color:${c}"></span>${t}</span>`).join("")}</div>

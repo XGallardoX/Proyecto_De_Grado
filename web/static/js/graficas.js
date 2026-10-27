@@ -34,7 +34,7 @@ const PANELES = [
     lineaH: (d) => ({ valor: d.timeout, color: null, nombre: `Umbral de caída (${d.timeout}s)` }),
     desdeCero: true },
   { titulo: "5 · Calidad del medio radio (paquetes entregados / intentados)",
-    series: [{ campo: "deliver_ratio", color: "#88888888", nombre: "Ratio de entrega (por paso)", fino: true },
+    series: [{ campo: "deliver_ratio", color: "#88888888", nombre: "Ratio de entrega (por paso)", fino: true, sinLeyenda: true },
              { campo: "deliver_ratio", color: "#2980B9", nombre: "Media móvil", movil: 9 }],
     ymin: -0.02, ymax: 1.05 },
   { titulo: "6 · Ancho de banda total de la red",
@@ -46,6 +46,13 @@ const PANELES = [
     eventos: ["FAIL", "RECOVER", "PARTITION", "HEAL"], ymin: -0.02, ymax: 1.05,
     soloSi: (s) => (s.datos_enviados?.at(-1) ?? 0) > 0,
     nota: "Cada paquete avanza salto a salto con la tabla de rutas del nodo que lo tiene. Sólo aparece si hay tráfico (flujos del escenario, --trafico o mensajes)." },
+  { titulo: "8 · Descentralización: lo que cada nodo cree y los puntos únicos de falla",
+    series: [{ campo: "exactitud", color: "#0E9F6E", nombre: "Exactitud del conocimiento de rutas" },
+             { campo: "rutas_fantasma", color: "#E0393E", nombre: "Pares con ruta fantasma", fino: true },
+             { campo: "rutas_faltantes", color: "#C27803", nombre: "Pares con ruta faltante", fino: true },
+             { campo: "nodos_criticos", color: "#7C5CFF", nombre: "Nodos críticos", derecho: true, punteada: true, escalon: true }],
+    eventos: ["FAIL", "RECOVER", "PARTITION", "HEAL"], ymin: -0.02, ymax: 1.05,
+    nota: "Exactitud: fracción de pares (a, b) en que a tiene ruta vigente hacia b si y sólo si la radio los conecta. Fantasma: cree tener ruta y la radio ya no los conecta; faltante: al revés. Nodos críticos: los que, si caen, parten la malla (puntos de articulación)." },
 ];
 
 // Igual que np.convolve(x, ones(k)/k, mode='same') de la figura.
@@ -73,7 +80,7 @@ export class Graficas {
       titulo.textContent = p.titulo;
       const leyenda = document.createElement("div");
       leyenda.className = "series-grafica";
-      leyenda.innerHTML = p.series.filter((se) => !se.fino).map((se) =>
+      leyenda.innerHTML = p.series.filter((se) => !se.sinLeyenda).map((se) =>
         `<span><i style="background:${se.color}"></i>${esc(se.nombre)}</span>`).join("");
       div.append(titulo, leyenda);
       const canvas = document.createElement("canvas");

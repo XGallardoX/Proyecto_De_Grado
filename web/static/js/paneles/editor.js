@@ -91,6 +91,8 @@ export class Editor {
         <button data-a="evento">+ wander</button>
         <button data-a="evento-fail">+ caída</button>
         <button data-a="evento-recover">+ recuperación</button>
+        <button data-a="evento-azar" title="Al llegar t cae un nodo vivo elegido al azar">+ caída al azar</button>
+        <button data-a="evento-critico" title="Al llegar t cae el nodo más crítico (el que más nodos separa)">+ caída dirigida</button>
       </div>`;
 
     this.c.querySelectorAll(".ed-herr").forEach((b) => b.addEventListener("click", () => {
@@ -128,6 +130,9 @@ export class Editor {
         const g = this.datos.nodes.find((n) => n.role === "G");
         if (!g) { this._mensaje("Primero agrega un Gateway.", "error"); return; }
         this.datos.events.push({ type: "wander", node_id: g.id, until: 60 });
+        this._pintarEventos();
+      } else if (a === "evento-azar" || a === "evento-critico") {
+        this.datos.events.push({ type: a === "evento-azar" ? "fail_azar" : "fail_critico", rol: "G", t: 60 });
         this._pintarEventos();
       } else if (a === "evento-fail" || a === "evento-recover") {
         const n = this.datos.nodes[0];
@@ -195,11 +200,19 @@ export class Editor {
     const div = this.c.querySelector("#ed-eventos");
     const opciones = (lista, ev) => lista.map((n) =>
       `<option value="${n.id}" ${n.id === ev.node_id ? "selected" : ""}>${et.get(n.id)}</option>`).join("");
-    const NOMBRES = { fail: "caída", recover: "recuperación" };
+    const NOMBRES = { fail: "caída", recover: "recuperación",
+                      fail_azar: "caída al azar de un", fail_critico: "caída dirigida (el más crítico) de un" };
+    const ROLES = [["G", "Gateway"], ["N", "Nodo de usuario"], ["*", "nodo cualquiera"]];
     div.innerHTML = this.datos.events.map((ev, i) => ev.type === "wander"
       ? `<div class="fila" data-i="${i}">
       wander <select data-k="node_id">${opciones(gs, ev)}</select>
       hasta t = <input type="number" min="0" step="1" data-k="until" value="${ev.until}" style="width:5em"> s
+      <button data-borrar>✕</button></div>`
+      : ev.type === "fail_azar" || ev.type === "fail_critico"
+      ? `<div class="fila" data-i="${i}">
+      ${NOMBRES[ev.type]} <select data-rol>${ROLES.map(([r, t]) =>
+        `<option value="${r}" ${(ev.rol || "G") === r ? "selected" : ""}>${t}</option>`).join("")}</select>
+      en t = <input type="number" min="0" step="0.5" data-k="t" value="${ev.t}" style="width:5em"> s
       <button data-borrar>✕</button></div>`
       : `<div class="fila" data-i="${i}">
       ${NOMBRES[ev.type] || ev.type} de <select data-k="node_id">${opciones(this.datos.nodes, ev)}</select>
@@ -210,6 +223,7 @@ export class Editor {
       fila.querySelectorAll("[data-k]").forEach((inp) => inp.addEventListener("change", () => {
         ev[inp.dataset.k] = Number(inp.value);
       }));
+      fila.querySelector("[data-rol]")?.addEventListener("change", (e) => { ev.rol = e.target.value; });
       fila.querySelector("[data-borrar]").addEventListener("click", () => {
         this.datos.events.splice(Number(fila.dataset.i), 1);
         this._pintarEventos();

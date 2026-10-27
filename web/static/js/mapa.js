@@ -16,7 +16,8 @@ const FUENTE = "Inter, system-ui, sans-serif";
 export const CAPAS = [
   ["enlaces", "Enlaces"], ["paquetes", "Paquetes"], ["estelas", "Estelas"],
   ["burbujas", "Beacons"], ["alcance", "Alcance"], ["envolventes", "Grupos"],
-  ["vigilancia", "Vigilancia"], ["fuerzas", "Fuerzas"], ["cobertura", "Cobertura"],
+  ["vigilancia", "Vigilancia"], ["fuerzas", "Fuerzas"], ["criticos", "Críticos"],
+  ["cobertura", "Cobertura"],
 ];
 
 function lerp(a, b, t) { return a + (b - a) * t; }
@@ -59,7 +60,7 @@ export class Mapa {
     this.herramienta = "seleccionar";
     this.capas = { enlaces: true, paquetes: true, estelas: true, burbujas: false,
                    alcance: true, envolventes: true, vigilancia: true, fuerzas: true,
-                   cobertura: false };
+                   criticos: true, cobertura: false };
     this.lente = null;          // {id, detalle} — "ver como este nodo"
     this.filtroOrigen = null;   // sólo los OGM de este origen
     this.paquetesOrigen = null; // ...que se piden a /api/paquetes
@@ -540,6 +541,19 @@ export class Mapa {
           ctx.beginPath(); ctx.arc(sx, sy, (RADIO + 4 + 26 * e) * k, 0, Math.PI * 2); ctx.stroke();
         }
       }
+    }
+
+    // nodos críticos: si caen, parten la malla (puntos de articulación)
+    if (this.capas.criticos && !lente && f.criticos?.length) {
+      ctx.strokeStyle = conAlfa(col.mensaje, 0.9);
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 3]);
+      for (const id of f.criticos) {
+        const p = pos(id);
+        if (!p) continue;
+        ctx.beginPath(); ctx.arc(p[0], p[1], 20 * k, 0, Math.PI * 2); ctx.stroke();
+      }
+      ctx.setLineDash([]);
     }
 
     // cuerpos de los nodos
