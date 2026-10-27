@@ -22,7 +22,7 @@ archivo, en el mismo commit.
   escenario, métrica "Reconvergencia de rutas BATMAN" y escenarios de
   fallo del Capítulo 5 en `escenarios/fallos/` (historia y hallazgos en
   `DECISIONES_FASE3.md`).
-- **Pruebas:** 328 en verde (`venv/bin/python -m unittest discover -s
+- **Pruebas:** 341 en verde (`venv/bin/python -m unittest discover -s
   tests`; en Windows, `venv\Scripts\python`). En macOS además corre `tests/test_web_frontend.py`, que en
   Linux se omite porque necesita el `jsc` de macOS.
 - **Documento de tesis** (`Plantilla/`): sólo el Capítulo 2. Se escribe
@@ -306,7 +306,32 @@ nombre de quien usa la sesión y **sin** `Co-Authored-By` (ver
     no tiene ningún camino por radio: los Gateway apilados dejan Nodos
     de usuario sin cobertura. Es lo que tiene que arreglar el paso 9.
   Pruebas: `tests/test_datos.py` (19); 328 en total.
-- [ ] **Paso 9 — B: movilidad descentralizada de los Gateway** (D7, D8).
+- [x] **Paso 9 — B: movilidad descentralizada de los Gateway** (D7, D8).
+  *Hecho (2026-10-26).* Movilidad `descentralizada`, por defecto en
+  `DEFAULTS`. Los beacons llevan la posición del emisor (supuesto:
+  GPS/UWB); cada nodo guarda lo que oyó en `SimNode.oidos` y el Gateway
+  decide sólo con eso (`fuerza_descentralizada`): atracción a los
+  usuarios a su cargo, repulsión entre Gateway, *expansión* de los
+  ociosos y reconexión. Una regla local con incertidumbre
+  (`_conserva_enlace`) le impide romper un enlace sin rodeo de dos
+  saltos. Umbrales elegidos con una grilla (5 semillas, 4 escenarios):
+  0.4·R, 0.55·R, 0.75·R, 0.9·R y memoria de 3 beacons. Tabla completa
+  en `docs/movimiento_nodos.md`. Resumen:
+  - Sin la expansión, Gateways que arrancan juntos y no oyen a nadie se
+    quedaban quietos (`base`: cobertura 0.23); con ella, 0.89.
+  - Una memoria más larga *empeoraba* las particiones (posiciones
+    viejas); lo que las eliminó fue contar con la incertidumbre de la
+    posición de cada vecino. `base` y `denso`: 0 s partidos, contra 178
+    y 94 s de `repartir`.
+  - Entrega de datos: la mejor de los tres modos en `base` (0.31),
+    `denso` (0.26) y `colapso_progresivo` (0.27). Costo: la malla
+    estirada tiene enlaces más largos, y la entrega entre pares con
+    camino es algo menor que con `seguir`.
+  - En el mapa web, la capa "Fuerzas" muestra la decisión de cada
+    Gateway (cubrir, expandir, reconectar).
+  Las cifras de la guía con movimiento quedan con `seguir` hasta el paso
+  12 (nota al inicio de la guía). Pruebas:
+  `tests/test_movilidad_descentralizada.py` (13); 341 en total.
 - [ ] **Paso 10 — C: métricas de descentralización** (D7).
 - [ ] **Paso 11 — D: mapas, movilidad estándar y protocolo de
   comparación** (D7).

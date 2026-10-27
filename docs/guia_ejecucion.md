@@ -11,6 +11,13 @@ esos mismos comandos. Como cada corrida queda fijada por su semilla, con
 el mismo código deberías obtener exactamente los mismos números. Si
 algún día cambian, es que cambió el código, no el azar.
 
+> **Movilidad por defecto (2026-10-26).** Desde el paso 9 del plan, los
+> Gateway se mueven por defecto con la movilidad `descentralizada`. Las
+> cifras de los casos *con movimiento* (sin `--static`) se tomaron con
+> `seguir`, que era la de antes: para reproducirlas, agrega
+> `--movilidad seguir`. Se rehacen todas con la nueva en el paso 12. Los
+> casos con nodos fijos no cambian.
+
 **Contenido**
 
 1. [Preparar el entorno](#1-preparar-el-entorno)

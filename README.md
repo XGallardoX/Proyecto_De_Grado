@@ -50,8 +50,8 @@ python main.py --escenario base
 | `--escenario {base,colapso_progresivo,particion,rescatista_perdido,denso}` | Atajo a `--config escenarios/<nombre>.json` — carga nodos y posiciones **explícitas**, tiene prioridad sobre `-n`/`-g`. |
 | `--config archivo.json` | Ruta a un escenario JSON propio (ver sección siguiente). Tiene prioridad sobre `--escenario` y sobre `-n`/`-g`. |
 | `--msg "texto"` | Mensaje de cabecera que se imprime al iniciar. |
-| `--static` | Los nodos no se mueven: quedan fijos en la posición inicial (`move_speed=0`). Sin esto, cada Gateway (`G`) camina hacia el Nodo de usuario (`N`) más cercano (ver [`docs/movimiento_nodos.md`](docs/movimiento_nodos.md)). |
-| `--movilidad {seguir,repartir}` | Cómo se mueven los Gateway: `seguir` (cada uno hacia el Nodo de usuario más cercano, el comportamiento por defecto) o `repartir` (un Gateway por Nodo de usuario, para cubrirlos a todos). Reemplaza la `movilidad` del escenario. Ver [`docs/movimiento_nodos.md`](docs/movimiento_nodos.md). |
+| `--static` | Los nodos no se mueven: quedan fijos en la posición inicial (`move_speed=0`). Sin esto, los Gateway (`G`) se mueven según `--movilidad`. |
+| `--movilidad {seguir,repartir,descentralizada}` | Cómo se mueven los Gateway. `descentralizada` (por defecto): cada uno decide sólo con lo que oye en los beacons de sus vecinos (cubrir usuarios, separarse de otros Gateway, expandir la malla sin partirla). `seguir` (cada uno hacia el Nodo de usuario más cercano) y `repartir` (un Gateway por Nodo de usuario) miran las posiciones de todos: son la línea base centralizada. Reemplaza la `movilidad` del escenario. Ver [`docs/movimiento_nodos.md`](docs/movimiento_nodos.md). |
 | `--trafico K` | K flujos de datos entre pares de Nodos de usuario elegidos al azar, un paquete cada 2 s. Cada paquete avanza salto a salto con la tabla de rutas BATMAN del nodo que lo tiene (ver [Plano de datos](#plano-de-datos-tráfico-enrutado-por-batman)). Reemplaza los flujos aleatorios del escenario; los explícitos se mantienen. |
 | `--headless` | Corre sin ventana durante `--duracion` segundos simulados y exporta la figura y los reportes a `reportes/<escenario>_<fecha_hora>/`. |
 | `--duracion N` | Segundos **simulados** en `--headless`/`--inspect` (default `200`, mínimo `1`). Sin uno de esos dos flags es un error. |
@@ -306,7 +306,7 @@ mismos valores por defecto, así que da igual en cuál va cada clave):
 | `battery_drain` | `0.030` | % de batería por segundo que gasta un Gateway |
 | `battery_drain_nodo` | `0.012` | % de batería por segundo que gasta un Nodo de usuario (el nombre viejo `battery_drain_surv` se sigue aceptando) |
 | `move_speed` | `0.32` | Metros por paso de un Gateway (`0` = nodos fijos, ver `--static`) |
-| `movilidad` | `seguir` | Cómo eligen su destino los Gateway: `seguir` (el Nodo de usuario más cercano) o `repartir` (uno por Nodo de usuario). Ver `--movilidad` |
+| `movilidad` | `descentralizada` | Cómo eligen su destino los Gateway: `descentralizada` (fuerzas con lo que oyen), `seguir` (el Nodo de usuario más cercano) o `repartir` (uno por Nodo de usuario). Ver `--movilidad` |
 
 ### Formato `.txt` (equivalente al JSON, más fácil de editar a mano)
 
@@ -423,7 +423,7 @@ Claves de cada entrada:
 | `escenario` **o** `config` | Exactamente uno de los dos: un escenario predefinido (como `--escenario`) o la ruta a un archivo `.json`/`.txt` (como `--config`: relativa al directorio desde el que se corre `main.py`). |
 | `semillas`, `duracion` | Reemplazan los valores del lote para esta entrada. |
 | `static` | `true` para fijar los nodos (como `--static`). |
-| `movilidad` | `"seguir"` o `"repartir"` (como `--movilidad`); si falta, la del escenario. |
+| `movilidad` | `"descentralizada"`, `"seguir"` o `"repartir"` (como `--movilidad`); si falta, la del escenario. |
 | `trafico` | Entero K: flujos de datos aleatorios (como `--trafico`). |
 | `etiqueta` | Nombre de la entrada en el resumen y en las carpetas. Por defecto, el del escenario (o del archivo), más `_static`, `_<movilidad>` y `_trafico<K>` si corresponden (p. ej. `denso_repartir`). Tiene que ser única: para repetir un escenario con otra configuración, hay que darle una. |
 

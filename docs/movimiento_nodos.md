@@ -163,3 +163,73 @@ camino, todavía por diseñar, sería repartir sin que la malla se parta,
 por ejemplo usando a los Gateway que sobran como relevos entre grupos.
 La comparación en los 5 escenarios está en el caso 11 de la
 [guía de ejecución](guia_ejecucion.md).
+
+## La movilidad por defecto: `descentralizada`
+
+`seguir` y `repartir` tienen el mismo problema de fondo: deciden con
+información global. `seguir` recorre las posiciones de *todos* los nodos
+(`sim.nodes`) y `repartir` es un emparejamiento que calcula el motor. En
+una red descentralizada eso no existe: cada Gateway sólo sabe lo que oye.
+Desde el paso 9 de `contexto/PLAN_SIGUIENTE.md` la movilidad por defecto
+es `descentralizada`; `seguir` y `repartir` quedan como línea base
+centralizada para comparar.
+
+**Qué sabe cada Gateway.** Los beacons llevan la posición de quien los
+emite (el supuesto habitual de los algoritmos de cobertura por fuerzas
+virtuales: GPS, o UWB en interiores). Cada nodo guarda lo que oyó en
+`SimNode.oidos` (id → posición, rol, instante) y olvida a un vecino tras
+3 beacons sin oírlo. Nada más: ni `sim.nodes`, ni la tabla de nadie más.
+
+**Qué decide** (`SimNode.fuerza_descentralizada`), con distancias como
+fracción del alcance de radio R:
+
+- *Cobertura*: atracción hacia los Nodos de usuario que oye y de los que
+  es el Gateway más cercano entre los que conoce ("a su cargo"), si están
+  a más de 0.4·R.
+- *Repulsión*: de los Gateway que oye a menos de 0.55·R; si no tiene
+  ningún usuario a su cargo (ocioso), a menos de 0.75·R. Esto es la
+  *expansión*: la malla se estira y explora hasta oír usuarios nuevos.
+  Sin ella, Gateways que arrancan juntos y no oyen a nadie se quedarían
+  quietos (en `base`, la cobertura era 0.23).
+- *Reconexión*: sin ningún Gateway oído, vuelve hacia el último que oyó.
+- *No partir la malla* (`_conserva_enlace`): no da un paso que rompa un
+  enlace con un Gateway oído (a menos de 0.9·R) salvo que quede un rodeo
+  de dos saltos: otro Gateway oído enlazado con los dos. Como las
+  posiciones de los beacons tienen hasta unos segundos, cuenta con que
+  cada vecino pudo moverse velocidad·antigüedad metros: un enlace es
+  seguro sólo si lo es en el peor caso.
+
+En el mapa de la interfaz web, la capa "Fuerzas" dibuja hacia dónde
+quiere ir cada Gateway: verde (cubrir un usuario), azul (expandir) o
+ámbar (reconectarse).
+
+**Cómo se eligieron los umbrales.** Con una grilla sobre `base`,
+`denso`, `colapso_progresivo` y `rescatista_perdido` (5 semillas, 200 s,
+`--trafico 6`). Una memoria más larga empeoraba las particiones (las
+posiciones viejas engañan más de lo que ayuda recordar al vecino); lo que
+las eliminó fue la regla con incertidumbre. Comparación final (medias de
+5 semillas):
+
+| Escenario | Movilidad | Cobertura media | Entrega de datos | Tiempo partida (s) |
+|---|---|---|---|---|
+| `base` | seguir | 0.46 | 0.23 | 32.4 |
+| `base` | repartir | 0.95 | 0.24 | 178.3 |
+| `base` | descentralizada | 0.89 | 0.31 | 0.0 |
+| `denso` | seguir | 0.52 | 0.11 | 0.0 |
+| `denso` | repartir | 1.00 | 0.19 | 93.9 |
+| `denso` | descentralizada | 0.99 | 0.26 | 0.0 |
+| `colapso_progresivo` | seguir | 0.38 | 0.23 | 9.2 |
+| `colapso_progresivo` | repartir | 0.82 | 0.23 | 102.3 |
+| `colapso_progresivo` | descentralizada | 0.40 | 0.27 | 1.8 |
+| `rescatista_perdido` | seguir | 0.91 | 0.27 | 159.3 |
+| `rescatista_perdido` | repartir | 0.93 | 0.24 | 158.7 |
+| `rescatista_perdido` | descentralizada | 0.76 | 0.25 | 61.5 |
+
+`repartir` logra más cobertura porque manda un Gateway a cada usuario,
+pero parte la malla de Gateways y los datos no pasan entre las partes.
+La descentralizada mantiene la malla unida y entrega más datos en todos
+salvo `rescatista_perdido` (donde el evento `wander` aleja un Gateway a
+la fuerza). Su costo: la malla estirada usa enlaces más largos, así que
+la entrega entre pares que *tienen* camino es algo menor (0.26–0.38
+contra 0.27–0.47 de `seguir`). En `colapso_progresivo` los Gateway se
+quedan sin batería y la cobertura cae en los tres modos.
