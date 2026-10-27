@@ -148,22 +148,28 @@ Si no se pasa `--seed`, la sesión elige una semilla al azar (con
 muestra en la barra superior — toda sesión web es reproducible aunque
 no se la fije a mano.
 
-**Barra superior:** escenario (y "Abrir…" para un archivo de
-`escenarios/` o una red aleatoria), la semilla (clic para cambiarla),
-pausa/reanuda, un paso (en pausa), velocidad (0.25× a 8×, más
-"máxima"), reiniciar (vuelve a fijar la semilla: a diferencia de la
+**Barra lateral:** las secciones (Simular, el editor de escenarios, el
+laboratorio de experimentos y exportar) y, abajo, modo presentación,
+tema claro/oscuro, atajos de teclado y terminar sesión.
+
+**Barra superior:** escenario (y el botón de carpeta para un archivo de
+`escenarios/` o una red aleatoria) y la semilla (clic para cambiarla);
+al centro, reiniciar (vuelve a fijar la semilla: a diferencia de la
 tecla `R` de pygame, que no la refija, acá la corrida se repite igual),
-exportar, el editor de escenarios, el laboratorio de experimentos, modo
-presentación, tema claro/oscuro y terminar sesión. A la derecha, el reloj, Gateways y Nodos vivos,
-cuántos Nodos de usuario cubre la malla, y avisos de red partida, de
+pausa/reanuda, un paso (en pausa) y la velocidad (0.25× a 8×, más
+"máxima"). A la derecha, el reloj, Gateways y Nodos vivos, cuántos
+Nodos de usuario cubre la malla, y avisos de red partida, de
 intervenciones o de error.
 
-**Mapa:** Gateways como círculos, Nodos de usuario como rombos; clic
+**Mapa:** Gateways como círculos (con el color de cada uno), Nodos de
+usuario como rombos y, sobre cada nodo, su nombre y su batería; clic
 para seleccionar, arrastrar para mover, clic derecho para el menú del
 nodo (o para agregar uno donde se hizo clic); las herramientas
-"+ Gateway" / "+ Nodo" agregan con un clic. Desde la leyenda se prenden y
-apagan las capas (enlaces, paquetes, estelas, beacons, alcance, grupos,
-vigilancia y el mapa de cobertura). Al pasar el cursor, datos del nodo o
+"Gateway" / "Nodo" de la barra flotante agregan con un clic. Desde la
+leyenda se prenden y apagan las capas (enlaces, paquetes, estelas,
+beacons, alcance, grupos, vigilancia y el mapa de cobertura); el texto
+de los beacons empieza apagado, y cada beacon se ve como un pulso
+alrededor del nodo. Al pasar el cursor, datos del nodo o
 del enlace (fiabilidad, distancia, pisos). **"Ver como este nodo"**
 (tecla `L`) muestra sólo lo que el nodo seleccionado sabe: sus destinos
 con saltos, TQ y antigüedad, flechas a su siguiente salto, a quién cree

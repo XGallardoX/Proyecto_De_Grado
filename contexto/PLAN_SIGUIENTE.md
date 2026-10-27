@@ -1,6 +1,6 @@
 # Dónde quedamos y cómo seguir
 
-Fecha: 2026-10-03 · `main` en `c336764`
+Fecha: 2026-10-26 (decisiones D7-D11 y pasos 7-12; las D1-D6 son del 2026-10-03)
 
 Este archivo es el punto de partida para retomar el trabajo, en cualquier
 máquina y con cualquiera de los dos autores. Las decisiones de abajo **ya
@@ -22,7 +22,7 @@ archivo, en el mismo commit.
   escenario, métrica "Reconvergencia de rutas BATMAN" y escenarios de
   fallo del Capítulo 5 en `escenarios/fallos/` (historia y hallazgos en
   `DECISIONES_FASE3.md`).
-- **Pruebas:** 305 en verde (`venv/bin/python -m unittest discover -s
+- **Pruebas:** 309 en verde (`venv/bin/python -m unittest discover -s
   tests`; en Windows, `venv\Scripts\python`). En macOS además corre `tests/test_web_frontend.py`, que en
   Linux se omite porque necesita el `jsc` de macOS.
 - **Documento de tesis** (`Plantilla/`): sólo el Capítulo 2. Se escribe
@@ -92,6 +92,61 @@ alcanzables (la serie `nodos_alcanzables` dividida por los Nodos vivos;
 se saltan las muestras sin Nodos vivos). Mide cuánta cobertura se pierde
 mientras un Gateway está caído, que hoy no aparece en el resumen porque
 sólo se reporta el valor final. Es aditiva: una columna más al final.
+
+---
+
+## Decisiones tomadas (2026-10-26)
+
+Al revisar el simulador con el objetivo de la tesis (*un simulador hecho
+a la medida para redes descentralizadas*) aparecieron tres lugares donde
+decide con información global, como un coordinador central:
+
+1. La movilidad `seguir` (`SimNode.move`) recorre `sim.nodes` y lleva a
+   cada Gateway al Nodo de usuario más cercano mirando las posiciones de
+   *todos*: por eso todos terminan apilados sobre el mismo nodo.
+   `repartir` es un emparejamiento global que hace el motor.
+2. `Simulation.send_unicast` entrega los mensajes por BFS sobre el grafo
+   real y *garantiza* la entrega si existe camino: las tablas de BATMAN
+   no deciden nada.
+3. Sólo circulan OGM y beacons; no hay tráfico de datos.
+
+**D7. Alcance completo: A + B + C + D**, en este orden después del front:
+- **A. Plano de datos sobre BATMAN.** Cada paquete avanza salto a salto
+  por la tabla de rutas *del nodo que lo tiene* (siguiente salto =
+  `via_id` de su ruta), con las pérdidas del `RadioMedium`, TTL y
+  detección de bucles; sin ruta o con el salto perdido, se pierde. Flujos
+  de tráfico configurables en el escenario (origen, destino, cada cuánto).
+  Métricas: tasa de entrega de datos, latencia, saltos reales contra el
+  camino óptimo (estiramiento). Los mensajes manuales de la interfaz
+  usan el mismo plano de datos.
+- **B. Movilidad descentralizada de los Gateway** (modo nuevo, por
+  defecto al terminar el paso): cada Gateway decide sólo con lo que oye
+  (sus `PeerInfo`, el TQ y los beacons de los Nodos de usuario):
+  atracción a los Nodos de usuario que oye débil o que nadie cubre,
+  repulsión de los Gateway que oye demasiado fuerte, y no se aleja si
+  perdería su último vecino Gateway. `seguir` y `repartir` quedan como
+  comparación (línea base centralizada).
+- **C. Métricas de descentralización:** divergencia entre lo que cada
+  nodo cree y la realidad (lo que hoy muestra la lente, como número),
+  nodos críticos (puntos de articulación de la malla) y fallos al azar
+  contra fallos dirigidos al nodo más crítico.
+- **D. Generalidad:** mapas que no sean sólo el edificio de 3 pisos
+  (campo abierto), modelos de movilidad estándar (random waypoint y por
+  grupos) y un protocolo de comparación (inundación simple) contra BATMAN.
+
+**D8. D3 se reabre.** Con B, la movilidad deja de ser un artefacto: los
+resultados del Capítulo 5 se vuelven a correr al final (paso 12) con la
+movilidad descentralizada además de nodos fijos.
+
+**D9. El front va primero** (paso 7): rediseño visual completo, sin
+cambiar el contrato con el servidor ni los IDs que usan las pruebas.
+
+**D10.** Las fuentes de la interfaz (Inter y JetBrains Mono, OFL) van
+dentro del repo en `web/static/fuentes/`, para que se vea igual sin
+conexión.
+
+**D11. El documento de tesis (paso 6) sigue siendo lo último**, después
+del paso 12.
 
 ---
 
@@ -198,6 +253,27 @@ nombre de quien usa la sesión y **sin** `Co-Authored-By` (ver
   (funcionalidad → vacío que atiende), la guía y los resultados del
   paso 5. Para compilar hace falta TeX Live (en la máquina de
   XGallardoX está en `~/texlive/2026`; ver `ESTADO_PROYECTO.md`).
+
+- [x] **Paso 7 — Rediseño del front (D9, D10).** Barra lateral de
+  secciones, controles de reproducción al centro, íconos SVG propios,
+  tipografía Inter/JetBrains Mono, tokens de color para tema oscuro y
+  claro, mapa con pisos como tarjetas, halos y pulsos de beacon,
+  etiquetas con batería que no se enciman, gráficas en tarjetas y
+  diálogos rediseñados.
+  *Hecho (2026-10-26).* Se corrigieron de paso dos defectos: el tema
+  guardado se aplicaba después de que el mapa leía los colores (mapa
+  oscuro con paneles claros), y los avisos con `hidden` se veían por un
+  `display` del CSS. `tests/frontend/stub.js` ahora simula los
+  degradados del canvas. 309 pruebas en verde; el frontend se verificó
+  en Chrome (sin errores de consola) en los dos temas.
+- [ ] **Paso 8 — A: plano de datos sobre BATMAN** (D7).
+- [ ] **Paso 9 — B: movilidad descentralizada de los Gateway** (D7, D8).
+- [ ] **Paso 10 — C: métricas de descentralización** (D7).
+- [ ] **Paso 11 — D: mapas, movilidad estándar y protocolo de
+  comparación** (D7).
+- [ ] **Paso 12 — Resultados de nuevo.** Volver a correr los lotes y el
+  Capítulo 5 con todo lo anterior; actualizar cifras de la guía, el
+  README y las tablas/figuras de `Plantilla/`. Después, el paso 6.
 
 ---
 

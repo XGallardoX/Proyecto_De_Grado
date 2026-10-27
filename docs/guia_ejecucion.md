@@ -642,7 +642,8 @@ G2 nunca llegan a quedar viejas: en 8 de las 10 semillas el episodio se
 cierra en la primera muestra (0.5 s). Las alertas que aparecen igual
 son falsas alarmas entre G1 y G3, por los enlaces con pérdidas.
 
-**En la interfaz web**, `casos/puente.txt` se abre desde "Abrir…" y
+**En la interfaz web**, `casos/puente.txt` se abre desde el botón de
+carpeta junto al escenario y
 corre con sus eventos programados (salen en el log como "caído
 (programado)"). También se puede hacer a mano, con cualquier escenario:
 tumbar un Gateway con `F`, recuperarlo con `G` y exportar. Como las únicas intervenciones fueron caídas y
