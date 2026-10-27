@@ -91,7 +91,7 @@ Sólo en `127.0.0.1:<puerto>` (por defecto 8765), sin autenticación.
 | `agregar_nodo` | `rol` (`G`/`N`), `x`, `y` opcionales | Sin datos, igual que la tecla `A` de pygame |
 | `mover_nodo` | `id`, `x`, `y` | Recortado a los límites de `_try_move`; evento `MOVE` |
 | `eliminar_nodo` | `id` | Error si es el único Gateway |
-| `mensaje` | `texto` (`G1>N2 hola`) | Devuelve `camino`, `ids`, `entregado`, `motivo` y `ruta_batman_convergida` |
+| `mensaje` | `texto` (`G1>N2 hola`) | Lo manda por el plano de datos (salto a salto por las tablas de BATMAN). Devuelve `camino` e `ids` (lo que recorrió, hasta donde se perdió), `entregado`, `causa`, `motivo`, `optimo` (el camino más corto por radio) y `ruta_batman_convergida` |
 | `parametro` | `clave`, `valor` | Lista blanca con tipo y rango (abajo) |
 | `restaurar_parametro` | `clave` | Vuelve al valor con que arrancó la sesión |
 | `validar_escenario` | `escenario` | Mismas reglas que `--config` |
@@ -332,9 +332,9 @@ para el repo.
   Gateway más cercano), rotulada como estimación.
 - **Grupos y nodos alcanzables se calculan sobre los enlaces de radio**
   (`_union_find`), no sobre las tablas de rutas.
-- **Los mensajes viajan por el camino más corto en la malla de radio**
-  (BFS), no por las tablas BATMAN; se indica si la ruta BATMAN ya había
-  convergido.
+- **Los mensajes y el tráfico viajan por las tablas de BATMAN**, salto
+  a salto (`sim/datos.py`), pero cada salto se resuelve dentro del paso:
+  no hay latencia ni colas.
 - **Los paquetes del mapa son una muestra** cuando hay más de 300 en
   vuelo (salvo con el filtro de un origen, que los muestra todos).
 - **Las rutas de `BatmanRouter` no expiran**: por eso la interfaz las

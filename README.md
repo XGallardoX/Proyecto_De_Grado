@@ -52,11 +52,12 @@ python main.py --escenario base
 | `--msg "texto"` | Mensaje de cabecera que se imprime al iniciar. |
 | `--static` | Los nodos no se mueven: quedan fijos en la posición inicial (`move_speed=0`). Sin esto, cada Gateway (`G`) camina hacia el Nodo de usuario (`N`) más cercano (ver [`docs/movimiento_nodos.md`](docs/movimiento_nodos.md)). |
 | `--movilidad {seguir,repartir}` | Cómo se mueven los Gateway: `seguir` (cada uno hacia el Nodo de usuario más cercano, el comportamiento por defecto) o `repartir` (un Gateway por Nodo de usuario, para cubrirlos a todos). Reemplaza la `movilidad` del escenario. Ver [`docs/movimiento_nodos.md`](docs/movimiento_nodos.md). |
+| `--trafico K` | K flujos de datos entre pares de Nodos de usuario elegidos al azar, un paquete cada 2 s. Cada paquete avanza salto a salto con la tabla de rutas BATMAN del nodo que lo tiene (ver [Plano de datos](#plano-de-datos-tráfico-enrutado-por-batman)). Reemplaza los flujos aleatorios del escenario; los explícitos se mantienen. |
 | `--headless` | Corre sin ventana durante `--duracion` segundos simulados y exporta la figura y los reportes a `reportes/<escenario>_<fecha_hora>/`. |
 | `--duracion N` | Segundos **simulados** en `--headless`/`--inspect` (default `200`, mínimo `1`). Sin uno de esos dos flags es un error. |
 | `--seed N` | Fija la semilla de `random` y `numpy`: misma semilla + misma configuración = misma corrida. Vale en cualquier modo. |
 | `--inspect` | Corre `--duracion` segundos sin ventana e imprime el estado interno de la red (vecinos, tabla de rutas BATMAN, componentes, enlaces). No genera archivos. |
-| `--batch LOTE.json` | Corre sin ventana un lote de escenarios × semillas y escribe un resumen agregado por escenario (ver [Archivo de lote](#archivo-de-lote---batch)). No se combina con `--escenario`/`--config`/`-n`/`-g`/`--static`/`--movilidad`/`--duracion`/`--seed`/`--inspect`: todo eso va en el archivo. |
+| `--batch LOTE.json` | Corre sin ventana un lote de escenarios × semillas y escribe un resumen agregado por escenario (ver [Archivo de lote](#archivo-de-lote---batch)). No se combina con `--escenario`/`--config`/`-n`/`-g`/`--static`/`--movilidad`/`--trafico`/`--duracion`/`--seed`/`--inspect`: todo eso va en el archivo. |
 
 Tres formas de arrancar, de menor a mayor control sobre la topología:
 
@@ -351,6 +352,12 @@ wander    1        60
   (no se pueden mezclar los dos estilos en la misma sección).
 - `[events]` es opcional, una línea por evento: `wander node_id until`,
   `fail node_id t` o `recover node_id t`.
+- `[traffic]` es opcional: `aleatorios=K` (K flujos entre Nodos de
+  usuario al azar), `cada=s` (segundos entre paquetes, 2 por defecto) y
+  una línea por flujo explícito `src dst [cada] [desde] [hasta]`. En JSON
+  es `"traffic": {"aleatorios": K, "cada": s, "flujos": [{"src": 1,
+  "dst": 2, "cada": 2, "desde": 0, "hasta": 150}]}`. Los flujos
+  explícitos necesitan nodos explícitos (no el modo random).
 - Mismas validaciones y mismos mensajes de error que el JSON (id
   duplicado, rol inválido, sin gateway, fuera del edificio, etc.).
 
@@ -417,14 +424,15 @@ Claves de cada entrada:
 | `semillas`, `duracion` | Reemplazan los valores del lote para esta entrada. |
 | `static` | `true` para fijar los nodos (como `--static`). |
 | `movilidad` | `"seguir"` o `"repartir"` (como `--movilidad`); si falta, la del escenario. |
-| `etiqueta` | Nombre de la entrada en el resumen y en las carpetas. Por defecto, el del escenario (o del archivo), más `_static` y `_<movilidad>` si corresponden (p. ej. `denso_repartir`). Tiene que ser única: para repetir un escenario con otra configuración, hay que darle una. |
+| `trafico` | Entero K: flujos de datos aleatorios (como `--trafico`). |
+| `etiqueta` | Nombre de la entrada en el resumen y en las carpetas. Por defecto, el del escenario (o del archivo), más `_static`, `_<movilidad>` y `_trafico<K>` si corresponden (p. ej. `denso_repartir`). Tiene que ser única: para repetir un escenario con otra configuración, hay que darle una. |
 
 Una clave mal escrita (p. ej. `semilla`), un escenario inexistente o un
 archivo de escenario inválido frenan el lote con un mensaje claro, antes
 de correr la primera corrida.
 
 Cada corrida es idéntica a `python main.py --headless --escenario <e>
---duracion <d> --seed <semilla>` (con `--static`/`--movilidad` si
+--duracion <d> --seed <semilla>` (con `--static`/`--movilidad`/`--trafico` si
 corresponden): misma semilla, misma simulación. Cualquier fila del resumen se puede
 reproducir suelta, o mirar en la ventana con `--seed`.
 
@@ -483,7 +491,7 @@ o al terminar una corrida `--headless`, se crea una carpeta nueva:
 
 ```
 reportes/<escenario>_<fecha_hora>/
-├── analisis_red.png   ← figura de 6 paneles (matplotlib)
+├── analisis_red.png   ← figura de 6 paneles, 7 con tráfico (matplotlib)
 ├── reporte.csv         ← serie temporal, una fila por paso registrado
 ├── reporte.json        ← metadatos + resumen + serie temporal + eventos
 └── reporte.txt         ← resumen legible en texto plano
@@ -503,12 +511,16 @@ La carpeta `reportes/` está en `.gitignore` — no se commitea.
    `timeout` configurado.
 5. Calidad del medio radio: ratio de paquetes entregados/intentados.
 6. Ancho de banda total de la red, con eventos marcados.
+7. Sólo si hubo tráfico de datos: la entrega del plano de datos (paquetes
+   entregados / enviados en los últimos 20 s).
 
 **`reporte.csv`** — una fila por paso registrado (un paso = 0.5 s
 simulados). Columnas: `tiempo_s`, `gateways_activos`, `nodos_activos`,
 `componentes_malla`, `nodos_alcanzables`, `calidad_ruta_promedio_tq`,
 `saltos_promedio`, `silencio_maximo_s`, `tasa_entrega_paquetes`,
-`alertas_activas`, `ancho_banda_total_mbps`, y `tipo_evento` /
+`alertas_activas`, `ancho_banda_total_mbps`, `datos_enviados` y
+`datos_entregados` (acumulados), `entrega_datos_ventana` (fracción
+entregada en los últimos 20 s; 1.0 sin tráfico), y `tipo_evento` /
 `descripcion_evento` (si hubo algún evento en ese instante).
 
 **`reporte.json`** — `metadatos` (escenario, fecha, configuración
@@ -542,6 +554,11 @@ escenario) sale de la serie temporal que ya registra
 | Primera alerta (s) | Instante de la primera de esas alertas; "no aplica" si no hubo. |
 | Reconvergencia de rutas BATMAN (s) | Duración media de los episodios de reconvergencia de rutas. Un episodio empieza cuando vuelve un Gateway (`RECOVER`) o se reunifica la malla (`HEAL`), y termina en la primera muestra en que todo par de Gateways conectados por radio tiene una ruta vigente: la ruta existe en su `BatmanRouter` y un OGM la refrescó hace menos que el `timeout`. Si llega otro disparador con un episodio abierto, se suma a ese. "No aplica" si ningún episodio se cerró. |
 | Cobertura media de Nodos de usuario | Promedio en el tiempo de la fracción de Nodos de usuario vivos que están alcanzables (`nodos_alcanzables` dividido por los Nodos vivos en cada muestra; se saltan las muestras sin Nodos vivos). A diferencia del valor al final, mide cuánta cobertura se perdió mientras un Gateway estuvo caído: 1.0 = todos los Nodos vivos cubiertos todo el tiempo. "No aplica" si nunca hubo Nodos de usuario vivos. |
+| Entrega de datos | Paquetes de datos entregados / enviados por el [plano de datos](#plano-de-datos-tráfico-enrutado-por-batman). Ésta y las siguientes son "no aplica" sin tráfico. |
+| Entrega de datos con camino por radio | Lo mismo, contando sólo los paquetes cuyo destino estaba vivo y tenía algún camino por radio al enviarse: cuánto entrega el enrutamiento cuando la física lo permite. |
+| Saltos de los datos entregados | Saltos medios de los paquetes que llegaron. |
+| Estiramiento | Media de saltos reales / saltos del camino más corto por radio en el instante del envío. 1.0 = BATMAN eligió siempre un camino mínimo. |
+| Datos perdidos: … | Fracción de los enviados que se perdió por cada causa (suman 1 − entrega). Físicas: *destino caído* y *sin camino por radio*. De enrutamiento: *sin ruta* (la tabla del nodo no tiene ruta al destino), *ruta vieja* (el siguiente salto de la tabla está caído o fuera de alcance), *la radio perdió el salto* (con sus 3 reintentos) y *bucle* (TTL de 50 agotado). |
 
 Dos advertencias para interpretarlas:
 
@@ -584,6 +601,27 @@ serie), los comandos, el servidor HTTP/SSE y el editor.
 `tests/test_web_frontend.py` además ejecuta el JavaScript del frontend
 con datos reales en JavaScriptCore (`jsc`, que trae macOS); en otros
 sistemas esa prueba se salta.
+
+### Plano de datos: tráfico enrutado por BATMAN
+
+Con `--trafico K`, la sección `traffic` del escenario o los mensajes que
+se mandan a mano (`M` en la ventana, el compositor de la interfaz web),
+la red lleva datos además de OGM y beacons (`sim/datos.py`). Cada
+paquete avanza **salto a salto**: en cada nodo, el siguiente salto lo
+elige `BatmanRouter.next_hop()` (`mesh/router.py`) con la tabla de rutas
+de *ese* nodo; nadie conoce el camino completo. Cada salto es un unicast
+con los reintentos de la capa de enlace (3, como 802.11) y la fiabilidad
+del medio radio.
+
+- Un paquete puede perderse aunque haya camino por radio: es lo que mide
+  el plano de datos (ver las causas en la tabla de métricas). El camino
+  más corto por radio (BFS) sólo se usa como referencia, para el
+  estiramiento y para separar las pérdidas físicas.
+- Cada salto se resuelve dentro del paso en que se envía (en una red real
+  tarda milisegundos, mucho menos que el paso de 0.5 s): la simulación
+  no mide latencia.
+- Sin tráfico no se consume azar: las corridas sin tráfico dan
+  exactamente lo mismo que antes del plano de datos.
 
 ---
 

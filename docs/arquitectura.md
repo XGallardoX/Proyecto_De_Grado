@@ -73,6 +73,15 @@ receptor en rango y sólo entrega el paquete si "gana"; lleva la cuenta
 de paquetes intentados/entregados para las métricas de calidad del
 medio.
 
+`sim/datos.py` (`PlanoDatos`) es el plano de datos: los flujos de
+tráfico del escenario (o de `--trafico`) y los mensajes manuales. Cada
+paquete avanza salto a salto y en cada nodo el siguiente salto lo decide
+`BatmanRouter.next_hop()` con la tabla de ese nodo, también código real.
+Cada salto es un unicast con los reintentos de la capa de enlace sobre la
+misma fiabilidad del medio. Así, la entrega de datos mide el enrutamiento
+de BATMAN y no la conectividad física: un paquete se puede perder sin
+ruta, por una ruta vieja, por la radio o en un bucle aunque exista camino.
+
 `sim/engine.py` (`Simulation`) construye el mundo (a partir de
 `sim/config_loader.py`, que valida un JSON de escenario, o de
 `-n`/`-g` con posiciones aleatorias), avanza todos los `SimNode` un

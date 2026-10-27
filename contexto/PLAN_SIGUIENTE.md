@@ -22,7 +22,7 @@ archivo, en el mismo commit.
   escenario, métrica "Reconvergencia de rutas BATMAN" y escenarios de
   fallo del Capítulo 5 en `escenarios/fallos/` (historia y hallazgos en
   `DECISIONES_FASE3.md`).
-- **Pruebas:** 309 en verde (`venv/bin/python -m unittest discover -s
+- **Pruebas:** 328 en verde (`venv/bin/python -m unittest discover -s
   tests`; en Windows, `venv\Scripts\python`). En macOS además corre `tests/test_web_frontend.py`, que en
   Linux se omite porque necesita el `jsc` de macOS.
 - **Documento de tesis** (`Plantilla/`): sólo el Capítulo 2. Se escribe
@@ -266,7 +266,46 @@ nombre de quien usa la sesión y **sin** `Co-Authored-By` (ver
   `display` del CSS. `tests/frontend/stub.js` ahora simula los
   degradados del canvas. 309 pruebas en verde; el frontend se verificó
   en Chrome (sin errores de consola) en los dos temas.
-- [ ] **Paso 8 — A: plano de datos sobre BATMAN** (D7).
+- [x] **Paso 8 — A: plano de datos sobre BATMAN** (D7).
+  *Hecho (2026-10-26).* `sim/datos.py` (`PlanoDatos`) y
+  `BatmanRouter.next_hop()` en `mesh/router.py`. Cada paquete avanza
+  salto a salto con la tabla del nodo que lo tiene; cada salto es un
+  unicast con 3 reintentos (como 802.11) sobre la fiabilidad del medio;
+  TTL 50 (como batman-adv). Tráfico: sección `traffic` del escenario
+  (flujos explícitos y/o `aleatorios`), `--trafico K`, clave `trafico`
+  del lote, campo en el diálogo de inicio y en el laboratorio. Los
+  mensajes manuales (ventana y web) usan el mismo plano de datos.
+  Decisiones al implementar:
+  - **Sin latencia**: cada salto se resuelve dentro del paso (en una red
+    real tarda ms, mucho menos que el paso de 0.5 s); se mide entrega,
+    saltos, estiramiento y causas de pérdida. Por eso no hay latencia en
+    las métricas, aunque D7 la mencionaba.
+  - **Causas** separadas en físicas (`destino_caido`, `sin_camino`: no
+    hay camino por radio al enviar, el paquete no se reenvía) y de
+    enrutamiento (`sin_ruta`, `ruta_vieja`: el siguiente salto de la tabla
+    está caído o fuera de alcance, `enlace`, `bucle`). Métrica clave para
+    comparar protocolos: `entrega_datos_con_camino`.
+  - Sin tráfico no se consume azar. Regresión: `capitulo5_fallos.json`
+    y `ejemplo.json` (113 corridas) dan 0 celdas distintas; las columnas
+    nuevas quedan vacías.
+  - La figura PNG y la interfaz suman un 7.º panel sólo si hubo tráfico.
+  - Los flujos arrancan en t = 0: las primeras pérdidas `sin_ruta` son
+    la convergencia inicial (≈3-8 % en 200 s), se dejan a propósito.
+  Hallazgos (con `--trafico 6`, nodos fijos, semillas 1-2):
+  - **Bucles reales en las tablas** (1-2 % de los paquetes, entre t≈14 y
+    50 s en `fallo_redundante`: ping-pong G3↔G2). Este `BatmanRouter`
+    reenvía la primera copia de cada OGM venga por donde venga; BATMAN
+    real sólo reenvía la que llegó por el mejor vecino. Se deja como
+    está (cambiaría el plano de control); es un resultado para el Cap. 5.
+  - **Reparación lenta de rutas**: tras caer un Gateway, la ruta por él
+    sigue en la tabla ≈50 s (`ruta_vieja` de t=62 a 110 en
+    `fallo_redundante`): sólo se reemplaza cuando su TQ descontado cae
+    por debajo del de otro vecino; BATMAN real purga el originador por
+    timeout.
+  - Con `seguir` (`base`, `denso`) entre el 32 y el 78 % de los paquetes
+    no tiene ningún camino por radio: los Gateway apilados dejan Nodos
+    de usuario sin cobertura. Es lo que tiene que arreglar el paso 9.
+  Pruebas: `tests/test_datos.py` (19); 328 en total.
 - [ ] **Paso 9 — B: movilidad descentralizada de los Gateway** (D7, D8).
 - [ ] **Paso 10 — C: métricas de descentralización** (D7).
 - [ ] **Paso 11 — D: mapas, movilidad estándar y protocolo de

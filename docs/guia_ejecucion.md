@@ -189,19 +189,20 @@ se apagan. "Terminar" (o `Q`) deja la misma cronología en el
 
 ### Caso 2 — Mandar mensajes por la malla
 
-**Objetivo:** ver que un mensaje llega por cualquier camino que exista
-y que sólo falla si la malla está partida.
+**Objetivo:** ver que un mensaje viaja por las tablas de BATMAN, salto
+a salto, y por qué puede no llegar.
 
 ```bash
 python main.py --escenario particion
 ```
 
 - Pulsa `M`, escribe `G1>G2 hola` y `Enter`: llega en 1 salto, porque
-  G1 y G2 están en el mismo grupo.
+  G1 y G2 se oyen.
 - Pulsa `M` y escribe `G1>G3 hola`: el log dice
-  `Mensaje G1→G3 no entregado: no existe ningún camino en la malla
-  (partición de red).`
-- `G1>N1 hola` también llega: N1 está cerca de ese grupo.
+  `Mensaje G1→G3 no entregado: no hay ningún camino por radio en G1`.
+  La malla está partida: ningún protocolo podría entregarlo.
+- `G1>N1 hola` también llega, directo o por G2: lo decide la tabla de
+  G1 según qué OGM de N1 le llegó mejor.
 
 Para ver un mensaje de varios saltos:
 
@@ -209,9 +210,17 @@ Para ver un mensaje de varios saltos:
 python main.py --config escenarios/casos/cadena.txt
 ```
 
-Ahí `G1>N3 hola` llega en 3 saltos, vía G1 → N1 → N2 → N3, y se ve
-viajar salto a salto. El formato es `emisor>destino texto`; sin letra
-se asume Gateway (`1>2` es `G1>G2`).
+Ahí `G1>N3 hola` va por G1 → N1 → N2 → N3 y se ve viajar salto a salto.
+Los enlaces de la cadena pierden paquetes, así que no siempre llega: con
+el mensaje mandado a los 30 s simulados llega con `--seed 2`; con
+`--seed 1` la radio pierde el salto en N1 (aun con sus 3 reintentos), y
+con `--seed 3` G1 todavía no tiene ruta a N3. El log dice en qué nodo y por qué se perdió. El formato es
+`emisor>destino texto`; sin letra se asume Gateway (`1>2` es `G1>G2`).
+
+Para tráfico continuo en vez de mensajes sueltos, `--trafico K` agrega K
+flujos entre Nodos de usuario al azar (un paquete cada 2 s); el resumen
+de `--headless` y `--batch` suma la entrega de datos y por qué se perdió
+cada paquete (ver el README, "Plano de datos").
 
 ### Caso 3 — Una corrida reproducible sin ventana
 
