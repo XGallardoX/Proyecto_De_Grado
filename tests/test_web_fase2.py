@@ -66,7 +66,7 @@ class MatrizTests(unittest.TestCase):
         """rescatista_perdido: G4 se separa a los 41 s; hasta que vence el
         timeout sigue teniendo rutas vigentes hacia el otro grupo, que la
         radio ya no conecta."""
-        sim = _sim("rescatista_perdido", 120)
+        sim = _sim("rescatista_perdido", 120, movilidad="seguir")
         m = estado.matriz_conocimiento(sim)
         ids = [n["id"] for n in m["nodos"]]
         g4 = next(n.id for n in sim.nodes.values() if n.label == "G4")

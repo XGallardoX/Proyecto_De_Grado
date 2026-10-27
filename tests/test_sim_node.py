@@ -224,7 +224,7 @@ class MovilidadTests(unittest.TestCase):
             {"id": 1, "role": "G", "x": 10.0, "y": 5.0},
             {"id": 2, "role": "N", "x": 30.0, "y": 5.0},   # el más cercano
             {"id": 3, "role": "N", "x": 10.0, "y": 29.0},
-        ])
+        ], protocol={"movilidad": "seguir"})
         g, cerca = sim.nodes[1], sim.nodes[2]
         antes = g.dist_to(cerca)
         for _ in range(10):
@@ -278,8 +278,9 @@ class MovilidadRepartirTests(unittest.TestCase):
                 nodo.move(sim.t)
             sim.t += sim.DT
 
-    def test_por_defecto_es_seguir(self):
-        self.assertEqual(simulacion().cfg["movilidad"], "seguir")
+    def test_por_defecto_es_descentralizada(self):
+        # decisión D7 (contexto/PLAN_SIGUIENTE.md, paso 9)
+        self.assertEqual(simulacion().cfg["movilidad"], "descentralizada")
 
     def test_cada_gateway_va_a_un_nodo_distinto(self):
         # N1 queda a la izquierda y es el más cercano de los dos Gateway;

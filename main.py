@@ -44,7 +44,7 @@ DEFAULTS = dict(
     battery_drain=0.030,      # % por segundo (Gateways)
     battery_drain_nodo=0.012, # % por segundo (Nodos de usuario)
     move_speed=0.32,     # m por paso de un Gateway
-    movilidad="seguir",  # "seguir" o "repartir" (ver docs/movimiento_nodos.md)
+    movilidad="descentralizada",  # o "seguir"/"repartir" (ver docs/movimiento_nodos.md)
 )
 
 # Colores
