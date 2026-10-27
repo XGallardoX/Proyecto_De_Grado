@@ -22,7 +22,7 @@ archivo, en el mismo commit.
   escenario, métrica "Reconvergencia de rutas BATMAN" y escenarios de
   fallo del Capítulo 5 en `escenarios/fallos/` (historia y hallazgos en
   `DECISIONES_FASE3.md`).
-- **Pruebas:** 353 en verde (`venv/bin/python -m unittest discover -s
+- **Pruebas:** 367 en verde (`venv/bin/python -m unittest discover -s
   tests`; en Windows, `venv\Scripts\python`). En macOS además corre `tests/test_web_frontend.py`, que en
   Linux se omite porque necesita el `jsc` de macOS.
 - **Documento de tesis** (`Plantilla/`): sólo el Capítulo 2. Se escribe
@@ -357,8 +357,29 @@ nombre de quien usa la sesión y **sin** `Co-Authored-By` (ver
   Regresión: `capitulo5_fallos.json` da 0 celdas distintas en las 23
   columnas comunes con la corrida del paso 8. Pruebas:
   `tests/test_descentralizacion.py` (12); 353 en total.
-- [ ] **Paso 11 — D: mapas, movilidad estándar y protocolo de
+- [x] **Paso 11 — D: mapas, movilidad estándar y protocolo de
   comparación** (D7).
+  *Hecho (2026-10-26).*
+  - **Parámetros en un solo lugar**: `sim.config_loader.PARAMETROS` (la
+    tabla que antes estaba en `web/sesion.py`) valida `--param
+    clave=valor` (nuevo, repetible), `"parametros"` en las entradas de
+    lote y los cambios en vivo de la interfaz. Así cualquier experimento
+    puede variar cualquier parámetro sin tocar código.
+  - **Campo abierto**: `building.tipo = "campo"` (vista en planta, un
+    solo piso sin escalera). Escenario predefinido `campo_abierto`
+    (120 × 80 m, 6 Gateway, 9 usuarios en 3 grupos que caminan, 6 flujos).
+    La ventana pygame encuadra según el tamaño del mapa; el modo
+    aleatorio reparte en el mapa que haya (en el edificio, idéntico).
+  - **Movilidad de usuarios** (`movilidad_usuarios`): `quietos` (la de
+    siempre, por defecto), `random_waypoint` y `grupos` (RPGM de a tres);
+    `velocidad_usuarios` 0.25 m/paso. Los que caminan lo hacen aunque los
+    Gateway estén fijos (infraestructura fija, gente que se mueve).
+  - **Protocolo de comparación** (`protocolo_datos = inundacion`): cada
+    nodo reenvía una vez cada paquete nuevo, sin tablas. Métrica nueva
+    `transmisiones_por_dato` (el costo). En `campo_abierto`, 3 semillas,
+    300 s: la inundación entrega 0.94–0.99 de lo que tiene camino contra
+    0.80–0.87 de BATMAN, con 1.6–1.8 veces más transmisiones.
+  Pruebas: `tests/test_generalidad.py` (14).
 - [ ] **Paso 12 — Resultados de nuevo.** Volver a correr los lotes y el
   Capítulo 5 con todo lo anterior; actualizar cifras de la guía, el
   README y las tablas/figuras de `Plantilla/`. Después, el paso 6.

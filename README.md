@@ -53,6 +53,7 @@ python main.py --escenario base
 | `--static` | Los nodos no se mueven: quedan fijos en la posición inicial (`move_speed=0`). Sin esto, los Gateway (`G`) se mueven según `--movilidad`. |
 | `--movilidad {seguir,repartir,descentralizada}` | Cómo se mueven los Gateway. `descentralizada` (por defecto): cada uno decide sólo con lo que oye en los beacons de sus vecinos (cubrir usuarios, separarse de otros Gateway, expandir la malla sin partirla). `seguir` (cada uno hacia el Nodo de usuario más cercano) y `repartir` (un Gateway por Nodo de usuario) miran las posiciones de todos: son la línea base centralizada. Reemplaza la `movilidad` del escenario. Ver [`docs/movimiento_nodos.md`](docs/movimiento_nodos.md). |
 | `--trafico K` | K flujos de datos entre pares de Nodos de usuario elegidos al azar, un paquete cada 2 s. Cada paquete avanza salto a salto con la tabla de rutas BATMAN del nodo que lo tiene (ver [Plano de datos](#plano-de-datos-tráfico-enrutado-por-batman)). Reemplaza los flujos aleatorios del escenario; los explícitos se mantienen. |
+| `--param CLAVE=VALOR` | Fija un parámetro del simulador (repetible): cualquier clave de la tabla de `medium`/`protocol` de abajo, p. ej. `--param protocolo_datos=inundacion --param movilidad_usuarios=grupos`. Pisa la del escenario. |
 | `--headless` | Corre sin ventana durante `--duracion` segundos simulados y exporta la figura y los reportes a `reportes/<escenario>_<fecha_hora>/`. |
 | `--duracion N` | Segundos **simulados** en `--headless`/`--inspect` (default `200`, mínimo `1`). Sin uno de esos dos flags es un error. |
 | `--seed N` | Fija la semilla de `random` y `numpy`: misma semilla + misma configuración = misma corrida. Vale en cualquier modo. |
@@ -307,6 +308,20 @@ mismos valores por defecto, así que da igual en cuál va cada clave):
 | `battery_drain_nodo` | `0.012` | % de batería por segundo que gasta un Nodo de usuario (el nombre viejo `battery_drain_surv` se sigue aceptando) |
 | `move_speed` | `0.32` | Metros por paso de un Gateway (`0` = nodos fijos, ver `--static`) |
 | `movilidad` | `descentralizada` | Cómo eligen su destino los Gateway: `descentralizada` (fuerzas con lo que oyen), `seguir` (el Nodo de usuario más cercano) o `repartir` (uno por Nodo de usuario). Ver `--movilidad` |
+| `movilidad_usuarios` | `quietos` | Cómo se mueven los Nodos de usuario: `quietos` (un temblor mínimo, como siempre), `random_waypoint` (cada uno va a un punto al azar, espera hasta 10 s y elige otro) o `grupos` (de a tres por orden de id: el primero hace random waypoint y los otros dos lo siguen a unos 2.5 m). Los que caminan lo hacen aunque los Gateway estén fijos (`--static`): infraestructura fija, gente que se mueve. |
+| `velocidad_usuarios` | `0.25` | Metros por paso de un Nodo de usuario que camina |
+| `protocolo_datos` | `batman` | Cómo viajan los datos: `batman` (salto a salto por las tablas) o `inundacion` (cada nodo reenvía una vez cada paquete nuevo, sin tablas: el protocolo de comparación). Ver [Plano de datos](#plano-de-datos-tráfico-enrutado-por-batman) |
+
+Cualquiera de estas claves se puede fijar también desde la línea de
+comandos con `--param clave=valor` (repetible), desde un lote con
+`"parametros": {"clave": valor}` o en vivo desde el panel Parámetros de
+la interfaz web; pisa lo que diga el escenario.
+
+**Campo abierto.** Con `"building": {"tipo": "campo", "ancho": 120,
+"alto": 80}` el mapa deja de ser el corte vertical de un edificio y pasa
+a ser un área abierta vista en planta: un solo "piso" del alto del área,
+sin escalera ni atenuación entre pisos. Ver
+[`escenarios/campo_abierto.json`](escenarios/campo_abierto.json).
 
 ### Formato `.txt` (equivalente al JSON, más fácil de editar a mano)
 
@@ -378,6 +393,7 @@ Los 5 escenarios de `--escenario` son atajos a
 | `particion` | Rango de radio reducido (11 m) y dos parejas de Gateway en esquinas opuestas del edificio: la malla de Gateways arranca partida. |
 | `rescatista_perdido` | Como `base`, pero el Gateway 4 se aleja hacia la esquina (38, 2) hasta t = 80 s (evento `wander`) y pierde contacto con el resto. El nombre viene del framing anterior de rescate; se conserva para no romper `--escenario`. |
 | `denso` | 8 Gateway y 6 Nodos de usuario: una malla más poblada. |
+| `campo_abierto` | Un área abierta de 120 × 80 m vista en planta (no un edificio): 6 Gateway salen de un mismo punto hacia tres grupos de usuarios que caminan (`movilidad_usuarios` = `grupos`), con 6 flujos de datos. |
 
 `dos_nodos.json` y `edificio_3_pisos.json` son dos ejemplos adicionales,
 más simples, para probar el formato.
@@ -429,6 +445,7 @@ Claves de cada entrada:
 | `static` | `true` para fijar los nodos (como `--static`). |
 | `movilidad` | `"descentralizada"`, `"seguir"` o `"repartir"` (como `--movilidad`); si falta, la del escenario. |
 | `trafico` | Entero K: flujos de datos aleatorios (como `--trafico`). |
+| `parametros` | `{clave: valor}` (como `--param`); los valores se agregan a la etiqueta por defecto (p. ej. `base_inundacion`). |
 | `etiqueta` | Nombre de la entrada en el resumen y en las carpetas. Por defecto, el del escenario (o del archivo), más `_static`, `_<movilidad>` y `_trafico<K>` si corresponden (p. ej. `denso_repartir`). Tiene que ser única: para repetir un escenario con otra configuración, hay que darle una. |
 
 Una clave mal escrita (p. ej. `semilla`), un escenario inexistente o un
@@ -568,6 +585,7 @@ escenario) sale de la serie temporal que ya registra
 | Exactitud del conocimiento de rutas | Promedio en el tiempo de la fracción de pares (a, b) de nodos vivos en que lo que *a* cree coincide con la realidad: tiene una ruta vigente hacia *b* si y sólo si la radio los conecta. Mide la descentralización: cada nodo tiene su propia visión y ésta dice cuán buena es. |
 | Pares con ruta fantasma / faltante | Las dos formas de equivocarse: *a* cree tener ruta vigente pero la radio ya no los conecta (fantasma, típico tras una caída, hasta el `timeout`), o la radio los conecta pero *a* no tiene ruta vigente (faltante: convergencia). |
 | Nodos críticos, media | Promedio en el tiempo de los puntos de articulación de la malla de radio: nodos que, si caen, la parten. Puntos únicos de falla. |
+| Transmisiones por paquete de datos | Costo del protocolo de datos: intentos unicast de BATMAN (con reintentos) o difusiones de la inundación, por paquete enviado. No incluye los OGM, que BATMAN manda haya o no tráfico. |
 | Datos perdidos: … | Fracción de los enviados que se perdió por cada causa (suman 1 − entrega). Físicas: *destino caído* y *sin camino por radio*. De enrutamiento: *sin ruta* (la tabla del nodo no tiene ruta al destino), *ruta vieja* (el siguiente salto de la tabla está caído o fuera de alcance), *la radio perdió el salto* (con sus 3 reintentos) y *bucle* (TTL de 50 agotado). |
 
 Dos advertencias para interpretarlas:
@@ -632,6 +650,11 @@ del medio radio.
   no mide latencia.
 - Sin tráfico no se consume azar: las corridas sin tráfico dan
   exactamente lo mismo que antes del plano de datos.
+- Protocolo de comparación (`--param protocolo_datos=inundacion`): sin
+  tablas, cada nodo que recibe una copia nueva la difunde una vez. En
+  `campo_abierto` (3 semillas, 300 s) entrega el 94–99 % de lo que tiene
+  camino contra el 80–87 % de BATMAN, a costa de 1.6 a 1.8 veces más
+  transmisiones por paquete.
 
 ---
 
