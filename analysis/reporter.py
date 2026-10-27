@@ -19,6 +19,9 @@ COLUMNAS_METRICAS = [
     ("tasa_entrega_paquetes", "deliver_ratio"),
     ("alertas_activas", "alerts_active"),
     ("ancho_banda_total_mbps", "bandwidth"),
+    ("datos_enviados", "datos_enviados"),
+    ("datos_entregados", "datos_entregados"),
+    ("entrega_datos_ventana", "entrega_datos"),
 ]
 COLUMNAS_EVENTO = ["tipo_evento", "descripcion_evento"]
 

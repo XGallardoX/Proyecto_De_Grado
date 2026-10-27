@@ -17,6 +17,12 @@ EVENTOS_PROGRAMADOS = ("fail", "recover")
 #               los pares más cercanos (ver docs/movimiento_nodos.md).
 MOVILIDADES = ("seguir", "repartir")
 
+# Sección "traffic" (plano de datos, sim/datos.py): flujos explícitos
+# {"src", "dst", "cada", "desde", "hasta"} y/o K flujos "aleatorios" entre
+# Nodos de usuario; "cada" (s) es el intervalo por defecto.
+CLAVES_TRAFICO = ("flujos", "aleatorios", "cada")
+CLAVES_FLUJO = ("src", "dst", "cada", "desde", "hasta")
+
 # Claves de medium/protocol renombradas al pasar del vocabulario R/S al
 # G/N. El nombre viejo se sigue aceptando para no romper escenarios
 # escritos antes del cambio.
@@ -55,6 +61,11 @@ def load_scenario(path, default_building=None):
         wander   4  80     # tipo  node_id  until
         fail     2  60     # tipo  node_id  t
         recover  2  90
+
+        [traffic]
+        aleatorios=2       # flujos entre pares de Nodos de usuario al azar
+        cada=2             # s entre paquetes (por defecto de los flujos)
+        2  1               # src dst [cada] [desde] [hasta]
 
     En vez de nodos explícitos, [nodes] también acepta modo aleatorio:
         [nodes]
@@ -123,6 +134,7 @@ def _parse_txt(path):
         raise ValueError(f"{path}: archivo no encontrado")
 
     data = {"building": {}, "medium": {}, "protocol": {}, "nodes": [], "events": []}
+    trafico = {}
     random_cfg = {}
     section = None
 
@@ -133,7 +145,8 @@ def _parse_txt(path):
 
         if line.startswith("[") and line.endswith("]"):
             section = line[1:-1].strip().lower()
-            if section not in ("building", "medium", "protocol", "nodes", "events"):
+            if section not in ("building", "medium", "protocol", "nodes",
+                               "events", "traffic"):
                 raise ValueError(f"{path}:{lineno}: sección desconocida '[{section}]'")
             continue
 
@@ -142,7 +155,8 @@ def _parse_txt(path):
             if not sep or key.strip().lower() != "name":
                 raise ValueError(
                     f"{path}:{lineno}: se esperaba 'name: ...' o una sección "
-                    f"'[building]/[medium]/[protocol]/[nodes]/[events]', se "
+                    f"'[building]/[medium]/[protocol]/[nodes]/[events]/"
+                    f"[traffic]', se "
                     f"encontró '{line}'"
                 )
             data["name"] = value.strip()
@@ -196,6 +210,28 @@ def _parse_txt(path):
                 )
             except ValueError:
                 raise ValueError(f"{path}:{lineno}: evento inválido '{line}'")
+
+        elif section == "traffic":
+            if "=" in line:
+                key, _, value = line.partition("=")
+                trafico[key.strip().lower()] = _parse_value(value)
+                continue
+            parts = line.split()
+            if not 2 <= len(parts) <= 5:
+                raise ValueError(
+                    f"{path}:{lineno}: flujo inválido '{line}' (se esperaba "
+                    f"'src dst [cada] [desde] [hasta]')"
+                )
+            try:
+                flujo = {"src": int(parts[0]), "dst": int(parts[1])}
+                for clave, valor in zip(("cada", "desde", "hasta"), parts[2:]):
+                    flujo[clave] = float(valor)
+            except ValueError:
+                raise ValueError(f"{path}:{lineno}: flujo inválido '{line}'")
+            trafico.setdefault("flujos", []).append(flujo)
+
+    if trafico:
+        data["traffic"] = trafico
 
     if random_cfg:
         if data["nodes"]:
@@ -254,6 +290,7 @@ def _validate(data, path, default_building=None):
                 f"{path}: modo random requiere 'n_gateways' < 'n_nodes'"
             )
         data["random"] = {"n_nodes": int(n_nodes), "n_gateways": int(n_gateways)}
+        _validar_trafico(data, path, None)
         data["building"] = building
         return data
 
@@ -327,5 +364,57 @@ def _validate(data, path, default_building=None):
                 f"t={instante} (debe ser >= 0)"
             )
 
+    _validar_trafico(data, path, seen_ids)
     data["building"] = building
     return data
+
+
+def _numero(v):
+    return isinstance(v, (int, float)) and not isinstance(v, bool)
+
+
+def _validar_trafico(data, path, ids):
+    """Valida la sección "traffic". `ids`: los ids de los nodos explícitos,
+    o None en el modo random (ahí sólo valen flujos aleatorios)."""
+    trafico = data.get("traffic")
+    if trafico is None:
+        return
+    if not isinstance(trafico, dict):
+        raise ValueError(f"{path}: 'traffic' debe ser un objeto")
+    for clave in trafico:
+        if clave not in CLAVES_TRAFICO:
+            raise ValueError(f"{path}: clave desconocida en 'traffic': {clave!r} "
+                             f"(válidas: {', '.join(CLAVES_TRAFICO)})")
+    cada = trafico.get("cada", 2.0)
+    if not _numero(cada) or cada <= 0:
+        raise ValueError(f"{path}: 'traffic.cada' debe ser un número > 0")
+    k = trafico.get("aleatorios", 0)
+    if not isinstance(k, int) or isinstance(k, bool) or k < 0:
+        raise ValueError(f"{path}: 'traffic.aleatorios' debe ser un entero >= 0")
+    flujos = trafico.get("flujos", [])
+    if not isinstance(flujos, list):
+        raise ValueError(f"{path}: 'traffic.flujos' debe ser una lista")
+    if flujos and ids is None:
+        raise ValueError(f"{path}: los flujos explícitos necesitan nodos "
+                         f"explícitos, no el modo random (usa 'aleatorios')")
+    for f in flujos:
+        if not isinstance(f, dict) or "src" not in f or "dst" not in f:
+            raise ValueError(f"{path}: flujo {f} sin 'src' y 'dst'")
+        for clave in f:
+            if clave not in CLAVES_FLUJO:
+                raise ValueError(f"{path}: clave desconocida en el flujo {f}: "
+                                 f"{clave!r}")
+        for extremo in ("src", "dst"):
+            if f[extremo] not in ids:
+                raise ValueError(f"{path}: el flujo {f} referencia el nodo "
+                                 f"{f[extremo]}, que no existe en 'nodes'")
+        if f["src"] == f["dst"]:
+            raise ValueError(f"{path}: el flujo {f} tiene el mismo origen y destino")
+        if "cada" in f and (not _numero(f["cada"]) or f["cada"] <= 0):
+            raise ValueError(f"{path}: el flujo {f} necesita 'cada' > 0")
+        desde = f.get("desde", 0)
+        if not _numero(desde) or desde < 0:
+            raise ValueError(f"{path}: el flujo {f} necesita 'desde' >= 0")
+        hasta = f.get("hasta")
+        if hasta is not None and (not _numero(hasta) or hasta < desde):
+            raise ValueError(f"{path}: el flujo {f} necesita 'hasta' >= 'desde'")

@@ -103,6 +103,12 @@ class ResumenCorridaTests(unittest.TestCase):
             "alertas_gateway": 2, "t_primera_alerta_s": 1.0,
             "tiempo_reconvergencia_rutas_s": None,   # sin episodios
             "cobertura_media": 0.375,   # (0 + 1/4 + 2/4 + 3/4) / 4
+            # sin plano de datos (o sin tráfico): no aplica
+            "entrega_datos": None, "entrega_datos_con_camino": None,
+            "saltos_datos": None, "estiramiento_datos": None,
+            "perdida_destino_caido": None, "perdida_sin_camino": None,
+            "perdida_sin_ruta": None, "perdida_ruta_vieja": None,
+            "perdida_enlace": None, "perdida_bucle": None,
         })
 
     def test_cobertura_media_usa_los_nodos_vivos_de_cada_muestra(self):

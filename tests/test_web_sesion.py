@@ -114,8 +114,10 @@ class ComandosTests(unittest.TestCase):
         g2 = next(n for n in gateways[1:] if find(idx[n.id]) != find(idx[g1.id]))
         r = sesion.comando(
             "mensaje", {"texto": f"{g1.label}>{g2.label} hola"})
+        # no hay camino por radio: el plano de datos lo cuenta como físico
         self.assertFalse(r["entregado"])
-        self.assertIn("partición", r["motivo"])
+        self.assertEqual(r["causa"], "sin_camino")
+        self.assertIsNone(r["optimo"])
         sesion.comando("caer", {"id": g2.id})
         r = sesion.comando(
             "mensaje", {"texto": f"{g1.label}>{g2.label} hola"})

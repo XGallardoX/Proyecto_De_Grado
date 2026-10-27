@@ -4,6 +4,7 @@ Sesion que la envuelve) a diccionarios serializables en JSON.
 Nada aquí modifica `sim`: son sólo lecturas. El llamador (Sesion o los
 handlers HTTP) es responsable de tomar el lock antes de usarlas.
 """
+import copy
 import math
 import re
 
@@ -101,10 +102,14 @@ def _paquete(p):
 def _paquetes(sim, maximo=MAX_PAQUETES_FRAME):
     """Una muestra de a lo sumo `maximo` paquetes en vuelo, a paso fijo
     (determinista, sin tocar `random`): con 50 nodos puede haber miles,
-    y el frame tiene que seguir siendo liviano."""
+    y el frame tiene que seguir siendo liviano. Los de datos van todos
+    (hasta la mitad del cupo): son pocos y son los que interesa seguir."""
     todos = sim.medium.packets_visual
-    paso = max(1, -(-len(todos) // maximo))
-    return [_paquete(p) for p in todos[::paso]]
+    datos = [p for p in todos if p.tipo == 'DATA'][:maximo // 2]
+    resto = [p for p in todos if p.tipo != 'DATA']
+    cupo = maximo - len(datos)
+    paso = max(1, -(-len(resto) // cupo))
+    return [_paquete(p) for p in datos] + [_paquete(p) for p in resto[::paso]]
 
 
 def paquetes_de_origen(sim, origen, maximo=2000):
@@ -151,6 +156,10 @@ def _contadores(sim):
         "caidas_detectadas": sum(len(n.fault.failed) for n in nodos if n.alive),
         "paquetes_intentados": sim.medium.attempted,
         "paquetes_entregados": sim.medium.delivered,
+        "flujos_datos": len(sim.datos.flujos),
+        "datos_enviados": sim.datos.enviados,
+        "datos_entregados": sim.datos.entregados,
+        "datos_perdidos": dict(sim.datos.perdidas),
     }
 
 
@@ -295,7 +304,8 @@ def nodo_detalle(sim, nid):
 
 SERIES_CAMPOS = ("t", "alive_G", "alive_N", "comp_G", "node_reach",
                  "avg_tq", "avg_hops", "max_silence", "deliver_ratio",
-                 "alerts_active", "bandwidth")
+                 "alerts_active", "bandwidth", "datos_enviados",
+                 "datos_entregados", "entrega_datos")
 
 
 def series(sim, desde=0, desde_evento=0, ultimas=0):
@@ -424,6 +434,8 @@ def escenario_actual(sim, posiciones="iniciales"):
         "protocol": {k: sim.cfg[k] for k in CLAVES_PROTOCOL if k in sim.cfg},
         "nodes": nodos,
         "events": [dict(e) for e in (sim.cfg.get("events") or [])],
+        **({"traffic": copy.deepcopy(sim.cfg["traffic"])}
+           if sim.cfg.get("traffic") else {}),
     }
 
 

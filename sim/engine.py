@@ -3,6 +3,7 @@ import random
 from collections import deque
 
 from analysis.metrics import Recorder
+from sim.datos import NOMBRE_CAUSA, PlanoDatos
 from sim.radio import RadioMedium
 from sim.sim_node import SimNode
 
@@ -115,6 +116,12 @@ class Simulation:
                 self.local_index[nid] = ni
                 self.nodes[nid] = n
 
+        # plano de datos: flujos del escenario (sólo consume random si hay)
+        self.datos = PlanoDatos(self, self.cfg.get("traffic"))
+        if self.datos.flujos:
+            self.log(f"Tráfico: {len(self.datos.flujos)} flujos de datos "
+                     f"enrutados por BATMAN.", "info")
+
         self.log(f"Escenario '{self.escenario}' iniciado · {gi} gateways, "
                  f"{ni} nodos · timeout={self.cfg['timeout']:.0f}s",
                  "info")
@@ -159,55 +166,47 @@ class Simulation:
     # ── Mensajes personalizados entre cualquier par de nodos ──────────
     def send_unicast(self, from_id, to_id, texto):
         """Envía un mensaje libre de un nodo a otro (Gateway o Nodo de
-        usuario). GARANTÍA: si existe ALGÚN camino por la malla
-        —directo o multi-salto a través de nodos intermedios— el mensaje
-        llega. El camino se calcula con BFS sobre el grafo de conectividad
-        actual (mismos enlaces que cuentan para el panel de conectividad),
-        así que "se ve conectado" ⟺ "el mensaje llega". Sólo falla si el
-        destino está caído o la malla está realmente partida."""
+        usuario) por el plano de datos: salto a salto, cada nodo elige el
+        siguiente con su propia tabla de BATMAN (ver sim/datos.py). Puede
+        no llegar aunque haya camino por radio: sin ruta, un salto perdido
+        o un bucle. Devuelve el resultado de PlanoDatos.enviar(), o None
+        si los ids no son válidos o son el mismo nodo."""
         a = self.nodes.get(from_id)
         b = self.nodes.get(to_id)
         if a is None or b is None:
             self.log(f"Mensaje: id inválido ({from_id}→{to_id})", "error")
-            return
+            return None
         if from_id == to_id:
             self.log("Mensaje a sí mismo, ignorado.", "warn")
-            return
+            return None
         if not a.alive:
             self.log(f"{a.label} no puede enviar (caído).", "error")
-            return
-        if not b.alive:
-            self.event('MSG_FAIL', f"{a.label}→{b.label}: destino caído")
-            self.log(f"Mensaje {a.label}→{b.label} no entregado: "
-                     f"{b.label} está caído.", "error")
-            return
+            return {"entregado": False, "camino": [from_id],
+                    "causa": "origen_caido", "optimo": None}
 
-        path = self._shortest_path(from_id, to_id)
-        if path is None:
-            self.event('MSG_FAIL',
-                       f"{a.label}→{b.label}: sin camino (malla partida)")
-            self.log(f"Mensaje {a.label}→{b.label} no entregado: no existe "
-                     f"ningún camino en la malla (partición de red).",
-                     "error")
-            return
-
-     
-        hops = len(path) - 1
-        via = " → ".join(self.label_of(i) for i in path)
-    
-        converged = a.router.routes.get(to_id) is not None
-        modo = ("ruta BATMAN convergida" if converged
-                else "entregado por la malla (BATMAN aún converge)")
-        self.event('MSG_OK', f"{a.label}→{b.label} ({hops} "
-                   f"salto{'s' if hops != 1 else ''}): {texto[:60]}")
- 
-        self.log(f"» {a.label}→{b.label}: \"{texto}\"  "
-                 f"({hops} salto{'s' if hops != 1 else ''} vía {via}; {modo})",
-                 "ok")
-        return path
+        r = self.datos.enviar(from_id, to_id)
+        hops = len(r["camino"]) - 1
+        via = " → ".join(self.label_of(i) for i in r["camino"])
+        if r["entregado"]:
+            opt = len(r["optimo"]) - 1 if r["optimo"] else hops
+            extra = "" if hops == opt else f"; el más corto tenía {opt}"
+            self.event('MSG_OK', f"{a.label}→{b.label} ({hops} "
+                       f"salto{'s' if hops != 1 else ''}): {texto[:60]}")
+            self.log(f"» {a.label}→{b.label}: \"{texto}\"  "
+                     f"({hops} salto{'s' if hops != 1 else ''} vía {via}{extra})",
+                     "ok")
+        else:
+            donde = self.label_of(r["camino"][-1])
+            motivo = NOMBRE_CAUSA[r["causa"]]
+            self.event('MSG_FAIL', f"{a.label}→{b.label}: {motivo} (en {donde})")
+            self.log(f"Mensaje {a.label}→{b.label} no entregado: {motivo} "
+                     f"en {donde} (recorrió {via}).", "error")
+        return r
 
     def _shortest_path(self, src_id, dst_id):
-        """BFS de menor nº de saltos sobre el grafo de conectividad actual:
+        """Verdad física, no la usa el enrutamiento: el plano de datos la
+        mide como referencia (estiramiento del camino de BATMAN).
+        BFS de menor nº de saltos sobre el grafo de conectividad actual:
         nodos vivos, enlaces con reliability > 0 (idéntico criterio que
         _union_find / el panel de conectividad). Devuelve la lista de ids
         [src, ..., dst] o None si no hay ningún camino."""
@@ -288,6 +287,8 @@ class Simulation:
             n.move(self.t)
         for n in self.nodes.values():
             n.tick(self.t)
+        # tráfico de datos, con las tablas de rutas ya actualizadas
+        self.datos.tick(self.t)
 
         # detectar particiones / reunificaciones de la malla de
         # gateways (esto es lo que BATMAN "ve" y reorganiza)

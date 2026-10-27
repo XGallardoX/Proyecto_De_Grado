@@ -18,6 +18,7 @@ import time
 
 from analysis.visualizer import (build_analysis_figure, interpretar_mensaje,
                                  siguiente_escenario)
+from sim.datos import NOMBRE_CAUSA
 from web import estado
 
 SEMILLA_MAXIMA = 2 ** 31 - 1
@@ -212,9 +213,17 @@ class Sesion:
         movilidad = datos.get("movilidad", self.build_args.get("movilidad"))
         if movilidad not in (None, "seguir", "repartir"):
             raise ValueError("movilidad debe ser 'seguir' o 'repartir'")
+        trafico = datos.get("trafico", self.build_args.get("trafico"))
+        if trafico in ("", None):
+            trafico = None
+        else:
+            try:
+                trafico = int(trafico)
+            except (TypeError, ValueError):
+                raise ValueError("trafico debe ser un entero >= 0")
         build_args = dict(config_path=config_path, n_nodes=n_nodes,
                           n_gateways=n_gateways, static=static,
-                          movilidad=movilidad)
+                          movilidad=movilidad, trafico=trafico)
         with self.lock:
             self._reconstruir(build_args, semilla)
         return {"semilla": semilla, "escenario": self.sim.escenario}
@@ -354,18 +363,26 @@ class Sesion:
                 raise ValueError("el origen y el destino son el mismo nodo")
             a, b = self.sim.nodes[ids[origen]], self.sim.nodes[ids[destino]]
             convergida = a.router.routes.get(b.id) is not None
-            camino = self.sim.send_unicast(a.id, b.id, cuerpo)
+            r = self.sim.send_unicast(a.id, b.id, cuerpo)
             self._registrar("mensaje", {"texto": texto})
+            camino = r["camino"]
             motivo = None
-            if camino is None:
-                motivo = (f"{a.label} está caído" if not a.alive else
-                          f"{b.label} está caído" if not b.alive else
-                          "no existe ningún camino en la malla (partición)")
-            etiquetas = ([self.sim.label_of(i) for i in camino]
-                         if camino else None)
-            ids_camino = list(camino) if camino else None
-        return {"camino": etiquetas, "ids": ids_camino,
-                "entregado": camino is not None, "motivo": motivo,
+            if r["causa"] == "origen_caido":
+                motivo = f"{a.label} está caído"
+            elif r["causa"] == "destino_caido":
+                motivo = f"{b.label} está caído"
+            elif not r["entregado"]:
+                motivo = (f"{NOMBRE_CAUSA[r['causa']]} en "
+                          f"{self.sim.label_of(camino[-1])}")
+            optimo = r["optimo"]
+        # `camino`/`ids`: lo que el paquete recorrió de verdad (hasta donde
+        # se perdió, si no llegó); `optimo`: el camino más corto por radio.
+        return {"camino": [self.sim.label_of(i) for i in camino],
+                "ids": list(camino),
+                "entregado": r["entregado"], "motivo": motivo,
+                "causa": r["causa"],
+                "optimo": ([self.sim.label_of(i) for i in optimo]
+                           if optimo else None),
                 "ruta_batman_convergida": convergida}
 
     def _c_cambiar_semilla(self, datos):
@@ -466,6 +483,8 @@ class Sesion:
             partes.append("--static")
         if a.get("movilidad"):
             partes += ["--movilidad", a["movilidad"]]
+        if a.get("trafico") is not None:
+            partes += ["--trafico", str(a["trafico"])]
         partes += ["--seed", str(self.semilla)]
         partes += ["--duracion", str(round(self.sim.t, 1))]
         return " ".join(partes)
@@ -574,7 +593,7 @@ def _ruta_escenario_segura(nombre):
 
 def construir_sesion(config_path=None, n_nodes=2, n_gateways=1,
                      static=False, movilidad=None, semilla=None,
-                     velocidad=1.0):
+                     velocidad=1.0, trafico=None):
     """Arma una Sesion lista para correr: fija la semilla (una generada al
     azar con `secrets` si no se pasa ninguna) y construye la Simulation con
     main.construir_simulacion, exactamente como --headless/--inspect.
@@ -585,6 +604,6 @@ def construir_sesion(config_path=None, n_nodes=2, n_gateways=1,
     fijar_semilla(semilla)
     build_args = dict(config_path=config_path, n_nodes=n_nodes,
                       n_gateways=n_gateways, static=static,
-                      movilidad=movilidad)
+                      movilidad=movilidad, trafico=trafico)
     sim, info = construir_simulacion(**build_args)
     return Sesion(sim, info, build_args, semilla, velocidad=velocidad)

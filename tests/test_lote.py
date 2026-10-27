@@ -105,8 +105,8 @@ class CargarLoteTests(unittest.TestCase):
         self.assertFalse(spec["figuras"])
         self.assertEqual(spec["escenarios"], [{
             "etiqueta": "base", "escenario": "base", "config": None,
-            "static": False, "movilidad": None, "semillas": [1, 2, 3],
-            "duracion": 200.0}])
+            "static": False, "movilidad": None, "trafico": None,
+            "semillas": [1, 2, 3], "duracion": 200.0}])
 
     def test_movilidad_por_entrada_y_su_etiqueta(self):
         spec, _ = self._cargar({"semillas": 1, "escenarios": [

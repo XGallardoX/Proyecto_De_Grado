@@ -1,3 +1,6 @@
+from sim.datos import CAUSAS
+
+
 class Recorder:
     def __init__(self):
         self.t = []
@@ -11,6 +14,11 @@ class Recorder:
         self.deliver_ratio = []     
         self.alerts_active = []
         self.bandwidth = []
+        # plano de datos (sim/datos.py): acumulados y la fracción entregada
+        # en la última ventana; sin tráfico quedan en 0, 0 y 1.0
+        self.datos_enviados = []
+        self.datos_entregados = []
+        self.entrega_datos = []
         self.events = []
         # Episodios de reconvergencia de rutas: [inicio, fin, causa]. Los
         # abre el motor al recuperar un Gateway (RECOVER) o al reunificarse
@@ -90,6 +98,11 @@ class Recorder:
                     total_bw += bw
         self.bandwidth.append(total_bw)
 
+        datos = getattr(sim, "datos", None)
+        self.datos_enviados.append(datos.enviados if datos else 0)
+        self.datos_entregados.append(datos.entregados if datos else 0)
+        self.entrega_datos.append(datos.entrega_reciente(sim.t) if datos else 1.0)
+
         # sólo se mira mientras haya un episodio abierto: no cuesta nada
         # en las corridas sin recuperaciones ni reunificaciones
         if self._reconv_abierta is not None and rutas_convergidas(sim):
@@ -157,6 +170,16 @@ METRICAS_CORRIDA = [
     ("t_primera_alerta_s", "Primera alerta (s)", 1),
     ("tiempo_reconvergencia_rutas_s", "Reconvergencia de rutas BATMAN (s)", 1),
     ("cobertura_media", "Cobertura media de Nodos de usuario", 3),
+    ("entrega_datos", "Entrega de datos", 3),
+    ("entrega_datos_con_camino", "Entrega de datos con camino por radio", 3),
+    ("saltos_datos", "Saltos de los datos entregados", 2),
+    ("estiramiento_datos", "Estiramiento (saltos / camino más corto)", 3),
+    ("perdida_destino_caido", "Datos perdidos: destino caído", 3),
+    ("perdida_sin_camino", "Datos perdidos: sin camino por radio", 3),
+    ("perdida_sin_ruta", "Datos perdidos: sin ruta", 3),
+    ("perdida_ruta_vieja", "Datos perdidos: ruta vieja", 3),
+    ("perdida_enlace", "Datos perdidos: la radio perdió el salto", 3),
+    ("perdida_bucle", "Datos perdidos: bucle", 3),
 ]
 
 
@@ -214,6 +237,17 @@ def resumen_corrida(sim):
       las muestras sin Nodos vivos; None si no queda ninguna. A diferencia
       de nodos_alcanzables_finales, cuenta cuánta cobertura se perdió
       mientras un Gateway estuvo caído.
+    - entrega_datos: paquetes de datos entregados / enviados por el plano
+      de datos (sim/datos.py), enrutados salto a salto por las tablas de
+      BATMAN. None si no hubo tráfico; lo mismo las demás de datos.
+    - entrega_datos_con_camino: lo mismo, sólo entre los paquetes que
+      tenían destino vivo y algún camino por radio al enviarse: cuánto
+      entrega el enrutamiento cuando la física lo permite. None si ninguno.
+    - saltos_datos / estiramiento_datos: media de los saltos de los
+      entregados, y de saltos / saltos del camino más corto por radio en
+      el instante del envío (1.0 = BATMAN eligió un camino mínimo).
+    - perdida_*: fracción de los enviados que se perdió por cada causa de
+      sim.datos.CAUSAS; suman 1 - entrega_datos.
     """
     reconv = [fin - ini for ini, fin, _causa
               in getattr(sim.recorder, "reconv_rutas", []) if fin is not None]
@@ -244,4 +278,24 @@ def resumen_corrida(sim):
                                           if reconv else None),
         "cobertura_media": (sum(fracciones) / len(fracciones)
                             if fracciones else None),
+        **_resumen_datos(getattr(sim, "datos", None)),
+    }
+
+
+def _resumen_datos(datos):
+    """Las métricas del plano de datos de resumen_corrida."""
+    claves = ("entrega_datos", "entrega_datos_con_camino", "saltos_datos",
+              "estiramiento_datos") + tuple(f"perdida_{c}" for c in CAUSAS)
+    if datos is None or not datos.enviados:
+        return dict.fromkeys(claves)
+    env = datos.enviados
+    con_camino = env - datos.perdidas["destino_caido"] - datos.perdidas["sin_camino"]
+    media = lambda xs: sum(xs) / len(xs) if xs else None
+    return {
+        "entrega_datos": datos.entregados / env,
+        "entrega_datos_con_camino": (datos.entregados / con_camino
+                                     if con_camino else None),
+        "saltos_datos": media(datos.saltos),
+        "estiramiento_datos": media(datos.estiramientos),
+        **{f"perdida_{c}": datos.perdidas[c] / env for c in CAUSAS},
     }
