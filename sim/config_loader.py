@@ -14,8 +14,12 @@ EVENTOS_PROGRAMADOS = ("fail", "recover")
 #   seguir   -> cada Gateway camina hacia el Nodo de usuario más cercano
 #               (el de siempre, por defecto);
 #   repartir -> un Gateway por Nodo de usuario vivo, emparejando primero
-#               los pares más cercanos (ver docs/movimiento_nodos.md).
-MOVILIDADES = ("seguir", "repartir")
+#               los pares más cercanos (ver docs/movimiento_nodos.md);
+#   descentralizada -> cada Gateway decide sólo con lo que oye en los
+#               beacons de sus vecinos (fuerzas virtuales, SimNode).
+# seguir y repartir miran las posiciones de todos los nodos: son la línea
+# base centralizada contra la que se compara la descentralizada.
+MOVILIDADES = ("seguir", "repartir", "descentralizada")
 
 # Sección "traffic" (plano de datos, sim/datos.py): flujos explícitos
 # {"src", "dst", "cada", "desde", "hasta"} y/o K flujos "aleatorios" entre

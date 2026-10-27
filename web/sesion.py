@@ -18,6 +18,7 @@ import time
 
 from analysis.visualizer import (build_analysis_figure, interpretar_mensaje,
                                  siguiente_escenario)
+from sim.config_loader import MOVILIDADES
 from sim.datos import NOMBRE_CAUSA
 from web import estado
 
@@ -48,7 +49,7 @@ PARAMETROS = {
     "battery_drain": (float, 0.0, 5.0),
     "battery_drain_nodo": (float, 0.0, 5.0),
     "move_speed": (float, 0.0, 2.0),
-    "movilidad": (str, ("seguir", "repartir")),
+    "movilidad": (str, MOVILIDADES),
 }
 PARAMETROS_EDITABLES = tuple(PARAMETROS)
 
@@ -211,8 +212,8 @@ class Sesion:
         # (como la tecla S de pygame, que respeta --static/--movilidad).
         static = bool(datos.get("static", self.build_args.get("static", False)))
         movilidad = datos.get("movilidad", self.build_args.get("movilidad"))
-        if movilidad not in (None, "seguir", "repartir"):
-            raise ValueError("movilidad debe ser 'seguir' o 'repartir'")
+        if movilidad is not None and movilidad not in MOVILIDADES:
+            raise ValueError(f"movilidad debe ser una de {', '.join(MOVILIDADES)}")
         trafico = datos.get("trafico", self.build_args.get("trafico"))
         if trafico in ("", None):
             trafico = None

@@ -49,6 +49,10 @@ class SimNode:
 
         self.history = []
         self.last_msg = ""
+        # Lo que este nodo sabe de sus vecinos por los beacons que oyó:
+        # id -> (x, y, rol, instante). Es la única información que usa la
+        # movilidad "descentralizada" (nunca mira sim.nodes).
+        self.oidos = {}
 
         # contadores de uso del código real (sólo informativos)
         self.ogms_procesados = 0    # llamadas a BatmanRouter.receive_ogm()
@@ -90,10 +94,14 @@ class SimNode:
         }
 
     def _make_bcn(self, texto):
+        # El beacon lleva la posición del emisor (supuesto: GPS o UWB de
+        # interiores), como en los algoritmos de cobertura por fuerzas
+        # virtuales. Sólo la usa la movilidad "descentralizada".
         return {
             'type': 'BCN', 'node_id': self.id, 'battery': self.battery,
             'load': 0, 'rep': 1.0, 'role': self.role,
             'msg': texto, 'ts': self.sim.t,
+            'x': round(self.x, 2), 'y': round(self.y, 2),
         }
 
     # ── un paso de tiempo ──
@@ -168,6 +176,8 @@ class SimNode:
                     p.reputation = msg.get('rep', 1.0)
                     if p.in_alert:
                         p.in_alert = False
+                if 'x' in msg:
+                    self.oidos[nid] = (msg['x'], msg['y'], msg.get('role'), now)
 
 
                 self._recuperar(nid, now)
@@ -219,11 +229,17 @@ class SimNode:
                 if self._try_move(dx, dy):
                     break
         else:
-            # destino: esquina (wanderer), el Nodo de usuario asignado
-            # (movilidad "repartir") o el más cercano ("seguir")
+            # destino: esquina (wanderer), el que deciden las fuerzas
+            # locales ("descentralizada"), el Nodo de usuario asignado
+            # ("repartir") o el más cercano ("seguir")
+            modo = self.sim.cfg.get('movilidad', 'seguir')
             if self is self.sim.wanderer and now < self.sim.wander_until:
                 tx, ty = 38.0, 2.0
-            elif self.sim.cfg.get('movilidad', 'seguir') == 'repartir':
+            elif modo == 'descentralizada':
+                self._mover_descentralizado(now)
+                self._record_history()
+                return
+            elif modo == 'repartir':
                 tgt = self.sim.objetivo_repartido(self)
                 if tgt is None:
                     # sobra (más Gateway que Nodos de usuario): se queda
@@ -259,6 +275,113 @@ class SimNode:
             self._move_avoiding(tx_eff, ty_eff)
 
         self._record_history()
+
+    # ── movilidad descentralizada ──
+    # Distancias de las fuerzas, como fracción del alcance de radio.
+    D_USUARIO = 0.4     # un Nodo de usuario más lejos que esto atrae
+    # (elegidas en una grilla sobre base, denso, colapso_progresivo y
+    # rescatista_perdido, 5 semillas: ver contexto/PLAN_SIGUIENTE.md, paso 9)
+    D_REPULSION = 0.55  # un Gateway más cerca que esto repele
+    D_EXPANSION = 0.75  # ...o que esto, si el Gateway está ocioso
+    D_ENLACE = 0.9      # un Gateway más cerca que esto cuenta como enlace
+    MEMORIA_BEACONS = 3  # se olvida a un vecino tras 3 beacons sin oírlo
+
+    def fuerza_descentralizada(self, now):
+        """Vector (fx, fy, motivo) que el Gateway quiere seguir, calculado
+        sólo con lo que oyó (self.oidos):
+        - atracción hacia los Nodos de usuario que oye y de los que es el
+          Gateway más cercano entre los que conoce ("a su cargo"), si están
+          más lejos que D_USUARIO;
+        - repulsión de los Gateway que oye más cerca que D_REPULSION, o que
+          D_EXPANSION si no tiene ningún usuario a su cargo (ocioso): así
+          la malla se estira y explora hasta oír usuarios nuevos, sin
+          perder el enlace (ver _conserva_enlace);
+        - sin ningún Gateway oído, vuelve hacia el último que oyó
+          (reconexión)."""
+        rango = self.sim.cfg['rango_comm']
+        memoria = self.MEMORIA_BEACONS * self.sim.cfg['beacon_cada']
+        recientes = {nid: v for nid, v in self.oidos.items()
+                     if now - v[3] <= memoria}
+        gws = {nid: (x, y) for nid, (x, y, rol, _t) in recientes.items()
+               if rol == 'G'}
+        fx = fy = 0.0
+        d_usr = self.D_USUARIO * rango
+        a_cargo = 0
+        for nid, (ux, uy, rol, _t) in recientes.items():
+            if rol != 'N':
+                continue
+            d = math.hypot(ux - self.x, uy - self.y)
+            # ¿otro Gateway que conozco está más cerca de ese usuario?
+            if any(math.hypot(ux - gx, uy - gy) < d for gx, gy in gws.values()):
+                continue
+            a_cargo += 1
+            if d > d_usr:
+                fx += (ux - self.x) / d * (d - d_usr)
+                fy += (uy - self.y) / d * (d - d_usr)
+        d_rep = (self.D_REPULSION if a_cargo else self.D_EXPANSION) * rango
+        for nid, (gx, gy) in gws.items():
+            d = math.hypot(self.x - gx, self.y - gy)
+            if d >= d_rep:
+                continue
+            if d < 1e-6:
+                # apilados: se separan en direcciones opuestas según el id
+                ux, uy = (1.0, 0.0) if self.id < nid else (-1.0, 0.0)
+            else:
+                ux, uy = (self.x - gx) / d, (self.y - gy) / d
+            fx += ux * (d_rep - d)
+            fy += uy * (d_rep - d)
+        if not gws:
+            gateways_vistos = [(t, x, y) for nid, (x, y, rol, t)
+                               in self.oidos.items() if rol == 'G']
+            if gateways_vistos:
+                _t, x, y = max(gateways_vistos)
+                return x - self.x, y - self.y, "reconexion"
+        return fx, fy, ("cobertura" if a_cargo else "expansion")
+
+    def _mover_descentralizado(self, now):
+        fx, fy, _motivo = self.fuerza_descentralizada(now)
+        norma = math.hypot(fx, fy)
+        if norma < 0.1:
+            return      # equilibrio: se queda
+        tx, ty = self.x + fx, self.y + fy
+        if self.piso != max(1, min(self.N_PISOS, int(ty // self.PISO_H) + 1)) \
+                and abs(self.x - self.STAIR_XY[0]) > self.STAIR_HALF_W * 0.6:
+            tx = self.STAIR_XY[0]     # cambiar de piso: por la escalera
+        dx, dy = tx - self.x, ty - self.y
+        dist = math.hypot(dx, dy)
+        paso = min(self.sim.cfg['move_speed'], dist)
+        nx, ny = self.x + dx / dist * paso, self.y + dy / dist * paso
+        if not self._conserva_enlace(now, nx, ny):
+            return
+        if paso < self.sim.cfg['move_speed']:
+            self._try_move(nx - self.x, ny - self.y)
+        else:
+            self._move_avoiding(tx, ty)
+
+    def _conserva_enlace(self, now, nx, ny):
+        """¿Ir a (nx, ny) conserva la conexión con la malla? Un enlace con
+        un Gateway oído (a menos de D_ENLACE) sólo se puede romper si
+        queda un rodeo de dos saltos: otro Gateway oído que siga enlazado
+        con los dos. Se decide con las posiciones de los beacons, que
+        pueden tener segundos: un vecino oído hace `a` s pudo moverse hasta
+        velocidad·a metros, así que un enlace cuenta como seguro sólo si lo
+        es en el peor caso, y como posible si lo es en el mejor."""
+        memoria = self.MEMORIA_BEACONS * self.sim.cfg['beacon_cada']
+        d_enl = self.D_ENLACE * self.sim.cfg['rango_comm']
+        vel = self.sim.cfg['move_speed'] / self.DT      # m/s de un Gateway
+        gws = [(x, y, vel * (now - t)) for (x, y, rol, t) in self.oidos.values()
+               if rol == 'G' and now - t <= memoria]
+        d = lambda a, b: math.hypot(a[0] - b[0], a[1] - b[1])
+        yo, nuevo = (self.x, self.y), (nx, ny)
+        for h in gws:
+            if d(yo, h) - h[2] > d_enl:          # ni siquiera es un enlace
+                continue
+            if d(nuevo, h) + h[2] <= d_enl:      # lo conserva seguro
+                continue
+            if not any(k is not h and d(nuevo, k) + k[2] <= d_enl
+                       and d(h, k) + h[2] + k[2] <= d_enl for k in gws):
+                return False
+        return True
 
     def _record_history(self):
         self.history.append((self.x, self.y))
