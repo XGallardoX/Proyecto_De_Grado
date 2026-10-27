@@ -137,7 +137,10 @@ function tooltip(info, px, py) {
     t.innerHTML = `<b>${esc(n.etiqueta)} · ${n.rol === "G" ? "Gateway" : "Nodo de usuario"}</b>
       ${n.vivo ? "activo" : "caído"}${n.en_alerta ? " · en alerta" : ""}<br>
       Batería ${num(n.bateria, 0)} % · piso ${n.piso} · (${num(n.x, 1)}, ${num(n.y, 1)})<br>
-      ${n.n_vecinos} vecinos conocidos · ${n.n_rutas} rutas en su tabla`;
+      ${n.n_vecinos} vecinos conocidos · ${n.n_rutas} rutas en su tabla` +
+      (n.fuerza ? `<br>Movilidad descentralizada: ${{ cobertura: "cubre a un usuario",
+        expansion: "ocioso, expande la malla", reconexion: "sin Gateways a la vista, se reconecta",
+      }[n.fuerza[2]] ?? n.fuerza[2]}` : "");
   } else {
     const [a, b, fiab, dist] = info.enlace;
     t.innerHTML = `<b>${esc(etiqueta(a))} ↔ ${esc(etiqueta(b))}</b>

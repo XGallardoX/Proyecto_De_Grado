@@ -19,7 +19,7 @@ export const PARAMETROS = [
     ["battery_drain", "Drenaje Gateway (%/s)", 0, 5, 0.005],
     ["battery_drain_nodo", "Drenaje Nodo de usuario (%/s)", 0, 5, 0.005],
     ["move_speed", "Velocidad de los Gateway (m/paso, 0 = fijos)", 0, 2, 0.02],
-    ["movilidad", "Movilidad", ["seguir", "repartir"]],
+    ["movilidad", "Movilidad", ["descentralizada", "seguir", "repartir"]],
   ]],
 ];
 

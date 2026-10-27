@@ -53,6 +53,17 @@ def _cfg_editable(sim):
     return {k: v for k, v in sim.cfg.items() if k in claves}
 
 
+def _fuerza(sim, n):
+    """La decisión de la movilidad descentralizada de un Gateway: [fx, fy,
+    motivo] ("cobertura", "expansion" o "reconexion"), o None si no
+    aplica. Pura (no mueve ni consume azar)."""
+    if (n.role != 'G' or not n.alive or sim.cfg.get('move_speed', 0) <= 0
+            or sim.cfg.get('movilidad') != 'descentralizada'):
+        return None
+    fx, fy, motivo = n.fuerza_descentralizada(sim.t)
+    return [round(fx, 2), round(fy, 2), motivo]
+
+
 def _nodos(sim):
     out = []
     for n in sim.nodes.values():
@@ -76,6 +87,7 @@ def _nodos(sim):
             "ultimo_mensaje": n.last_msg if beacon else None,
             "n_rutas": len(n.router.routes),
             "n_vecinos": len(n.router.peers),
+            "fuerza": _fuerza(sim, n),
         })
     return out
 

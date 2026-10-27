@@ -84,7 +84,7 @@ export class Editor {
         <h3>Medio</h3>${CAMPOS_MEDIO.map((c) => campo("medium", c)).join("")}
         <h3>Protocolo</h3>${CAMPOS_PROTOCOLO.map((c) => campo("protocol", c)).join("")}
         <label>Movilidad <select id="ed-movilidad">
-          ${["seguir", "repartir"].map((m) => `<option ${e.protocol.movilidad === m ? "selected" : ""}>${m}</option>`).join("")}
+          ${["descentralizada", "seguir", "repartir"].map((m) => `<option ${e.protocol.movilidad === m ? "selected" : ""}>${m}</option>`).join("")}
         </select></label>
         <h3>Eventos <small class="detalle">wander: un Gateway se aleja hasta t = until · caída / recuperación: un nodo cae o vuelve en el instante t</small></h3>
         <div id="ed-eventos"></div>

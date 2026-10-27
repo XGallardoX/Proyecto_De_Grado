@@ -110,7 +110,7 @@ export class Laboratorio {
         <input data-k="etiqueta" placeholder="etiqueta (opcional)" value="${esc(e.etiqueta || "")}">
         <label class="compacto"><input type="checkbox" data-k="static" ${e.static ? "checked" : ""}> fijos</label>
         <select data-k="movilidad" title="Movilidad">
-          ${["", "seguir", "repartir"].map((m) => `<option value="${m}" ${(e.movilidad || "") === m ? "selected" : ""}>${m || "movilidad del escenario"}</option>`).join("")}
+          ${["", "descentralizada", "seguir", "repartir"].map((m) => `<option value="${m}" ${(e.movilidad || "") === m ? "selected" : ""}>${m || "movilidad del escenario"}</option>`).join("")}
         </select>
         <label class="compacto" title="Flujos de datos aleatorios entre Nodos de usuario (--trafico)">datos
           <input type="number" min="0" max="50" data-k="trafico" placeholder="0" value="${e.trafico ?? ""}" style="width:4.2em"></label>

@@ -16,7 +16,7 @@ const FUENTE = "Inter, system-ui, sans-serif";
 export const CAPAS = [
   ["enlaces", "Enlaces"], ["paquetes", "Paquetes"], ["estelas", "Estelas"],
   ["burbujas", "Beacons"], ["alcance", "Alcance"], ["envolventes", "Grupos"],
-  ["vigilancia", "Vigilancia"], ["cobertura", "Cobertura"],
+  ["vigilancia", "Vigilancia"], ["fuerzas", "Fuerzas"], ["cobertura", "Cobertura"],
 ];
 
 function lerp(a, b, t) { return a + (b - a) * t; }
@@ -58,7 +58,8 @@ export class Mapa {
     this.seleccionId = null;
     this.herramienta = "seleccionar";
     this.capas = { enlaces: true, paquetes: true, estelas: true, burbujas: false,
-                   alcance: true, envolventes: true, vigilancia: true, cobertura: false };
+                   alcance: true, envolventes: true, vigilancia: true, fuerzas: true,
+                   cobertura: false };
     this.lente = null;          // {id, detalle} — "ver como este nodo"
     this.filtroOrigen = null;   // sólo los OGM de este origen
     this.paquetesOrigen = null; // ...que se piden a /api/paquetes
@@ -493,6 +494,26 @@ export class Mapa {
         ctx.arc(p[0], p[1], r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (v.cree_caido ? 1 : frac));
         ctx.stroke();
       }
+    }
+
+    // fuerzas de la movilidad descentralizada: hacia dónde quiere ir cada
+    // Gateway según lo que oyó (verde: cubrir un usuario; azul: expandir
+    // la malla; ámbar: reconectarse). Largo tope de 4 m, para no tapar.
+    if (this.capas.fuerzas && !lente) {
+      const colorMotivo = { cobertura: ui.ok, expansion: ui.acento, reconexion: ui.aviso };
+      ctx.globalAlpha = 0.85;
+      for (const n of f.nodos) {
+        if (!n.fuerza) continue;
+        const [fx, fy, motivo] = n.fuerza;
+        const l = Math.hypot(fx, fy);
+        if (l < 0.1) continue;
+        const largo = Math.min(l, 4) * escala;
+        const p = pos(n.id);
+        // y del mundo crece hacia arriba; la de la pantalla, hacia abajo
+        this._flecha(p, [p[0] + (fx / l) * largo, p[1] - (fy / l) * largo],
+                     colorMotivo[motivo] || ui.acento, 2, 11 * k);
+      }
+      ctx.globalAlpha = 1;
     }
 
     // lente: lo que el nodo cree saber
