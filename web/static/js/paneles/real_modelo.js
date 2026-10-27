@@ -21,6 +21,12 @@ export function pintarRealModelo(contenedor, f) {
           <dt>Beacons procesados</dt><dd>${fmt(c.beacons_procesados)}</dd>
           <dt>Rutas en las tablas</dt><dd>${fmt(c.rutas_en_tablas)}</dd>
         </dl>
+        <b>Plano de datos</b>
+        <dl class="cifras">
+          <dt>Flujos de tráfico</dt><dd>${fmt(c.flujos_datos ?? 0)}</dd>
+          <dt>Paquetes enviados</dt><dd>${fmt(c.datos_enviados ?? 0)}</dd>
+          <dt>…entregados (salto a salto por next_hop())</dt><dd>${fmt(c.datos_entregados ?? 0)}</dd>
+        </dl>
         <b>FaultManager</b>
         <dl class="cifras">
           <dt>Chequeos (check())</dt><dd>${fmt(c.chequeos_fallo)}</dd>
@@ -46,7 +52,7 @@ export function pintarRealModelo(contenedor, f) {
     <ul class="detalle">
       <li>El TQ lo calcula el BatmanRouter real: la fracción de OGM recibidos de las últimas 16 secuencias de cada vecino, multiplicada salto a salto. La calidad del medio, sin pasar por el protocolo, es la tasa de entrega.</li>
       <li>Grupos, particiones y nodos alcanzables se miden sobre los enlaces de radio, no sobre las tablas de rutas.</li>
-      <li>Los mensajes viajan por el camino más corto en la malla de radio (BFS); se indica si la ruta BATMAN ya había convergido.</li>
+      <li>Los mensajes y el tráfico de datos viajan salto a salto: en cada nodo, el siguiente salto lo elige BatmanRouter.next_hop() con la tabla de ese nodo. Pueden perderse aunque haya camino por radio (sin ruta, ruta vieja, la radio pierde el salto o un bucle).</li>
       <li>El ancho de banda es una heurística (100 − 5·d Mbps), no sale del medio radio.</li>
     </ul>`;
 }

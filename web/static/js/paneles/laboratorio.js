@@ -112,8 +112,10 @@ export class Laboratorio {
         <select data-k="movilidad" title="Movilidad">
           ${["", "seguir", "repartir"].map((m) => `<option value="${m}" ${(e.movilidad || "") === m ? "selected" : ""}>${m || "movilidad del escenario"}</option>`).join("")}
         </select>
+        <label class="compacto" title="Flujos de datos aleatorios entre Nodos de usuario (--trafico)">datos
+          <input type="number" min="0" max="50" data-k="trafico" placeholder="0" value="${e.trafico ?? ""}" style="width:4.2em"></label>
         ${extra ? `<small class="detalle">${esc(extra)}</small>` : ""}
-        <button data-borrar title="Quitar">✕</button>
+        <button data-borrar class="icono-boton" title="Quitar">${icono("cerrar")}</button>
       </div>`;
     }).join("") || '<p class="detalle">(sin entradas)</p>';
     div.querySelectorAll(".lab-entrada").forEach((fila) => {
@@ -132,6 +134,10 @@ export class Laboratorio {
       });
       fila.querySelector('[data-k="movilidad"]').addEventListener("change", (ev) => {
         if (ev.target.value) e.movilidad = ev.target.value; else delete e.movilidad;
+      });
+      fila.querySelector('[data-k="trafico"]').addEventListener("change", (ev) => {
+        const v = ev.target.value === "" ? NaN : Number(ev.target.value);
+        if (Number.isInteger(v) && v > 0) e.trafico = v; else delete e.trafico;
       });
       fila.querySelector("[data-borrar]").addEventListener("click", () => {
         this.lote.escenarios.splice(Number(fila.dataset.i), 1);

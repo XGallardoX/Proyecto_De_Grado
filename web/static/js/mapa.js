@@ -451,8 +451,8 @@ export class Mapa {
         if (prog >= 1) continue;
         const [sx, sy] = w2s(lerp(x0, x1, prog), lerp(y0, y1, prog));
         const a = Math.max(0.15, 1 - prog) * (lente && !filtrado ? 0.3 : 1);
-        const c = tipo === "OGM" ? col.ogm : col.bcn;
-        const r = (filtrado ? 4.5 : 3) * k;
+        const c = tipo === "OGM" ? col.ogm : tipo === "DATA" ? col.mensaje : col.bcn;
+        const r = (filtrado || tipo === "DATA" ? 4.5 : 3) * k;
         ctx.globalAlpha = a * 0.28;
         ctx.fillStyle = c;
         ctx.beginPath(); ctx.arc(sx, sy, r * 2.3, 0, Math.PI * 2); ctx.fill();

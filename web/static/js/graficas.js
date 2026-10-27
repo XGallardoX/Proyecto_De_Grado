@@ -41,6 +41,11 @@ const PANELES = [
     series: [{ campo: "bandwidth", color: "#1D9E75", nombre: "Ancho de banda total", escalon: true }],
     eventos: ["FAIL", "RECOVER", "SCENARIO"], desdeCero: true,
     nota: "Estimación heurística (100 − 5·d Mbps hacia el Gateway más cercano): no sale del medio radio." },
+  { titulo: "7 · Plano de datos: entrega por BATMAN (últimos 20 s)",
+    series: [{ campo: "entrega_datos", color: "#A855F7", nombre: "Paquetes de datos entregados / enviados" }],
+    eventos: ["FAIL", "RECOVER", "PARTITION", "HEAL"], ymin: -0.02, ymax: 1.05,
+    soloSi: (s) => (s.datos_enviados?.at(-1) ?? 0) > 0,
+    nota: "Cada paquete avanza salto a salto con la tabla de rutas del nodo que lo tiene. Sólo aparece si hay tráfico (flujos del escenario, --trafico o mensajes)." },
 ];
 
 // Igual que np.convolve(x, ones(k)/k, mode='same') de la figura.
@@ -83,7 +88,7 @@ export class Graficas {
         div.append(nota);
       }
       contenedor.append(div);
-      const panel = { spec: p, canvas, tip, geo: null };
+      const panel = { spec: p, canvas, tip, geo: null, div };
       canvas.addEventListener("mousemove", (ev) => this._tooltip(panel, ev));
       canvas.addEventListener("mouseleave", () => { tip.hidden = true; });
       return panel;
@@ -96,7 +101,11 @@ export class Graficas {
 
   dibujar() {
     if (!this.datos || !this.visible()) return;
-    for (const p of this.paneles) this._dibujarPanel(p);
+    for (const p of this.paneles) {
+      const ver = !p.spec.soloSi || p.spec.soloSi(this.datos.series);
+      p.div.hidden = !ver;
+      if (ver) this._dibujarPanel(p);
+    }
   }
 
   _rango() {

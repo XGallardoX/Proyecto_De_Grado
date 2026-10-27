@@ -12,6 +12,8 @@ export function prepararInicio(dialogo, escenarios, cargar) {
     if (mov) o.movilidad = mov;
     const semilla = dialogo.querySelector("#ini-semilla").value;
     if (semilla) o.semilla = Number(semilla);
+    const trafico = dialogo.querySelector("#ini-trafico")?.value;
+    if (trafico !== undefined && trafico !== "") o.trafico = Number(trafico);
     return o;
   };
   const intentar = async (datos) => {

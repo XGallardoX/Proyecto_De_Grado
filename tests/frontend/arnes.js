@@ -89,13 +89,15 @@ await paso("mapa", async () => {
   chequear(m.enlaceEnPunto((ax + bx) / 2, (ay + by) / 2) !== null, "hover sobre un enlace lo encuentra");
 });
 
-// 3) gráficas (los 6 paneles) y línea de tiempo
+// 3) gráficas (6 paneles, más el del plano de datos si hubo tráfico) y línea de tiempo
 await paso("graficas", async () => {
   const { Graficas } = await import(R + "graficas.js");
   const g = new Graficas(new Elemento());
   g.setDatos({ series: d.series.series, eventos: d.series.eventos, timeout: d.series.timeout });
   for (const v of [60, 200, 0]) { g.ventana = v; g.dibujar(); }
-  chequear(g.paneles.length === 6 && g.paneles.every((p) => p.geo), "los 6 paneles dibujan");
+  const visibles = g.paneles.filter((p) => !p.div.hidden);
+  chequear(g.paneles.length === 7 && visibles.length >= 6 && visibles.every((p) => p.geo),
+           `los ${visibles.length} paneles visibles dibujan`);
   g._tooltip(g.paneles[2], { offsetX: 150 });
   chequear(!g.paneles[2].tip.hidden && g.paneles[2].tip.innerHTML.includes("TQ"), "tooltip de la gráfica 3");
   const { LineaTiempo } = await import(R + "linea_tiempo.js");

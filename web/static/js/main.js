@@ -217,14 +217,19 @@ $("compositor").addEventListener("submit", async (ev) => {
   }
   const r = await comando("mensaje", { texto }).catch(() => null);
   if (!r) return;
+  const cuerpo = texto.replace(/^\s*\S+\s*>\s*\S+\s*/, "");
+  const saltos = r.camino.length - 1;
   if (r.entregado) {
-    const cuerpo = texto.replace(/^\s*\S+\s*>\s*\S+\s*/, "");
     mapa.animarMensaje(r.ids, cuerpo, r.camino[0], r.camino.at(-1));
-    toast(`Entregado en ${r.camino.length - 1} salto${r.camino.length === 2 ? "" : "s"} vía ` +
-          `${r.camino.join(" → ")} (${r.ruta_batman_convergida ? "ruta BATMAN convergida" : "BATMAN aún no tenía la ruta"})`, "ok");
+    const opt = r.optimo ? r.optimo.length - 1 : saltos;
+    toast(`Entregado por BATMAN en ${saltos} salto${saltos === 1 ? "" : "s"}: ` +
+          `${r.camino.join(" → ")}${opt < saltos ? ` (el más corto tenía ${opt})` : ""}`, "ok");
     $("msg-texto").value = "";
   } else {
-    toast(`No entregado: ${r.motivo}`, "alerta");
+    // se ve hasta dónde llegó antes de perderse
+    if (r.ids.length > 1) mapa.animarMensaje(r.ids, `✕ ${cuerpo}`, r.camino[0], r.camino.at(-1));
+    toast(`No entregado: ${r.motivo}` +
+          (saltos ? ` (recorrió ${r.camino.join(" → ")})` : ""), "alerta");
     // el texto queda para corregirlo, pero seleccionado: lo que se
     // escriba después lo reemplaza en vez de pegarse detrás
     $("msg-texto").select();
@@ -261,6 +266,7 @@ function pintarLeyenda(col) {
     ["anillo", "var(--alerta)", "En alerta"], ["circulo", col.caido, "Caído"],
     ["linea", "var(--enlace-bueno)", "Enlace fiable"], ["linea", "var(--enlace-malo)", "Enlace débil"],
     ["punto", col.ogm, "OGM"], ["punto", col.bcn, "Beacon"],
+    ["punto", col.mensaje, "Datos"],
   ];
   $("leyenda").innerHTML = `<div class="simbolos">${simbolos.map(([forma, c, t]) =>
       `<span><span class="sim ${forma}" style="background:${c};color:${c}"></span>${t}</span>`).join("")}</div>
