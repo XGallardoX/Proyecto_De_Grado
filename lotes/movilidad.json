@@ -5,13 +5,18 @@
   "escenarios": [
     { "escenario": "base", "movilidad": "seguir" },
     { "escenario": "base", "movilidad": "repartir" },
+    { "escenario": "base", "movilidad": "descentralizada" },
     { "escenario": "colapso_progresivo", "movilidad": "seguir" },
     { "escenario": "colapso_progresivo", "movilidad": "repartir" },
+    { "escenario": "colapso_progresivo", "movilidad": "descentralizada" },
     { "escenario": "particion", "movilidad": "seguir" },
     { "escenario": "particion", "movilidad": "repartir" },
+    { "escenario": "particion", "movilidad": "descentralizada" },
     { "escenario": "rescatista_perdido", "movilidad": "seguir" },
     { "escenario": "rescatista_perdido", "movilidad": "repartir" },
+    { "escenario": "rescatista_perdido", "movilidad": "descentralizada" },
     { "escenario": "denso", "movilidad": "seguir" },
-    { "escenario": "denso", "movilidad": "repartir" }
+    { "escenario": "denso", "movilidad": "repartir" },
+    { "escenario": "denso", "movilidad": "descentralizada" }
   ]
 }

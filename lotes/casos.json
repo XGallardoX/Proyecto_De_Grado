@@ -11,9 +11,12 @@
     { "config": "escenarios/casos/base_timeout8.txt", "etiqueta": "falsas_alarmas_timeout8" },
     { "config": "escenarios/base.txt", "etiqueta": "falsas_alarmas_timeout30" },
 
-    { "config": "escenarios/casos/colapso_timeout15.txt", "etiqueta": "deteccion_timeout15" },
-    { "escenario": "colapso_progresivo", "etiqueta": "deteccion_timeout30" },
-    { "config": "escenarios/casos/colapso_timeout60.txt", "etiqueta": "deteccion_timeout60" },
+    { "config": "escenarios/casos/colapso_timeout15.txt", "etiqueta": "deteccion_timeout15",
+      "movilidad": "seguir" },
+    { "escenario": "colapso_progresivo", "etiqueta": "deteccion_timeout30",
+      "movilidad": "seguir" },
+    { "config": "escenarios/casos/colapso_timeout60.txt", "etiqueta": "deteccion_timeout60",
+      "movilidad": "seguir" },
 
     { "config": "escenarios/casos/cadena.txt", "etiqueta": "cadena_multisalto", "duracion": 60 }
   ]

@@ -30,6 +30,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 # serie.
 AZUL = "#2a78d6"
 NARANJA = "#eb6834"
+VERDE = "#2f9e6e"
 TINTA = "#222222"
 TINTA_2 = "#5f5e5a"
 GRILLA = "#e4e2dc"
@@ -46,11 +47,16 @@ ETIQUETAS_FALLOS = {
 }
 ESCENARIOS_MOVILIDAD = ["base", "colapso_progresivo", "particion",
                         "rescatista_perdido", "denso"]
+# Modos de movilidad de los Gateway que compara lotes/movilidad.json
+# (D8 de contexto/PLAN_SIGUIENTE.md): los dos centralizados de línea base y
+# el descentralizado, que es el valor por defecto.
+MODOS_MOVILIDAD = [("seguir", AZUL), ("repartir", NARANJA),
+                   ("descentralizada", VERDE)]
 
 
 # ── lectura ───────────────────────────────────────────────────────────────
 def ultimo_lote(nombre, raiz="reportes"):
-    carpetas = sorted(glob.glob(os.path.join(raiz, f"lote_{nombre}_*")))
+    carpetas = sorted(glob.glob(os.path.join(raiz, f"lote_{nombre}_[0-9]*")))
     if not carpetas:
         raise SystemExit(f"No hay salida de lote '{nombre}' en {raiz}/: "
                          f"corre antes python main.py --batch lotes/{nombre}.json")
@@ -136,7 +142,9 @@ def sum_cm(anchos):
 
 
 # ── tablas ────────────────────────────────────────────────────────────────
-def tablas_fallos(fallos, n_semillas, duracion):
+def tablas_fallos(fallos, n_semillas, duracion, sufijo="", cual=""):
+    """`sufijo` (p. ej. \"-movil\") y `cual` (texto para el pie) distinguen la
+    variante con Gateway móviles de la principal, de nodos fijos."""
     filas = []
     for etq, nombre in ETIQUETAS_FALLOS.items():
         e = fallos[etq]
@@ -149,8 +157,8 @@ def tablas_fallos(fallos, n_semillas, duracion):
             fmt(metrica(e, "nodos_alcanzables_finales"), 0),
         ])
     principal = tabla_tex(
-        "tab:cap5-fallos",
-        "Respuesta de la malla a cada fallo",
+        f"tab:cap5-fallos{sufijo}",
+        f"Respuesta de la malla a cada fallo{cual}",
         ["Experimento", "Malla partida (s)", "Reconvergencia de rutas (s)",
          "Alertas", "Cobertura media", "Nodos cubiertos al final"],
         filas, ["2.9cm", "1.7cm", "2.2cm", "1.9cm", "2.2cm", "1.7cm"],
@@ -165,8 +173,8 @@ def tablas_fallos(fallos, n_semillas, duracion):
                       fmt(metrica(e, "saltos_medio"), 2),
                       fmt(metrica(e, "tasa_entrega"), 3)])
     calidad = tabla_tex(
-        "tab:cap5-calidad",
-        "Calidad de las rutas y del medio en los experimentos de fallo",
+        f"tab:cap5-calidad{sufijo}",
+        f"Calidad de las rutas y del medio en los experimentos de fallo{cual}",
         ["Experimento", "TQ medio de rutas", "Saltos medios por ruta",
          "Tasa de entrega del radio"],
         filas, ["3.2cm", "2.8cm", "2.8cm", "2.8cm"])
@@ -176,23 +184,27 @@ def tablas_fallos(fallos, n_semillas, duracion):
 def tabla_movilidad(mov):
     filas = []
     for esc in ESCENARIOS_MOVILIDAD:
-        s, r = mov[f"{esc}_seguir"], mov[f"{esc}_repartir"]
-        def par(clave, dec):
-            return (f"{fmt(metrica(s, clave), dec)} / "
-                    f"{fmt(metrica(r, clave), dec)}")
-        filas.append([esc.replace("_", "\\_"), par("cobertura_media", 2),
-                      par("componentes_finales", 1),
-                      par("tiempo_particionado_s", 0),
-                      par("tasa_entrega", 2), par("tq_medio", 2)])
+        for modo, _ in MODOS_MOVILIDAD:
+            m = mov[f"{esc}_{modo}"]
+            filas.append([esc.replace("_", "\\_"), modo,
+                          fmt(metrica(m, "cobertura_media"), 2),
+                          fmt(metrica(m, "componentes_finales"), 1),
+                          fmt(metrica(m, "tiempo_particionado_s"), 0),
+                          fmt(metrica(m, "tasa_entrega"), 2),
+                          fmt(metrica(m, "tq_medio"), 2)])
     return tabla_tex(
         "tab:cap5-movilidad",
-        "Movilidad \\emph{seguir} / \\emph{repartir} (resultado secundario)",
-        ["Escenario", "Cobertura media", "Componentes al final",
+        "Movilidad de los Gateway: \\emph{seguir}, \\emph{repartir} y "
+        "\\emph{descentralizada}",
+        ["Escenario", "Movilidad", "Cobertura media", "Componentes al final",
          "Malla partida (s)", "Entrega del radio", "TQ medio"],
-        filas, ["2.4cm", "2.6cm", "2.4cm", "2.3cm", "2.2cm", "2.2cm"],
-        nota=("En cada celda, \\emph{seguir} / \\emph{repartir}. "
-              "Media $\\pm$ desviación estándar de 10 corridas de 200 s "
-              "simulados (lote \\texttt{lotes/movilidad.json})."))
+        filas, ["2.7cm", "2.4cm", "1.8cm", "1.9cm", "1.7cm", "1.7cm",
+                "1.5cm"],
+        nota=("Media $\\pm$ desviación estándar de 10 corridas de 200 s "
+              "simulados (lote \\texttt{lotes/movilidad.json}). "
+              "\\emph{seguir} y \\emph{repartir} son la línea base "
+              "centralizada; \\emph{descentralizada} decide cada Gateway "
+              "sólo con lo que oye."))
 
 
 # ── figuras ───────────────────────────────────────────────────────────────
@@ -284,23 +296,23 @@ def figura_comparacion(fallos, salida):
 
 
 def figura_movilidad(mov, salida):
-    """Cuatro paneles (uno por métrica) con seguir y repartir lado a lado
+    """Cuatro paneles (uno por métrica) con los tres modos lado a lado
     por escenario."""
     paneles = [("cobertura_media", "Cobertura media"),
                ("tasa_entrega", "Tasa de entrega del radio"),
                ("tq_medio", "TQ medio de rutas"),
                ("tiempo_particionado_s", "Tiempo con la malla partida (s)")]
     y = list(range(len(ESCENARIOS_MOVILIDAD)))[::-1]
-    alto_barra = 0.36
+    alto_barra = 0.26
+    n = len(MODOS_MOVILIDAD)
     fig, ejes = plt.subplots(2, 2, sharey=True,
-                             figsize=(ANCHO_TEXTO_IN, 4.2))
+                             figsize=(ANCHO_TEXTO_IN, 4.6))
     for ax, (clave, titulo) in zip(ejes.flat, paneles):
         _estilo(ax)
         ax.grid(axis="y", visible=False)
         for yi, esc in zip(y, ESCENARIOS_MOVILIDAD):
-            for desp, modo, color in ((alto_barra / 2 + 0.02, "seguir", AZUL),
-                                      (-alto_barra / 2 - 0.02, "repartir",
-                                       NARANJA)):
+            for i, (modo, color) in enumerate(MODOS_MOVILIDAD):
+                desp = ((n - 1) / 2 - i) * (alto_barra + 0.02)
                 m = metrica(mov[f"{esc}_{modo}"], clave)
                 ax.barh(yi + desp, m["media"], height=alto_barra,
                         color=color, label=modo if yi == y[0] else None)
@@ -314,7 +326,7 @@ def figura_movilidad(mov, salida):
         fila[0].set_yticklabels(ESCENARIOS_MOVILIDAD, fontsize=7,
                                 color=TINTA)
     fig.legend(*ejes[0][0].get_legend_handles_labels(), loc="upper center",
-               ncol=2, frameon=False, fontsize=7.5,
+               ncol=n, frameon=False, fontsize=7.5,
                bbox_to_anchor=(0.5, 1.0))
     fig.tight_layout(rect=(0, 0, 1, 0.95), w_pad=1.0, h_pad=1.0)
     fig.savefig(salida)
@@ -322,7 +334,8 @@ def figura_movilidad(mov, salida):
 
 
 # ── principal ─────────────────────────────────────────────────────────────
-def generar(carpeta_fallos, carpeta_movilidad, plantilla):
+def generar(carpeta_fallos, carpeta_movilidad, plantilla,
+            carpeta_fallos_movil=None):
     dir_tablas = os.path.join(plantilla, "MainMatter", "Cap5", "tablas")
     dir_figuras = os.path.join(plantilla, "Images", "Cap5")
     os.makedirs(dir_tablas, exist_ok=True)
@@ -342,6 +355,17 @@ def generar(carpeta_fallos, carpeta_movilidad, plantilla):
     escritos += [os.path.join(dir_figuras, "cobertura_tiempo.pdf"),
                  os.path.join(dir_figuras, "comparacion_fallos.pdf")]
 
+    if carpeta_fallos_movil:
+        # Mismos cinco experimentos con los Gateway moviéndose por la
+        # movilidad descentralizada (D8): tablas hermanas de las de nodos fijos.
+        fm = leer_resumen(carpeta_fallos_movil)
+        ref_m = fm["cobertura_edificio"]
+        p_m, c_m = tablas_fallos(fm, len(ref_m["semillas"]), ref_m["duracion"],
+                                 sufijo="-movil",
+                                 cual=" con Gateway móviles (descentralizada)")
+        for nombre, texto in (("fallos_movil.tex", p_m),
+                              ("calidad_movil.tex", c_m)):
+            escritos.append(_escribir(os.path.join(dir_tablas, nombre), texto))
     if carpeta_movilidad:
         mov = leer_resumen(carpeta_movilidad)
         escritos.append(_escribir(os.path.join(dir_tablas, "movilidad.tex"),
@@ -361,6 +385,9 @@ def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--fallos", help="salida de lotes/capitulo5_fallos.json "
                    "(por defecto, la última en reportes/)")
+    p.add_argument("--fallos-movil", help="salida de lotes/"
+                   "capitulo5_fallos_movil.json (por defecto, la última en "
+                   "reportes/, si existe)")
     p.add_argument("--movilidad", help="salida de lotes/movilidad.json "
                    "(por defecto, la última en reportes/)")
     p.add_argument("--plantilla", default="Plantilla",
@@ -368,9 +395,14 @@ def main(argv=None):
     a = p.parse_args(argv)
     fallos = a.fallos or ultimo_lote("capitulo5_fallos")
     movilidad = a.movilidad or ultimo_lote("movilidad")
-    for ruta in generar(fallos, movilidad, a.plantilla):
+    movil = a.fallos_movil
+    if movil is None and glob.glob(os.path.join(
+            "reportes", "lote_capitulo5_fallos_movil_[0-9]*")):
+        movil = ultimo_lote("capitulo5_fallos_movil")
+    for ruta in generar(fallos, movilidad, a.plantilla, movil):
         print(f"  {ruta}")
-    print(f"(desde {fallos} y {movilidad})")
+    print(f"(desde {fallos}, {movilidad}" + (f" y {movil}" if movil else "")
+          + ")")
 
 
 if __name__ == "__main__":

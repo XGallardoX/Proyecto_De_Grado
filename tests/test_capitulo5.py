@@ -47,10 +47,16 @@ class GenerarTests(unittest.TestCase):
                  [{"config": os.path.join(main_mod.ESCENARIOS_DIR, "fallos",
                                           f"{e}.txt"), "etiqueta": e}
                   for e in c5.ETIQUETAS_FALLOS]),
+                ("capitulo5_fallos_movil",
+                 [{"config": os.path.join(main_mod.ESCENARIOS_DIR, "fallos",
+                                          f"{e}.txt"), "etiqueta": e,
+                   "parametros": {"move_speed": 0.32,
+                                  "movilidad": "descentralizada"}}
+                  for e in c5.ETIQUETAS_FALLOS]),
                 ("movilidad",
                  [{"escenario": e, "movilidad": m, "etiqueta": f"{e}_{m}"}
                   for e in c5.ESCENARIOS_MOVILIDAD
-                  for m in ("seguir", "repartir")])):
+                  for m, _ in c5.MODOS_MOVILIDAD])):
             ruta = os.path.join(tmp, f"{nombre}.json")
             with open(ruta, "w", encoding="utf-8") as f:
                 json.dump({"nombre": nombre, "duracion": 5, "semillas": 1,
@@ -60,15 +66,34 @@ class GenerarTests(unittest.TestCase):
                     ruta, os.path.join(tmp, nombre))
         escritos = c5.generar(carpetas["capitulo5_fallos"],
                               carpetas["movilidad"],
-                              os.path.join(tmp, "Plantilla"))
+                              os.path.join(tmp, "Plantilla"),
+                              carpetas["capitulo5_fallos_movil"])
         nombres = sorted(os.path.basename(r) for r in escritos)
         self.assertEqual(nombres, [
-            "calidad.tex", "cobertura_tiempo.pdf", "comparacion_fallos.pdf",
-            "fallos.tex", "movilidad.pdf", "movilidad.tex"])
+            "calidad.tex", "calidad_movil.tex", "cobertura_tiempo.pdf",
+            "comparacion_fallos.pdf", "fallos.tex", "fallos_movil.tex",
+            "movilidad.pdf", "movilidad.tex"])
         for ruta in escritos:
             self.assertGreater(os.path.getsize(ruta), 0, ruta)
         with open(escritos[0], encoding="utf-8") as f:
             self.assertIn("\\label{tab:cap5-fallos}", f.read())
+        with open(next(r for r in escritos
+                       if r.endswith("fallos_movil.tex")),
+                  encoding="utf-8") as f:
+            self.assertIn("\\label{tab:cap5-fallos-movil}", f.read())
+
+
+class UltimoLoteTests(unittest.TestCase):
+    def test_la_variante_movil_no_se_confunde_con_el_lote_principal(self):
+        tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp, ignore_errors=True)
+        for d in ("lote_capitulo5_fallos_20261001_100000",
+                  "lote_capitulo5_fallos_movil_20261002_100000"):
+            os.makedirs(os.path.join(tmp, d))
+        self.assertTrue(c5.ultimo_lote("capitulo5_fallos", tmp)
+                        .endswith("20261001_100000"))
+        self.assertTrue(c5.ultimo_lote("capitulo5_fallos_movil", tmp)
+                        .endswith("movil_20261002_100000"))
 
 
 if __name__ == "__main__":
