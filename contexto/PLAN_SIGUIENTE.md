@@ -1,6 +1,6 @@
 # Dónde quedamos y cómo seguir
 
-Fecha: 2026-10-26 (decisiones D7-D11 y pasos 7-12; las D1-D6 son del 2026-10-03)
+Fecha: 2026-10-27 (paso 12 hecho; decisiones D7-D11 y pasos 7-12 del 2026-10-26; las D1-D6 son del 2026-10-03)
 
 Este archivo es el punto de partida para retomar el trabajo, en cualquier
 máquina y con cualquiera de los dos autores. Las decisiones de abajo **ya
@@ -22,7 +22,7 @@ archivo, en el mismo commit.
   escenario, métrica "Reconvergencia de rutas BATMAN" y escenarios de
   fallo del Capítulo 5 en `escenarios/fallos/` (historia y hallazgos en
   `DECISIONES_FASE3.md`).
-- **Pruebas:** 367 en verde (`venv/bin/python -m unittest discover -s
+- **Pruebas:** 368 en verde (`venv/bin/python -m unittest discover -s
   tests`; en Windows, `venv\Scripts\python`). En macOS además corre `tests/test_web_frontend.py`, que en
   Linux se omite porque necesita el `jsc` de macOS.
 - **Documento de tesis** (`Plantilla/`): sólo el Capítulo 2. Se escribe
@@ -380,9 +380,49 @@ nombre de quien usa la sesión y **sin** `Co-Authored-By` (ver
     300 s: la inundación entrega 0.94–0.99 de lo que tiene camino contra
     0.80–0.87 de BATMAN, con 1.6–1.8 veces más transmisiones.
   Pruebas: `tests/test_generalidad.py` (14).
-- [ ] **Paso 12 — Resultados de nuevo.** Volver a correr los lotes y el
+- [x] **Paso 12 — Resultados de nuevo.** Volver a correr los lotes y el
   Capítulo 5 con todo lo anterior; actualizar cifras de la guía, el
   README y las tablas/figuras de `Plantilla/`. Después, el paso 6.
+  *Hecho (2026-10-27).* Se corrieron los seis lotes con el código del
+  paso 11 y se compararon con las corridas del 2026-10-05.
+  - **Regresión con nodos fijos o modo explícito: idéntico.**
+    `capitulo5_fallos` (65 métricas), `fallos` (26), `movilidad` (130,
+    con `seguir` y `repartir`) dan 0 diferencias. Los lotes que se mueven
+    con la movilidad por defecto (`ejemplo`, `casos`) cambian, como se
+    esperaba, por el paso 9.
+  - **`lotes/movilidad.json`** ahora compara los tres modos (15
+    entradas). `analysis/capitulo5.py` genera la tabla (una fila por
+    modo) y la figura con tres barras.
+  - **D8: `lotes/capitulo5_fallos_movil.json`** repite los cinco
+    experimentos con Gateway móviles (`"parametros": {"move_speed":
+    0.32, "movilidad": "descentralizada"}`, que pisa el `static=true`
+    del archivo). Genera `fallos_movil.tex` y `calidad_movil.tex`. Lo
+    notable: los Gateway sobrevivientes se reubican, así que la partición
+    por la caída del puente baja de 90 s a 6.2 s y la cascada deja 4 de 6
+    Nodos cubiertos (3 con nodos fijos), a cambio de más alertas.
+  - **Caso 10B de la guía** queda con `"movilidad": "seguir"` en
+    `lotes/casos.json`: con la movilidad por defecto, las separaciones
+    de Gateway disparan alertas antes de la primera caída y tapan la
+    latencia de detección. Con eso reproduce las cifras de antes. El caso
+    12 (interfaz) también va con `--movilidad seguir`.
+  - **Entrega de datos** (`trafico: 6`, 10 semillas, 200 s): con la
+    movilidad `descentralizada` sale la mejor de los tres modos en
+    `base` (0.277 contra 0.211 y 0.205), `colapso_progresivo` (0.234
+    contra 0.216 y 0.196) y `denso` (0.281 contra 0.140 y 0.182); entre
+    pares con camino por radio, `seguir` entrega más.
+  - **Robustez** (`lotes/robustez.json`): sin cambios respecto del paso
+    10 (dirigida: 180 s partida y entrega 0.284; al azar: 42 s y 0.502).
+  - **Defecto corregido de paso:** `analysis.capitulo5.ultimo_lote`
+    tomaba el lote `capitulo5_fallos_movil` por `capitulo5_fallos`
+    (el prefijo coincide); ahora exige la fecha después del nombre.
+  - Guía de ejecución con todas las cifras rehechas (§3 y casos 3, 6, 7,
+    8, 10, 11 y 14) y README sin cifras que cambiaran. Pruebas: 368.
+  - Línea base nueva (semillas 1-10, 200 s, movilidad `descentralizada`,
+    lote `ejemplo`): TQ medio `base` 0.468, `colapso_progresivo` 0.514,
+    `particion` 0.547, `rescatista_perdido` 0.563, `denso` 0.383;
+    cobertura media 0.837, 0.416, 0.766, 0.746 y 0.994.
+  - **Sin compilar el PDF** (no hay TeX Live en esta máquina): las tablas
+    nuevas usan solo `array`, igual que las anteriores.
 
 ---
 

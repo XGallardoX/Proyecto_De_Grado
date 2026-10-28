@@ -11,12 +11,13 @@ esos mismos comandos. Como cada corrida queda fijada por su semilla, con
 el mismo código deberías obtener exactamente los mismos números. Si
 algún día cambian, es que cambió el código, no el azar.
 
-> **Movilidad por defecto (2026-10-26).** Desde el paso 9 del plan, los
-> Gateway se mueven por defecto con la movilidad `descentralizada`. Las
-> cifras de los casos *con movimiento* (sin `--static`) se tomaron con
-> `seguir`, que era la de antes: para reproducirlas, agrega
-> `--movilidad seguir`. Se rehacen todas con la nueva en el paso 12. Los
-> casos con nodos fijos no cambian.
+> **Movilidad por defecto.** Desde el paso 9 del plan, los Gateway se
+> mueven por defecto con la movilidad `descentralizada` (cada uno decide
+> sólo con lo que oye). Todas las cifras de esta guía se rehicieron con
+> ella en el paso 12 (2026-10-27), salvo donde el caso lo dice: el caso
+> 10B y el 12 se quedan con `seguir`, porque ahí la movilidad tapa lo
+> que el caso quiere mostrar. Los casos con nodos fijos (`--static`) no
+> cambiaron.
 
 **Contenido**
 
@@ -76,8 +77,9 @@ Para elegir la red hay tres opciones: `--escenario <nombre>` (uno de los
 5 predefinidos), `--config <archivo>` (un `.json` o `.txt` propio) o
 `-n N -g G` (N nodos al azar, G de ellos Gateways). Encima de cualquiera
 se puede agregar `--static` (los nodos no se mueven),
-`--movilidad repartir` (un Gateway por Nodo de usuario en vez de todos
-hacia el más cercano, ver el [caso 11](#caso-11--seguir-contra-repartir-cobertura-contra-conectividad))
+`--movilidad seguir` o `repartir` (las dos de línea base, centralizadas,
+en vez de la `descentralizada` por defecto; ver el
+[caso 11](#caso-11--seguir-contra-repartir-cobertura-contra-conectividad))
 y `--seed N` (la corrida se repite igual). `--duracion` fija los segundos simulados sin
 ventana (200 por defecto). En `--batch` todo eso va dentro del archivo
 de lote.
@@ -95,8 +97,8 @@ cada segundo real.
 
 Todos usan el mismo edificio: 40 × 30 m en 3 pisos de 10 m, visto como
 un corte vertical (`x` es la posición horizontal, `y` la altura). Los
-Gateway (`G`) se mueven hacia el Nodo de usuario (`N`) más cercano,
-salvo que se use `--static`
+Gateway (`G`) se mueven por la movilidad `descentralizada` (cada uno
+decide sólo con lo que oye de los demás), salvo que se use `--static`
 (ver [`movimiento_nodos.md`](movimiento_nodos.md)).
 
 | Escenario | Qué plantea |
@@ -110,29 +112,33 @@ salvo que se use `--static`
 Cada uno se ve en vivo con `python main.py --escenario <nombre>` y se
 corre sin ventana con `python main.py --headless --escenario <nombre>
 --seed 1`. Lo que deberías ver, según el lote de referencia (10
-semillas, 200 s, con movilidad; detalle en el [caso 7](#caso-7--los-5-escenarios-con-10-semillas)):
+semillas, 200 s, con la movilidad `descentralizada`; detalle en el
+[caso 7](#caso-7--los-5-escenarios-con-10-semillas)):
 
-- **`base`**: la malla de Gateways queda unida. Los cuatro caminan
-  hacia N2 (el de la esquina (5, 5)) y lo cubren; N1 y N3 quedan fuera
-  de alcance (1.2 nodos alcanzables de media). En 1 de las 10 semillas
-  un Gateway sigue a otro nodo y se separa del grupo.
+- **`base`**: la malla de Gateways casi siempre queda unida (partida 5.2
+  s de media: sólo en 3 de las 10 semillas se parte) y se alcanzan 2.8 de
+  los 3 Nodos de usuario al final. Con `seguir`, en cambio, los cuatro
+  Gateway se apilaban sobre N2 y sólo se alcanzaban 1.2.
 - **`colapso_progresivo`**: los Gateway caen uno tras otro y al final
-  queda sólo G1. Cada caída la detectan los que siguen vivos unos 30 s
-  después, que es el `timeout` (5.3 alertas de media).
-- **`particion`**: 2 componentes los 200 s y ninguna alerta. Los dos
-  grupos nunca llegaron a oírse, y `FaultManager` sólo vigila a los
-  Gateway que alguna vez oyó.
-- **`rescatista_perdido`**: hacia t ≈ 41 s G4 sale del alcance del
-  resto y la malla queda partida el resto de la corrida (159 s). La
-  primera alerta llega hacia los 67 s y G4 no vuelve. Un detalle
-  interesante: al final se alcanzan los 3 nodos de usuario (más que en
-  `base`), porque G4 queda cubriendo a N1 y N3 aunque esté separado de
-  la malla. Es un ejemplo de cobertura contra conectividad.
-- **`denso`**: la malla nunca se parte, pero alcanza sólo 3.2 de los 6
-  nodos de usuario de media, porque los 8 Gateway van al mismo nodo (N5)
-  y a los 40 s están todos encima de él. El
+  queda sólo G1 (0.3 nodos alcanzables al final). La primera alerta
+  llega hacia los 51.5 s, antes de la primera caída (84.5 s): no es una
+  caída, es un enlace que se separa o parpadea mientras los Gateway se
+  reubican. Por eso hay más alertas (7.3) que con `seguir` (5.3).
+- **`particion`**: casi los 200 s con la malla partida (195.1 s de
+  media; en 2 de las 10 semillas los grupos llegan a oírse un rato) y
+  ninguna alerta: `FaultManager` sólo vigila a los Gateway que alguna
+  vez oyó.
+- **`rescatista_perdido`**: G4 se separa del resto (a los 35.5 s con la
+  semilla 1) y la malla queda partida 59.0 s de media: a diferencia de `seguir`, donde
+  la partición duraba hasta el final (159 s), los Gateway se acercan y
+  la malla se reúne (1.1 componentes al final). La primera alerta llega
+  hacia los 38 s y hay 10 en total.
+- **`denso`**: la malla nunca se parte y se alcanzan los 6 nodos de
+  usuario (cobertura media 0.994, contra 0.51 con `seguir`, donde los 8
+  Gateway se apilaban sobre N5). El costo son enlaces más largos: TQ
+  medio 0.38 y 30.3 alertas de media por enlaces que parpadean. El
   [caso 11](#caso-11--seguir-contra-repartir-cobertura-contra-conectividad)
-  explica por qué y muestra la alternativa.
+  compara los tres modos de movilidad.
 
 ---
 
@@ -244,11 +250,11 @@ líneas `[reporter] Reporte exportado a …`:
 ============================================================
  Corrida headless · escenario 'base' · 50 s simulados
 ============================================================
-  TQ medio de rutas                     : 0.888
-  Saltos medios por ruta                : 1.33
-  Tasa de entrega del radio             : 0.667
+  TQ medio de rutas                     : 0.716
+  Saltos medios por ruta                : 1.17
+  Tasa de entrega del radio             : 0.370
   Componentes de la malla al final      : 1
-  Nodos de usuario alcanzables al final : 1
+  Nodos de usuario alcanzables al final : 0
   Gateways vivos al final               : 4
   Episodios de partición                : 0
   Tiempo con la malla partida (s)       : 0.0
@@ -256,7 +262,13 @@ líneas `[reporter] Reporte exportado a …`:
   Alertas de gateway perdido            : 0
   Primera alerta (s)                    : no aplica
   Reconvergencia de rutas BATMAN (s)    : no aplica
-  Cobertura media de Nodos de usuario   : 0.340
+  Cobertura media de Nodos de usuario   : 0.120
+  Entrega de datos                      : no aplica
+  (… las demás métricas de datos: «no aplica», porque no hay tráfico)
+  Exactitud del conocimiento de rutas   : 0.906
+  Pares con ruta fantasma               : 0.000
+  Pares con ruta faltante               : 0.094
+  Nodos críticos (articulación), media  : 0.59
   Eventos registrados                   : 0
 ------------------------------------------------------------
  Figura y reportes en reportes/base_<fecha_hora>/
@@ -351,7 +363,7 @@ python main.py --headless -n 8 -g 2 --seed 7 --duracion 100
 
 Son 8 nodos en posiciones al azar, 2 de ellos Gateway. Con `--seed 7`
 salen siempre las mismas posiciones y el mismo resultado: tasa de
-entrega 0.348 y los 6 Nodos de usuario alcanzables al final. Para
+entrega 0.313 y los 6 Nodos de usuario alcanzables al final. Para
 guardar una red aleatoria como escenario se usa un `.txt` con
 `mode=random`, `n_nodes=8` y `n_gateways=2` en `[nodes]`. El modo
 aleatorio de la línea de comandos y el `.txt` con `mode=random` usan los
@@ -374,31 +386,40 @@ todas):
 
 | Escenario | Entrega del radio | Componentes al final | N alcanzables al final | G vivos al final | Malla partida (s) | Alertas | Primera alerta (s) |
 |---|---|---|---|---|---|---|---|
-| `base` | 0.864 ± 0.033 | 1.10 ± 0.32 | 1.20 ± 0.63 | 4.00 | 16.5 ± 52.2 | 0.60 ± 1.90 | 55.0 (1 de 10) |
-| `colapso_progresivo` | 0.799 ± 0.020 | 1.00 | 1.00 | 1.00 | 4.9 ± 15.5 | 5.30 ± 0.95 | 109.0 ± 19.0 |
-| `particion` | 0.960 ± 0.005 | 2.00 | 2.00 | 4.00 | 200.0 | 0.00 | no aplica |
-| `rescatista_perdido` | 0.742 ± 0.062 | 2.00 | 3.00 | 4.00 | 159.2 ± 0.3 | 6.20 ± 0.63 | 67.5 ± 2.6 |
-| `denso` | 0.756 ± 0.032 | 1.00 | 3.20 ± 1.55 | 8.00 | 0.0 | 0.00 | no aplica |
+| `base` | 0.271 ± 0.012 | 1.00 | 2.80 ± 0.42 | 4.00 | 5.2 ± 15.2 | 6.60 ± 2.27 | 51.5 ± 23.5 |
+| `colapso_progresivo` | 0.272 ± 0.020 | 1.00 | 0.30 ± 0.95 | 1.00 | 0.0 | 7.30 ± 1.06 | 51.5 ± 23.5 |
+| `particion` | 0.465 ± 0.041 | 1.80 ± 0.42 | 2.30 ± 0.48 | 4.00 | 195.1 ± 11.7 | 0.00 | no aplica |
+| `rescatista_perdido` | 0.293 ± 0.015 | 1.10 ± 0.32 | 2.80 ± 0.42 | 4.00 | 59.0 ± 17.5 | 10.00 ± 1.70 | 38.0 ± 3.5 |
+| `denso` | 0.301 ± 0.004 | 1.00 | 6.00 | 8.00 | 0.0 | 30.30 ± 7.47 | 46.0 ± 3.9 |
 | `base` fijo (`base_static`) | 0.716 ± 0.006 | 1.00 | 0.00 | 4.00 | 0.0 | 0.00 | no aplica |
 
-(Donde no hay "±", la desviación es 0.) Las dos reconvergencias (la de
-la partición y la de las rutas BATMAN) dan "no aplica" en todos, porque
-en estos escenarios ninguna partición se reunifica y ningún Gateway
-vuelve (ver la [sección 5](#5-dónde-quedan-los-resultados-y-cómo-leerlos)).
+(Donde no hay "±", la desviación es 0.) Las dos reconvergencias, que
+sólo aplican si una partición se reunifica o un Gateway vuelve, dan
+valores en pocas corridas: "Tiempo de reconvergencia" 9.2 ± 13.1 s en 3
+de las 10 de `base`, 134.5 ± 74.2 s en 2 de `particion` y 50.9 ± 22.3 s
+en las 10 de `rescatista_perdido` (donde la partición se cierra al
+acercarse los Gateway); en `colapso_progresivo` y `denso` no aplican
+(ver la [sección 5](#5-dónde-quedan-los-resultados-y-cómo-leerlos)). La
+"Reconvergencia de rutas BATMAN" sólo aplica en `rescatista_perdido`
+(50.8 ± 26.1 s, en 9 de las 10) y en 1 de las 10 de `particion` (2.5 s).
 
 El TQ medio y la cobertura media, que no entran en la tabla de arriba:
 
 | Escenario | TQ medio | Cobertura media |
 |---|---|---|
-| `base` | 0.889 ± 0.026 | 0.399 ± 0.189 |
-| `colapso_progresivo` | 0.861 ± 0.025 | 0.360 ± 0.067 |
-| `particion` | 0.978 ± 0.007 | 0.667 |
-| `rescatista_perdido` | 0.790 ± 0.030 | 0.909 ± 0.009 |
-| `denso` | 0.816 ± 0.023 | 0.510 ± 0.072 |
+| `base` | 0.468 ± 0.041 | 0.837 ± 0.108 |
+| `colapso_progresivo` | 0.514 ± 0.047 | 0.416 ± 0.061 |
+| `particion` | 0.547 ± 0.049 | 0.766 ± 0.131 |
+| `rescatista_perdido` | 0.563 ± 0.028 | 0.746 ± 0.082 |
+| `denso` | 0.383 ± 0.009 | 0.994 ± 0.006 |
 | `base_static` | 0.762 ± 0.012 | 0.000 |
 
 El TQ baja donde las rutas cruzan enlaces con más pérdidas o más
-saltos. En `particion` es alto porque cada grupo tiene enlaces cortos.
+saltos. Con la movilidad `descentralizada` los Gateway se reparten para
+cubrir más Nodos de usuario, y la malla queda estirada: enlaces más
+largos y rutas con más saltos (en `denso`, 2.39 saltos medios), así que
+el TQ y la entrega del radio son bastante menores que con nodos fijos
+o con `seguir` (caso 11), a cambio de cobertura.
 
 Para tu propio lote, copia `lotes/ejemplo.json` y cambia la lista. El
 formato completo está en el README ("Archivo de lote").
@@ -412,13 +433,17 @@ movilidad y con `"static": true`.
 
 | | Entrega del radio | N alcanzables al final |
 |---|---|---|
-| `base` (se mueven) | 0.864 ± 0.033 | 1.20 ± 0.63 |
+| `base` (se mueven) | 0.271 ± 0.012 | 2.80 ± 0.42 |
 | `base_static` (fijos) | 0.716 ± 0.006 | 0.00 |
 
 Fijos en el piso 3, los Gateway no llegan a ningún Nodo de usuario.
-Moviéndose, se acercan a N2 y lo cubren, y de paso los enlaces quedan
-más cortos, lo que sube la entrega. Para comparar así cualquier
-escenario, agrega al lote una entrada con `"static": true`.
+Moviéndose, se reparten hacia los Nodos de usuario y cubren 2.8 de los
+3. El costo es la entrega del radio: baja de 0.716 a 0.271, porque los
+Gateway se alejan entre sí y los enlaces quedan más largos y débiles
+(con `seguir` se apilaban sobre N2 y la entrega subía a 0.864, pero a
+costa de cubrir sólo 1.2 Nodos de usuario; ver el caso 11). Para
+comparar así cualquier escenario, agrega al lote una entrada con
+`"static": true`.
 
 ### Caso 9 — Alcance de radio contra cobertura
 
@@ -466,7 +491,11 @@ pérdidas del medio (`escenarios/casos/base_timeout4.txt`,
 
 **B. Timeout largo → detección tardía.** Es `colapso_progresivo`, donde
 G4 muere a los 84.5 s (`escenarios/casos/colapso_timeout15.txt` y
-`colapso_timeout60.txt`).
+`colapso_timeout60.txt`). Estas tres entradas del lote llevan
+`"movilidad": "seguir"`: con la movilidad por defecto, los Gateway que
+se reubican separan enlaces antes de la primera caída y esas alertas
+tapan la latencia de detección que el caso quiere medir (ver la nota de
+abajo).
 
 | Timeout | Primera alerta, 9 de 10 semillas | Media de las 10 | Alertas |
 |---|---|---|---|
@@ -479,6 +508,16 @@ siguiente chequeo (hasta 5 s). La semilla 4 se sale del patrón (40, 55
 y 95 s): ahí G4 se había separado del grupo antes de morir, y lo que se
 detecta es esa separación.
 
+Con la movilidad `descentralizada` (por defecto) el patrón de las
+alertas es otro: la primera llega a 26.0 ± 4.6 s con timeout 15, a
+51.5 ± 23.5 s con 30 y a 124.0 ± 28.1 s con 60, con 14.4, 7.3 y 3.1
+alertas. Con 15 y 30 s, en promedio *antes* de la primera caída (84.5
+s); con 60 s, antes de los 144.5 s que daría esa caída más el timeout.
+Es la separación de los Gateway que se mueven, no el fallo, lo que
+dispara el detector (por ejemplo, con la semilla 1, G4 deja de oír a G1
+a los 60 s y lo recupera a los 64 s, sin que nadie haya caído): el
+compromiso del timeout se ve igual, pero mezclado con ese ruido.
+
 Con un timeout largo también hay menos alertas, porque algunas caídas
 ya no llega a detectarlas nadie. Con 60 s, G3 muere (124.5 s) antes de
 que le venza el timeout para G4, y la caída de G2 (173.5 s) se
@@ -486,18 +525,24 @@ detectaría después de los 200 s que dura la corrida.
 
 ### Caso 11 — Seguir contra repartir: cobertura contra conectividad
 
-**Objetivo:** comparar los dos modelos de movilidad de los Gateway.
+**Objetivo:** comparar los tres modelos de movilidad de los Gateway.
 
-Con la movilidad de siempre (`seguir`), cada Gateway camina hacia el
+Con `seguir` (la de antes del paso 9), cada Gateway camina hacia el
 Nodo de usuario que tiene más cerca, sin coordinarse con los demás. En
 `denso`, N5 es el más cercano de los 8 Gateway, así que a los 40 s están
 los 8 encima de él y la mitad derecha del edificio queda sin cobertura.
 `repartir` asigna un Gateway por Nodo de usuario (detalle en
-[`movimiento_nodos.md`](movimiento_nodos.md)). Para verlo en vivo:
+[`movimiento_nodos.md`](movimiento_nodos.md)). Las dos deciden con
+información global, como un coordinador central, y son la línea base.
+`descentralizada` (la de por defecto) hace que cada Gateway decida sólo
+con lo que oye: atracción a los usuarios a su cargo, repulsión entre
+Gateway, expansión de los ociosos y una regla que le impide romper un
+enlace sin rodeo. Para verlo en vivo:
 
 ```bash
-python main.py --escenario denso                        # los 8 van a N5
-python main.py --escenario denso --movilidad repartir   # se reparten
+python main.py --escenario denso --movilidad seguir   # los 8 van a N5
+python main.py --escenario denso --movilidad repartir # se reparten
+python main.py --escenario denso                      # descentralizada
 ```
 
 Para medirlo con 10 semillas en los 5 escenarios (100 simulaciones,
@@ -507,17 +552,53 @@ unos 10 s):
 python main.py --batch lotes/movilidad.json
 ```
 
-En cada celda, `seguir` → `repartir`:
+En cada celda, `seguir` → `repartir` → `descentralizada`:
 
 | Escenario | N alcanzables al final | Componentes al final | Malla partida (s) | Entrega del radio |
 |---|---|---|---|---|
-| `base` | 1.20 ± 0.63 → **3** (de 3) | 1.10 ± 0.32 → 3.00 | 16.5 → 178.2 | 0.864 → 0.489 |
-| `colapso_progresivo` | 1.00 → 2.00 (de 3) | 1.00 → 1.00 | 4.9 → 102.2 | 0.799 → 0.467 |
-| `particion` | 2.00 → **3** (de 3) | 2.00 → 3.00 | 200 → 200 | 0.960 → 0.795 |
-| `rescatista_perdido` | 3.00 → 3.00 (de 3) | 2.00 → 2.00 | 159.2 → 158.7 | 0.742 → 0.480 |
-| `denso` | 3.20 ± 1.55 → **6** (de 6) | 1.00 → 1.70 ± 0.48 | 0.0 → 85.2 ± 52.7 | 0.756 → 0.352 |
+| `base` | 1.20 ± 0.63 → **3** → 2.80 ± 0.42 (de 3) | 1.10 ± 0.32 → 3.00 → 1.00 | 16.5 → 178.2 → 5.2 | 0.864 → 0.489 → 0.271 |
+| `colapso_progresivo` | 1.00 → 2.00 → 0.30 ± 0.95 (de 3) | 1.00 → 1.00 → 1.00 | 4.9 → 102.2 → 0.0 | 0.799 → 0.467 → 0.272 |
+| `particion` | 2.00 → **3** → 2.30 ± 0.48 (de 3) | 2.00 → 3.00 → 1.80 ± 0.42 | 200 → 200 → 195.1 | 0.960 → 0.795 → 0.465 |
+| `rescatista_perdido` | 3.00 → 3.00 → 2.80 ± 0.42 (de 3) | 2.00 → 2.00 → 1.10 ± 0.32 | 159.2 → 158.7 → 59.0 | 0.742 → 0.480 → 0.293 |
+| `denso` | 3.20 ± 1.55 → **6** → **6** (de 6) | 1.00 → 1.70 ± 0.48 → 1.00 | 0.0 → 85.2 ± 52.7 → 0.0 | 0.756 → 0.352 → 0.301 |
 
-**Qué muestra:** `repartir` cubre todos, o casi todos, los Nodos de
+Cobertura media y TQ medio (`seguir` → `repartir` → `descentralizada`):
+
+| Escenario | Cobertura media | TQ medio |
+|---|---|---|
+| `base` | 0.40 → 0.95 → 0.84 | 0.89 → 0.77 → 0.47 |
+| `colapso_progresivo` | 0.36 → 0.82 → 0.42 | 0.86 → 0.75 → 0.51 |
+| `particion` | 0.67 → 0.99 → 0.77 | 0.98 → 0.88 → 0.55 |
+| `rescatista_perdido` | 0.91 → 0.93 → 0.75 | 0.79 → 0.70 → 0.56 |
+| `denso` | 0.51 → 0.99 → 0.99 | 0.82 → 0.50 → 0.38 |
+
+**Qué muestra `descentralizada`:** sin coordinador, consigue la
+cobertura de `repartir` donde la geometría lo permite (`denso`: los 6
+Nodos de usuario, y la malla nunca se parte, contra 85 s partida de
+`repartir`; `base`: 2.8 de 3 con la malla unida salvo 5.2 s, contra 178 s
+partida de `repartir`). No lo logra en `colapso_progresivo` (0.3 Nodos
+alcanzables al final: sólo queda G1 y los demás se fueron cayendo) ni en
+`particion`, donde los dos grupos arrancan sin oírse. El costo es la
+calidad del medio: la entrega del radio (0.27–0.47) y el TQ (0.38–0.56)
+quedan por debajo de los dos modos centralizados, porque la malla se
+estira y los enlaces son largos. Y hay más alertas (30.3 en `denso`,
+contra 0 con `seguir`) por enlaces que parpadean.
+
+Con tráfico de datos de aplicación (`trafico: 6` en el lote, 10 semillas,
+200 s) `descentralizada` es la que más datos entrega de punta a punta:
+
+| Escenario | Entrega de datos (`seguir` → `repartir` → `descentralizada`) |
+|---|---|
+| `base` | 0.211 → 0.205 → **0.277** |
+| `colapso_progresivo` | 0.216 → 0.196 → **0.234** |
+| `denso` | 0.140 → 0.182 → **0.281** |
+
+Es porque cubre a más Nodos de usuario: entre los pares que sí tienen
+un camino por radio, `seguir` entrega más (0.40 contra 0.30 en `base`).
+Los umbrales de la movilidad `descentralizada` y su elección están en
+[`movimiento_nodos.md`](movimiento_nodos.md).
+
+**Qué muestran `seguir` y `repartir`:** `repartir` cubre todos, o casi todos, los Nodos de
 usuario. Para lograrlo, los Gateway se alejan entre sí más allá del
 alcance de radio y la malla de Gateways se parte: en `base` queda en 3
 grupos casi toda la corrida, y en `denso` termina en dos grupos en 7 de
@@ -555,8 +636,14 @@ tabla de rutas y su propia idea de quién está caído, y tarda en enterarse
 de una partición.
 
 ```bash
-python main.py --web --escenario rescatista_perdido --seed 1
+python main.py --web --escenario rescatista_perdido --seed 1 --movilidad seguir
 ```
+
+(Con `--movilidad seguir` porque el recorrido de abajo, con sus tiempos,
+es el de esa movilidad. Con la `descentralizada` por defecto, la
+partición ocurre antes —a los 35.5 s con la semilla 1— y se cierra a
+los 97.5 s cuando G4 se reúne con el resto; la idea, que cada nodo se
+entera tarde y por su cuenta, es la misma.)
 
 G4 se aleja hacia la esquina (38, 2). Con la semilla 1, la malla se
 parte a los **41 s** (aviso "RED PARTIDA" y un toast), pero la detección
@@ -734,6 +821,34 @@ medio, entre 0.32 y 0.36, en todos.)
 - **El TQ es bajo (≈ 0.33)** porque las rutas cruzan casi 3 saltos con
   entrega 0.60: el TQ se multiplica salto a salto.
 
+**Con los Gateway móviles (D8).** Los resultados principales son con
+nodos fijos (una red de expansión de cobertura es infraestructura
+desplegada), pero se repiten con la movilidad `descentralizada`
+([`lotes/capitulo5_fallos_movil.json`](../lotes/capitulo5_fallos_movil.json):
+los mismos cinco escenarios con `"parametros": {"move_speed": 0.32,
+"movilidad": "descentralizada"}`; los archivos fijan `static=true`, y el
+parámetro lo pisa):
+
+```bash
+python main.py --batch lotes/capitulo5_fallos_movil.json
+```
+
+| Experimento | Malla partida (s) | Reconvergencia de rutas BATMAN (s) | Alertas | N alcanzables al final | Cobertura media |
+|---|---|---|---|---|---|
+| `cobertura_edificio` (control) | 0.0 | no aplica | 6.60 ± 5.56 | 6 | 1.000 |
+| `fallo_redundante` | 0.0 | 15.5 ± 9.5 | 14.50 ± 2.92 | 6 | 1.000 |
+| `fallo_puente` | 6.2 ± 6.4 | 9.7 ± 7.0 | 14.30 ± 2.71 | 6 | 0.922 ± 0.043 |
+| `fallo_borde` | 17.0 ± 53.8 | 30.1 ± 25.5 | 18.30 ± 7.72 | 6 | 0.959 ± 0.024 |
+| `fallo_cascada` | 6.2 ± 6.4 | 4.3 ± 4.0 (5 de 10) | 17.20 ± 2.82 | 4 ± 1 | 0.826 ± 0.054 |
+
+La entrega del radio es 0.60 y el TQ medio 0.34–0.36, igual que con
+nodos fijos. Lo que cambia es la respuesta al fallo: los Gateway
+sobrevivientes se reubican, así que la malla partida por la caída del
+puente pasa de 90 s a 6.2 s, y la cascada deja 4 de 6 Nodos cubiertos
+(3 con nodos fijos) y una cobertura media de 0.826 (0.736). El costo son
+más alertas (14–18, contra 12–22 con fijos, pero 6.6 en el control
+contra 3.1) por los enlaces que parpadean al moverse.
+
 **Tablas y figuras para el documento.** Con la salida de este lote y la
 de `lotes/movilidad.json` (caso 11) en `reportes/`:
 
@@ -741,11 +856,15 @@ de `lotes/movilidad.json` (caso 11) en `reportes/`:
 python -m analysis.capitulo5
 ```
 
-Toma el último lote de cada uno, o los que se le pasen con `--fallos` y
-`--movilidad`, y escribe en `Plantilla/` lo que el Capítulo 5 incluye
-con `\input{}` y `\includegraphics{}`:
-- las tablas `MainMatter/Cap5/tablas/fallos.tex`, `calidad.tex` y
-  `movilidad.tex`;
+Toma el último lote de cada uno, o los que se le pasen con `--fallos`,
+`--movilidad` y `--fallos-movil` (este último, la variante con Gateway
+móviles de arriba, si existe), y escribe en `Plantilla/` lo que el
+Capítulo 5 incluye con `\input{}` y `\includegraphics{}`:
+- las tablas `MainMatter/Cap5/tablas/fallos.tex`, `calidad.tex`,
+  `fallos_movil.tex`, `calidad_movil.tex` y `movilidad.tex` (esta última
+  compara los tres modos de movilidad: etiquetas `tab:cap5-fallos`,
+  `tab:cap5-calidad`, `tab:cap5-fallos-movil`, `tab:cap5-calidad-movil` y
+  `tab:cap5-movilidad`);
 - las figuras `Images/Cap5/cobertura_tiempo.pdf` (cobertura en el
   tiempo, con las caídas sombreadas), `comparacion_fallos.pdf` y
   `movilidad.pdf`.
