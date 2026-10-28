@@ -1,0 +1,24 @@
+% Generado por python -m analysis.capitulo5 (no editar a mano).
+\begin{table}[htbp!]
+    \centering
+    \caption{Respuesta de la malla a cada fallo con Gateway móviles (descentralizada)}
+    \label{tab:cap5-fallos-movil}
+    \footnotesize
+    \begin{tabular}{|>{\raggedright\arraybackslash}p{2.9cm}|>{\raggedright\arraybackslash}p{1.7cm}|>{\raggedright\arraybackslash}p{2.2cm}|>{\raggedright\arraybackslash}p{1.9cm}|>{\raggedright\arraybackslash}p{2.2cm}|>{\raggedright\arraybackslash}p{1.7cm}|}
+        \hline
+        \textbf{Experimento} & \textbf{Malla partida (s)} & \textbf{Reconvergencia de rutas (s)} & \textbf{Alertas} & \textbf{Cobertura media} & \textbf{Nodos cubiertos al final} \\
+        \hline
+        Control (sin fallos) & 0.0 & no aplica & 6.6 $\pm$ 5.6 & 1.000 & 6 \\
+        \hline
+        Gateway redundante & 0.0 & 15.5 $\pm$ 9.5 & 14.5 $\pm$ 2.9 & 1.000 $\pm$ 0.001 & 6 \\
+        \hline
+        Gateway puente & 6.2 $\pm$ 6.4 & 9.7 $\pm$ 7.0 & 14.3 $\pm$ 2.7 & 0.922 $\pm$ 0.043 & 6 $\pm$ 0 \\
+        \hline
+        Gateway de borde & 17.0 $\pm$ 53.8 & 30.1 $\pm$ 25.5 & 18.3 $\pm$ 7.7 & 0.959 $\pm$ 0.024 & 6 \\
+        \hline
+        Cascada & 6.2 $\pm$ 6.4 & 4.3 $\pm$ 4.0 & 17.2 $\pm$ 2.8 & 0.826 $\pm$ 0.054 & 4 $\pm$ 1 \\
+        \hline
+    \end{tabular}
+
+    \vspace{0.4em}\parbox{13.8cm}{\scriptsize Media $\pm$ desviación estándar muestral de 10 corridas de 240 s simulados (semillas 1 a 10); sin $\pm$, la desviación es 0. ``No aplica'': ningún episodio de reconvergencia se cerró.}
+\end{table}
