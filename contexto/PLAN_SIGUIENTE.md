@@ -1,5 +1,8 @@
 # Dónde quedamos y cómo seguir
 
+> **El estado vigente está en [`OFICIAL.md`](OFICIAL.md), que manda sobre este
+> archivo.** Aquí quedan las decisiones y el detalle de cada paso.
+
 Fecha: 2026-10-27 (paso 12 hecho; decisiones D7-D11 y pasos 7-12 del 2026-10-26; las D1-D6 son del 2026-10-03)
 
 Este archivo es el punto de partida para retomar el trabajo, en cualquier
@@ -25,8 +28,8 @@ archivo, en el mismo commit.
 - **Pruebas:** 368 en verde (`venv/bin/python -m unittest discover -s
   tests`; en Windows, `venv\Scripts\python`). En macOS además corre `tests/test_web_frontend.py`, que en
   Linux se omite porque necesita el `jsc` de macOS.
-- **Documento de tesis** (`Plantilla/`): sólo el Capítulo 2. Se escribe
-  **al final**, cuando estén los resultados (paso 6).
+- **Documento de tesis** (`Plantilla/`): borrador completo (paso 6, hecho el
+  2026-11-04). Faltan los nombres de los autores (ver `OFICIAL.md`).
 
 ---
 
@@ -244,7 +247,7 @@ nombre de quien usa la sesión y **sin** `Co-Authored-By` (ver
   Etiquetas para citarlas: `tab:cap5-fallos`, `tab:cap5-calidad` y
   `tab:cap5-movilidad`. No se compiló el PDF en esta máquina (no tiene
   TeX Live). Las tablas usan solo `array`, que la plantilla ya carga.
-- [ ] **Paso 6 — Documento de tesis** (`Plantilla/`, lo último). Escribir
+- [x] **Paso 6 — Documento de tesis** (`Plantilla/`, lo último). Escribir
   los capítulos 0, 1, 3, 4, 5 y 9 con el encuadre del director
   (*"la necesidad de un simulador hecho a la medida para redes
   descentralizadas"*), pasar la sección de emergencias del Capítulo 2 a
@@ -253,6 +256,13 @@ nombre de quien usa la sesión y **sin** `Co-Authored-By` (ver
   (funcionalidad → vacío que atiende), la guía y los resultados del
   paso 5. Para compilar hace falta TeX Live (en la máquina de
   XGallardoX está en `~/texlive/2026`; ver `ESTADO_PROYECTO.md`).
+  *Hecho (2026-11-04), con los nombres de los autores pendientes.* Borrador
+  completo de 72 páginas que compila sin errores; detalle y pendientes en
+  `OFICIAL.md`. Se agregaron los lotes `movilidad_datos.json` y
+  `generalidad.json`, y `analysis/capitulo5.py` genera además diferencias
+  pareadas con intervalo del 95 %. Pruebas: 371. Dos afirmaciones de los pasos
+  9 a 12 se corrigieron en la tesis: la entrega en `colapso_progresivo` no es
+  concluyente frente a `seguir`, y la inundación pierde en el edificio.
 
 - [x] **Paso 7 — Rediseño del front (D9, D10).** Barra lateral de
   secciones, controles de reproducción al centro, íconos SVG propios,

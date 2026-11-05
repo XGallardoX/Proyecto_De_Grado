@@ -8,6 +8,9 @@
 
 Fecha: 2026-10-03
 
+> **Este archivo es historia, llega hasta el 3 de octubre. El estado vigente
+> está en [`OFICIAL.md`](OFICIAL.md).**
+
 > **Para retomar: [`PLAN_SIGUIENTE.md`](PLAN_SIGUIENTE.md)** (dónde
 > quedamos, decisiones ya tomadas y el plan en orden, con qué decirle a
 > Claude Code para seguir). La interfaz web y la Fase 3 completa (eventos

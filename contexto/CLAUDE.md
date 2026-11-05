@@ -20,8 +20,8 @@ hizo qué.
 
 ## Al empezar una sesión
 
-Lee `contexto/PLAN_SIGUIENTE.md` (dónde quedamos, decisiones tomadas y
-el plan en orden) y `contexto/ESTADO_PROYECTO.md`. Las decisiones de
-`PLAN_SIGUIENTE.md` ya están tomadas: ejecútalas, no pidas que se
-revisen con el otro autor. Cuando termines un paso del plan, márcalo como
-hecho en ese archivo.
+Lee primero `contexto/OFICIAL.md`: es el documento oficial del estado del
+proyecto y manda sobre los demás. `contexto/PLAN_SIGUIENTE.md` guarda las
+decisiones tomadas y el detalle de cada paso: esas decisiones ya están
+tomadas, no pidas que se revisen con el otro autor. Cuando cambie el estado
+del proyecto, actualiza `OFICIAL.md`.
