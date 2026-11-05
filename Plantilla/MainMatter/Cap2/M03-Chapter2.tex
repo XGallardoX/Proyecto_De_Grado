@@ -21,12 +21,10 @@ eventos discretos}: el estado de la red avanza saltando de un evento
 recorrer el tiempo de forma continua.
 
 \textbf{ns-2 y ns-3.} El simulador ns-2, desarrollado en el marco del proyecto
-VINT, fue durante casi dos décadas la referencia de facto en investigación de
-redes~\cite{Ns2VintProject}. Su sucesor, ns-3, reescribió el núcleo
-completamente en C++ e incorporó una pila TCP/IP completa junto con modelos de
-tecnologías inalámbricas como IEEE 802.11, LTE y WiMAX~\cite{Riley2010ns3}. La
-posibilidad de integrar ns-3 con bancos de pruebas y aplicaciones reales lo
-convirtió en el estándar aceptado por la comunidad para publicar resultados.
+VINT, fue una herramienta central de la investigación en redes~\cite{Breslau2000Advances}.
+Su sucesor, ns-3, es un simulador nuevo escrito en C++~\cite{Riley2010ns3}, cuya
+biblioteca de modelos incluye tecnologías inalámbricas como IEEE 802.11 y
+LTE~\cite{Ns3Modelos}.
 
 \textbf{OMNeT++ e INET.} OMNeT++ es un entorno modular de simulación por
 eventos discretos escrito en C++, concebido como una infraestructura genérica
@@ -68,22 +66,22 @@ disponibles se reparten entre simuladores y emuladores:
 \begin{itemize}
 \item \textbf{ns-3} incluye modelos de los protocolos de enrutamiento ad-hoc
 clásicos (AODV, OLSR, DSDV y DSR) sobre su modelo de canal
-inalámbrico~\cite{Riley2010ns3}.
+inalámbrico~\cite{Ns3Modelos}.
 
 \item \textbf{INET sobre OMNeT++} ofrece un conjunto equivalente de protocolos
-MANET junto con modelos de movilidad configurables~\cite{Varga2008Omnetpp}.
+MANET junto con modelos de movilidad configurables~\cite{Varga2008Omnetpp,InetFramework}.
 
 \item \textbf{Cooja}, el simulador del sistema operativo Contiki para redes de
 sensores, introduce la noción de \textit{simulación multinivel}: permite
 simular simultáneamente a nivel de red, de sistema operativo y de instrucción
 de máquina, ejecutando el firmware real del nodo sobre una emulación del
-hardware~\cite{Osterlind2006Cooja}. TOSSIM, del ecosistema TinyOS, sigue una
-estrategia comparable.
+hardware~\cite{Osterlind2006Cooja}. TOSSIM, del ecosistema TinyOS, simula
+aplicaciones completas de ese sistema operativo~\cite{Levis2003Tossim}.
 
 \item \textbf{EMANE} (\textit{Extendable Mobile Ad-hoc Network Emulator})
-aporta modelos de radio y de capa física detallados, pensados expresamente
-para emular redes MANET, y suele integrarse con otros
-emuladores~\cite{Nrl2023Emane}.
+es un marco de emulación que usa un modelo de capa física para considerar la
+propagación de la señal, las antenas y las fuentes de interferencia, con modelos
+de radio intercambiables~\cite{Emane}.
 
 \item \textbf{CORE} (\textit{Common Open Research Emulator}) es un emulador en
 tiempo real que instancia topologías híbridas compuestas por nodos virtuales y
@@ -107,17 +105,18 @@ topología lógica de la superposición (\textit{overlay}). Las herramientas
 representativas son:
 
 \begin{itemize}
-\item \textbf{PeerSim}, diseñado para escalar hasta del orden de un millón de
-nodos, a costa de un modelo deliberadamente abstracto que prescinde por
-completo de las capas inferiores~\cite{Montresor2009Peersim}.
+\item \textbf{PeerSim}, un entorno muy escalable para escenarios dinámicos, en el
+que los protocolos se implementan específicamente para su API en
+Java~\cite{Montresor2009Peersim}.
 
 \item \textbf{OverSim}, construido sobre OMNeT++, que combina modelos de
 superposiciones estructuradas y no estructuradas (Chord, Pastry, Kademlia) con
 la posibilidad de ejecutar aplicaciones de red reales sobre el mismo
 código~\cite{Baumgart2009Oversim}.
 
-\item \textbf{PlanetSim} y \textbf{PeerfactSim.KOM}, orientados a la evaluación
-comparativa sistemática de sistemas entre pares.
+\item \textbf{PlanetSim}~\cite{Garcia2005Planetsim} y
+\textbf{PeerfactSim.KOM}~\cite{Stingl2011Peerfactsim}, marcos de simulación
+de superposiciones y de sistemas entre pares.
 \end{itemize}
 
 \subsection{Redes descentralizadas con consenso distribuido}
@@ -128,8 +127,8 @@ registro distribuido. \textbf{SimBlock} es un simulador de red de cadena de
 bloques dirigido por eventos que permite modificar con facilidad el
 comportamiento de los nodos, de modo que puede estudiarse cómo influye ese
 comportamiento sobre la red en su conjunto~\cite{Aoki2019Simblock}.
-\textbf{BlockSim}, escrito en Python sobre la biblioteca SimPy, cubre un
-propósito similar para Ethereum y Bitcoin. Estas herramientas modelan la
+\textbf{BlockSim} es un marco para construir y simular modelos de eventos
+discretos de sistemas de cadena de bloques~\cite{Alharby2020Blocksim}. Estas herramientas modelan la
 propagación de bloques y el consenso, pero no la capa física ni la movilidad,
 por lo que quedan fuera del alcance de este trabajo.
 
@@ -194,27 +193,27 @@ según estos criterios.
 \section{El protocolo B.A.T.M.A.N. en la literatura}
 \label{sec:batman-literatura}
 
-B.A.T.M.A.N. (\textit{Better Approach To Mobile Ad-hoc Networking}) fue
-propuesto como alternativa a los protocolos de estado de enlace para redes
-malladas comunitarias, y se encuentra especificado como borrador de la
-IETF~\cite{Neumann2008Batman}. A diferencia de OLSR, ningún nodo construye una
-visión completa de la topología: cada nodo conoce únicamente cuál de sus
-vecinos es el mejor siguiente salto hacia cada destino, decisión que toma a
-partir de la calidad de transmisión (TQ) acumulada de los mensajes de
-originador (OGM) que recibe. Esta decisión de diseño reduce la sobrecarga de
-señalización y la sensibilidad a la información topológica desactualizada.
+B.A.T.M.A.N. (\textit{Better Approach To Mobile Ad-hoc Networking}) se
+especificó como borrador de la IETF, hoy vencido y sin categoría de
+estándar~\cite{Neumann2008Batman}. A diferencia de un protocolo de estado de enlace
+como OLSR~\cite{Clausen2003OLSR}, ningún nodo construye una visión completa de la
+topología: cada nodo conoce únicamente cuál de sus vecinos es el mejor siguiente
+salto hacia cada destino. El borrador de 2008 decide contando mensajes de originador
+(OGM) recibidos; batman-adv usa una métrica de calidad de transmisión (TQ), derivada
+de la fracción de OGM propios que un vecino recibe correctamente~\cite{Seither2011BatmanAdv}.
 
-Su implementación de referencia, \textit{batman-adv}, opera en la capa de
-enlace y está incorporada al núcleo de Linux, lo que la convierte en una de
-las implementaciones de protocolos de enrutamiento ad-hoc con despliegue
-real sostenido en redes comunitarias~\cite{OpenMesh2024Batmanadv}. En cuanto a su
-evaluación, existen estudios experimentales sobre bancos de pruebas físicos: Murray et
-al.\ la comparan con otros protocolos en una red ad-hoc multisalto
-real~\cite{Murray2010Experimental} y Seither et al.\ evalúan batman-adv en la
-práctica~\cite{Seither2011BatmanAdv}. Estos trabajos dan la referencia más fiel, pero su
-costo limita la cantidad de nodos, la repetición de las corridas y la posibilidad de
-provocar fallos a voluntad; en general, las implementaciones reales de redes ad-hoc son
-mucho menos frecuentes en la literatura que los estudios simulados~\cite{Kiess2007RealWorld}.
+Su implementación de referencia, \textit{batman-adv}, es un módulo que opera en la
+capa de enlace~\cite{OpenMesh2024Batmanadv}. En cuanto a su evaluación, existen estudios
+experimentales: Murray et al.\ comparan OLSR, Babel y B.A.T.M.A.N. en una red ad-hoc
+multisalto, con Babel como el de mejor desempeño~\cite{Murray2010Experimental}; Seither et
+al.\ estudian batman-adv en un entorno real de oficina, con AODV como
+referencia~\cite{Seither2011BatmanAdv}; y, más recientemente, Diniz et al.\ comparan OLSR,
+batman-adv y Babel para enjambres de drones con dispositivos Raspberry Pi~\cite{Diniz2025Uav}.
+Estos trabajos dan la referencia más fiel, pero su costo limita la cantidad de nodos, la
+repetición de las corridas y la posibilidad de provocar fallos a voluntad. La distancia
+entre simulación y realidad tampoco es menor: Kiess y Mauve recogen que incluso la
+inundación básica se comportó en prototipos de forma distinta a lo que predecían las
+simulaciones~\cite{Kiess2007RealWorld}.
 
 \section{La credibilidad de los estudios de simulación}
 \label{sec:credibilidad}
@@ -223,12 +222,12 @@ Elegir la herramienta no es una decisión neutra. Cavin et al.\ ejecutaron un mi
 algoritmo de inundación en tres simuladores y obtuvieron diferencias importantes en los
 resultados~\cite{Cavin2002Accuracy}. Pawlikowski et al.\ alertaron sobre la falta de rigor
 estadístico en estudios de redes de telecomunicaciones~\cite{Pawlikowski2002Credibility}, y
-Kurkowski et al., al revisar los artículos de una conferencia de referencia en redes móviles,
-concluyeron que buena parte de los estudios no se podían repetir, por no declarar
-suficientemente su configuración~\cite{Kurkowski2005Incredibles}. Por su parte, Kotz et al.\
-contrastaron con mediciones reales supuestos habituales de los modelos de radio (alcance
-circular, enlaces simétricos, fiabilidad como función simple de la distancia) y mostraron
-que no se sostienen~\cite{Kotz2004Assumptions}.
+Kurkowski et al., al revisar las memorias de 2000 a 2005 del simposio MobiHoc, encontraron deficiencias
+importantes y catalogaron errores comunes en los estudios de simulación de redes
+móviles~\cite{Kurkowski2005Incredibles}. Por su parte, Kotz et al.\ contrastaron supuestos habituales de
+los modelos de radio con mediciones de un experimento de enrutamiento en exteriores, mostraron su
+debilidad, entre otras cosas frente a las asimetrías de enlace, y cómo hacen que la simulación difiera
+de los resultados experimentales~\cite{Kotz2004Assumptions}.
 
 De esta línea se extraen dos exigencias que este trabajo adopta. La primera, que cada
 resultado sea reproducible a partir de una configuración declarada y que se reporte con
@@ -250,14 +249,18 @@ usuario) sobre un área, sin un coordinador central. Las preguntas de interés s
 usuarios quedan cubiertos, si la malla sigue conectada y cómo se degrada y se recupera
 ante un fallo. Tres líneas de trabajo son directamente relevantes:
 
-\textbf{Autodespliegue por reglas locales.} Howard et al.\ proponen desplegar una red de
-sensores móviles mediante campos potenciales, en los que cada nodo es repelido por los
-demás y por los obstáculos, sin mapa ni coordinación central~\cite{Howard2002PotentialFields}.
-Zou y Chakrabarty emplean fuerzas virtuales para mejorar la cobertura de un despliegue
-inicial~\cite{Zou2003VirtualForces}, y Poduri y Sukhatme maximizan la cobertura con la restricción
+\textbf{Autodespliegue con fuerzas virtuales.} Howard et al.\ proponen desplegar una red de
+sensores móviles en un entorno desconocido mediante campos potenciales, en los que cada nodo es
+repelido por los demás y por los obstáculos, con un método distribuido y
+escalable~\cite{Howard2002PotentialFields}. Poduri y Sukhatme maximizan la cobertura con la restricción
 de que cada nodo conserve un número mínimo de vecinos~\cite{Poduri2004ConstrainedCoverage}, lo que
-hace explícito el compromiso entre cubrir más área y mantener la red conectada. La movilidad
-descentralizada de este trabajo (Sección~\ref{sec:movilidad-descentralizada}) pertenece a esta familia.
+hace explícito el compromiso entre cubrir más área y mantener la red conectada. Zou y Chakrabarty
+combinan fuerzas de atracción y repulsión para mejorar la cobertura de un despliegue
+inicial, en redes organizadas en clústeres, de modo que no se trata de un método plenamente local~\cite{Zou2003VirtualForces}.
+La idea sigue vigente en redes de drones: Fang et al.\ la usan en el autodespliegue de grupos de drones para
+redes de emergencia~\cite{Fang2021Uav}, y Liu et al.\ construyen con ella una red conectada que cubre a usuarios
+en tierra~\cite{Liu2024Uav}. La movilidad descentralizada de este trabajo
+(Sección~\ref{sec:movilidad-descentralizada}) pertenece a esta familia.
 
 \textbf{Modelos de movilidad.} Los modelos sintéticos más empleados para estudiar redes ad-hoc,
 entre ellos el de \textit{random waypoint}, se revisan en~\cite{Camp2002MobilitySurvey}; para los
@@ -265,10 +268,10 @@ usuarios que se desplazan juntos existe el modelo de movilidad en grupo por punt
 (RPGM)~\cite{Hong1999GroupMobility}. Ambos se incorporaron al simulador para no atar sus
 resultados a una sola suposición sobre el movimiento de los usuarios.
 
-\textbf{Fallos al azar y ataques dirigidos.} Albert et al.\ mostraron que algunas redes complejas
+\textbf{Fallos al azar y ataques dirigidos.} Albert et al.\ mostraron que las redes libres de escala
 toleran muy bien la eliminación de nodos al azar y, sin embargo, son vulnerables a la eliminación de
-sus nodos más conectados~\cite{Albert2000ErrorAttack}. Esta distinción motiva comparar aquí las
-dos formas de fallo; para identificar los nodos cuya caída parte la red, se usan los puntos de
+sus nodos más conectados~\cite{Albert2000ErrorAttack}. Una malla física pequeña no es una red de ese
+tipo, pero la distinción motiva comparar aquí las dos formas de fallo; para identificar los nodos cuya caída parte la red, se usan los puntos de
 articulación del grafo, calculables en tiempo lineal con búsqueda en
 profundidad~\cite{Hopcroft1973Algorithm447}. Por último, la inundación, el protocolo más simple de
 difusión, es la comparación natural de un protocolo de rutas, pero se sabe que sus retransmisiones

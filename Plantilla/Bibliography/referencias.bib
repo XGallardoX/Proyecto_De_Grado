@@ -46,13 +46,6 @@
 % Estado del arte: simuladores de redes y redes descentralizadas (Capitulo 2)
 % ============================================================================
 
-@misc{Ns2VintProject,
-    author       = {{The VINT Project}},
-    title        = {The Network Simulator ns-2},
-    howpublished = {\url{https://www.isi.edu/nsnam/ns/}},
-    year         = {2011},
-    note         = {Consultado en septiembre de 2026}
-}
 
 @incollection{Riley2010ns3,
     author    = {Riley, George F. and Henderson, Thomas R.},
@@ -73,7 +66,8 @@
                  (SIMUTools '08)},
     publisher = {ICST},
     address   = {Marseille, Francia},
-    year      = {2008}
+    year      = {2008},
+    doi       = {10.4108/icst.simutools2008.3027}
 }
 
 @inproceedings{Zeng1998Glomosim,
@@ -84,7 +78,8 @@
                  Simulation (PADS '98)},
     address   = {Banff, Alberta, Canad\'a},
     year      = {1998},
-    doi       = {10.1145/278009.278027}
+    doi       = {10.1145/278009.278027},
+    pages     = {154--161}
 }
 
 @inproceedings{Osterlind2006Cooja,
@@ -95,7 +90,8 @@
                  Networks (LCN 2006)},
     pages     = {641--648},
     publisher = {IEEE},
-    year      = {2006}
+    year      = {2006},
+    doi       = {10.1109/LCN.2006.322172}
 }
 
 @inproceedings{Ahrenholz2008Core,
@@ -105,15 +101,16 @@
     booktitle = {Proceedings of the IEEE Military Communications Conference
                  (MILCOM 2008)},
     publisher = {IEEE},
-    year      = {2008}
+    year      = {2008},
+    doi       = {10.1109/MILCOM.2008.4753614}
 }
 
-@misc{Nrl2023Emane,
-    author       = {{U.S. Naval Research Laboratory}},
+@misc{Emane,
+    author       = {{Adjacent Link LLC}},
     title        = {{EMANE}: Extendable Mobile Ad-hoc Network Emulator},
     howpublished = {\url{https://github.com/adjacentlink/emane}},
     year         = {2026},
-    note         = {Consultado en septiembre de 2026}
+    note         = {Documentaci\'on del proyecto. Consultado en noviembre de 2026}
 }
 
 @inproceedings{Fontes2015MininetWifi,
@@ -123,7 +120,9 @@
     booktitle = {Proceedings of the 11th International Conference on Network
                  and Service Management (CNSM 2015)},
     publisher = {IEEE},
-    year      = {2015}
+    year      = {2015},
+    pages     = {384--389},
+    doi       = {10.1109/CNSM.2015.7367387}
 }
 
 @inproceedings{Montresor2009Peersim,
@@ -134,7 +133,8 @@
     pages     = {99--100},
     publisher = {IEEE},
     address   = {Seattle, WA, EE.UU.},
-    year      = {2009}
+    year      = {2009},
+    doi       = {10.1109/P2P.2009.5284506}
 }
 
 @inproceedings{Baumgart2009Oversim,
@@ -146,7 +146,8 @@
     pages     = {87--88},
     publisher = {IEEE},
     address   = {Seattle, WA, EE.UU.},
-    year      = {2009}
+    year      = {2009},
+    doi       = {10.1109/P2P.2009.5284505}
 }
 
 @inproceedings{Aoki2019Simblock,
@@ -157,7 +158,9 @@
                  Workshops (INFOCOM WKSHPS)},
     publisher = {IEEE},
     year      = {2019},
-    note      = {Preprint disponible en \url{https://arxiv.org/abs/1901.09777}}
+    note      = {Preprint disponible en \url{https://arxiv.org/abs/1901.09777}},
+    pages     = {325--329},
+    doi       = {10.1109/INFCOMW.2019.8845253}
 }
 
 @misc{Neumann2008Batman,
@@ -187,7 +190,8 @@
                Scenarios},
     journal = {International Journal of Distributed Sensor Networks},
     year    = {2015},
-    doi     = {10.1155/2015/647037}
+    doi     = {10.1155/2015/647037},
+    pages     = {1--16}
 }
 
 
@@ -359,4 +363,105 @@
     howpublished = {\url{https://github.com/jofsanchezci/Simulador_BATMAN}},
     year         = {2026},
     note         = {Rama \texttt{develop}. Consultado en agosto de 2026}
+}
+
+
+% ============================================================================
+% Agregadas en la auditoría de fuentes del 2026-11-04 (DOI verificados contra
+% Crossref; las páginas web se comprobaron en línea)
+% ============================================================================
+
+@article{Breslau2000Advances,
+    author  = {Breslau, Lee and Estrin, Deborah and Fall, Kevin and Floyd, Sally and Heidemann, John and Helmy, Ahmed and others},
+    title   = {Advances in Network Simulation},
+    journal = {Computer},
+    volume  = {33},
+    number  = {5},
+    pages   = {59--67},
+    year    = {2000},
+    doi     = {10.1109/2.841785}
+}
+
+@misc{Ns3Modelos,
+    author       = {{The ns-3 Project}},
+    title        = {ns-3 Model Library},
+    howpublished = {\url{https://www.nsnam.org/docs/models/html/routing-overview.html}},
+    year         = {2026},
+    note         = {Documentaci\'on oficial. Consultado en noviembre de 2026}
+}
+
+@misc{InetFramework,
+    author       = {{INET Framework Project}},
+    title        = {{INET} Framework},
+    howpublished = {\url{https://inet.omnetpp.org/}},
+    year         = {2026},
+    note         = {Documentaci\'on oficial. Consultado en noviembre de 2026}
+}
+
+@inproceedings{Levis2003Tossim,
+    author    = {Levis, Philip and Lee, Nelson and Welsh, Matt and Culler, David},
+    title     = {{TOSSIM}: Accurate and Scalable Simulation of Entire {TinyOS} Applications},
+    booktitle = {Proceedings of the 1st International Conference on Embedded Networked Sensor Systems},
+    pages     = {126--137},
+    year      = {2003},
+    doi       = {10.1145/958491.958506}
+}
+
+@incollection{Garcia2005Planetsim,
+    author    = {Garc\'ia, Pedro and Pairot, Carles and Mond\'ejar, Rub\'en and Pujol, Jordi and Tejedor, Helio and Rallo, Robert},
+    title     = {{PlanetSim}: A New Overlay Network Simulation Framework},
+    booktitle = {Software Engineering and Middleware},
+    series    = {Lecture Notes in Computer Science},
+    publisher = {Springer},
+    pages     = {123--136},
+    year      = {2005},
+    doi       = {10.1007/11407386_10}
+}
+
+@inproceedings{Stingl2011Peerfactsim,
+    author    = {Stingl, Dominik and Gross, Christian and R\"uckert, Julius and Nobach, Leonhard and Kovacevic, Aleksandra and Steinmetz, Ralf},
+    title     = {{PeerfactSim.KOM}: A Simulation Framework for Peer-to-Peer Systems},
+    booktitle = {2011 International Conference on High Performance Computing and Simulation},
+    pages     = {577--584},
+    year      = {2011},
+    doi       = {10.1109/HPCSim.2011.5999877}
+}
+
+@article{Alharby2020Blocksim,
+    author  = {Alharby, Maher and van Moorsel, Aad},
+    title   = {{BlockSim}: An Extensible Simulation Tool for Blockchain Systems},
+    journal = {Frontiers in Blockchain},
+    volume  = {3},
+    year    = {2020},
+    doi     = {10.3389/fbloc.2020.00028}
+}
+
+@inproceedings{Diniz2025Uav,
+    author    = {Diniz, Beatriz Aparecida and Ferr\~ao, Isadora Garcia and da Silva, Leandro Marcos and Branco, Kalinka Regina Lucas Jaquie Castelo},
+    title     = {Comparative Performance Analysis of {OLSR}, {BATMAN-Adv}, and {Babel} in {UAV} Mesh Networks},
+    booktitle = {2025 International Conference on Unmanned Aircraft Systems},
+    pages     = {496--503},
+    year      = {2025},
+    doi       = {10.1109/ICUAS65942.2025.11007820}
+}
+
+@article{Fang2021Uav,
+    author  = {Fang, Ying and Cheng, Bin and Kang, KunPeng and Tan, Hai},
+    title   = {A Self-Adaptive Deployment Model of {UAV} Cluster for Emergency Communication Network},
+    journal = {International Journal of Distributed Sensor Networks},
+    volume  = {17},
+    number  = {10},
+    year    = {2021},
+    doi     = {10.1177/15501477211049327}
+}
+
+@article{Liu2024Uav,
+    author  = {Liu, Yaqun and Xie, Jun and Xing, Changyou and Xie, Shengxu and Luo, Xijian},
+    title   = {Self-Organization of {UAV} Networks for Maximizing Minimum Throughput of Ground Users},
+    journal = {IEEE Transactions on Vehicular Technology},
+    volume  = {73},
+    number  = {8},
+    pages   = {11743--11755},
+    year    = {2024},
+    doi     = {10.1109/TVT.2024.3369020}
 }

@@ -10,23 +10,23 @@ manda este. Los demás quedan como historia y detalle (ver el final).
 
 | Campo | Valor | Estado |
 |---|---|---|
-| Título | *Un simulador a la medida para redes descentralizadas: cobertura y resiliencia de una malla B.A.T.M.A.N.* | Propuesto; falta confirmarlo |
-| Tutor y profesor | Joaquin Fernando Sánchez Cifuentes | Confirmado por XGallardoX (2026-11-04), escrito tal como lo dio |
-| Autores | XGallardoX y Jefferson | **Faltan los nombres completos** |
-| Programa | Maestría en Inteligencia Artificial, Universidad Sergio Arboleda (clase `MIA-USA.cls`) | Lo dice la plantilla |
+| Título | *Un simulador a la medida para redes descentralizadas: cobertura y resiliencia de una malla B.A.T.M.A.N.* | Confirmado |
+| Tutor y profesor | Joaquín Fernando Sánchez Cifuentes | Confirmado |
+| Autores | Juan Camilo Gallardo Sánchez (XGallardoX) y Jefferson Gutiérrez Tovar | Confirmado |
+| Programa | Pregrado en Ingeniería de Ciencias de la Computación e Inteligencia Artificial, Universidad Sergio Arboleda | Confirmado. La clase `MIA-USA.cls` viene de la maestría; se ajustó la portada |
 | Encuadre | Problema: la necesidad de un simulador hecho a la medida para redes descentralizadas. Caso de aplicación: Red de Expansión de Cobertura | Decidido |
 
 ## Estado actual
 
 **El simulador y el borrador completo del documento están hechos.** El PDF
-compila sin errores ni referencias rotas: 72 páginas. Copia para leer sin
+compila sin errores ni referencias rotas: 74 páginas. Copia para leer sin
 instalar LaTeX: `Plantilla/documento_actual.pdf`.
 
 | Parte del documento | Archivo en `Plantilla/` | Estado |
 |---|---|---|
-| Portada | `main.tex` | Falta `\author` y `pdfauthor` |
+| Portada | `main.tex` | Completa |
 | Agradecimientos | `FrontMatter/F03-Acknowledgements.tex` | Borrador breve; los autores lo revisan |
-| Dedicatoria | `FrontMatter/F02-Dedication.tex` | Desactivada (es opcional) |
+| Dedicatoria | `FrontMatter/F02-Dedication.tex` | Activa con texto provisional; **la escriben los autores** |
 | Resumen y abstract | `FrontMatter/F04-Abstract.tex` | Escrito |
 | Símbolos y glosario | `FrontMatter/F05`, `F06` | Escritos |
 | Cap. 1 Introducción | `MainMatter/Cap0/` | Escrito |
@@ -46,17 +46,15 @@ impreso. Lo que el código y los documentos viejos llaman "Capítulo 5" es el
 
 **De los autores (no se puede resolver desde el repo):**
 
-1. Nombres completos de los dos autores: `\author` y `pdfauthor` en
-   `Plantilla/main.tex`.
-2. Confirmar o cambiar el título (`\title` y `pdftitle`).
-3. Revisar los agradecimientos y decidir si va una dedicatoria.
-4. Leer el borrador completo. Lo escribió Claude a partir del repo: los
+1. Escribir la dedicatoria: hoy dice `[Dedicatoria por escribir]`.
+2. Revisar los agradecimientos.
+3. Leer el borrador completo. Lo escribió Claude a partir del repo: los
    objetivos, la metodología y las conclusiones son una propuesta que el tutor
    debe validar.
-5. Confirmar con el tutor que un simulador de redes encaja como trabajo de
-   grado de la Maestría en IA. El texto hace la conexión por los agentes con
-   información local y el aprendizaje por refuerzo como trabajo futuro, pero
-   no hay IA aplicada en los resultados.
+4. Confirmar en qué plantilla y con qué norma se entrega en pregrado: esta nació
+   para la maestría, y las referencias salen en estilo `apalike` (con "and" e
+   "in" en inglés).
+5. Leer de primera mano las fuentes que más pesan (ver "Fuentes").
 
 **Límites del trabajo, ya declarados en la tesis:**
 
@@ -117,6 +115,37 @@ Resultados principales:
 **Reproducibilidad:** las cinco tablas de los lotes del 27 de octubre salieron
 idénticas byte a byte al correrlas de nuevo en esta máquina el 4 de noviembre.
 Después solo cambió su formato (anchos de columna).
+
+## Fuentes
+
+Auditoría del 2026-11-04 sobre la bibliografía impresa (40 referencias, ninguna
+cita rota).
+
+| Tipo | Cantidad | Qué se comprobó |
+|---|---|---|
+| Artículos, capítulos y RFC con DOI | 34 | Existe en Crossref; título, año y autores coinciden. El RFC 3626 no trae autores en Crossref: se comprobó en el RFC |
+| Norma y borrador de la IETF | 2 | El borrador existe en el IETF, con esos autores. NTC 1486 ya no aparece impresa si la dedicatoria no la cita |
+| Documentación de proyectos | 4 | ns-3, INET, EMANE, batman-adv: páginas en línea. Son primarias, no revisadas por pares |
+| Repositorio base | 1 | `jofsanchezci/Simulador_BATMAN`, en línea |
+
+**Nivel de lectura:** se comparó lo que afirma el texto con los **resúmenes**, no
+con los artículos completos (salvo una parte de Seither et al.). Sin resumen
+disponible en las bases: Riley et al. (ns-3); de Kiess, Howard y Albert se leyó el
+resumen en otras páginas. Los detalles de GloMoSim, OverSim y Mininet-WiFi salen de
+lo que se sabe de esas herramientas: conviene revisarlos en el artículo.
+
+**Corregido en la auditoría:** cita de 2010 que no podía sustentar los modelos
+actuales de ns-3; Zou y Chakrabarty presentados como método local; el borrador de
+2008 usado para respaldar el TQ; EMANE atribuido a quien no lo mantiene; Kurkowski
+con una afirmación de repetibilidad que no se pudo comprobar; Albert et al. aplicado
+a una malla que no es libre de escala; herramientas nombradas sin cita; el sitio de
+ns-2, caído; y afirmaciones sin respaldo sobre ns-3 y batman-adv.
+
+**Reciente:** solo 3 de las referencias académicas son de 2021 en adelante. Hay que
+ampliar la búsqueda en Scopus o IEEE Xplore si el tutor pide literatura más actual.
+
+**Sin cita, como conocimiento general:** los nombres comerciales QualNet, Riverbed
+Modeler y NetSim.
 
 ## Cómo trabajar
 

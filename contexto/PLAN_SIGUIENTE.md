@@ -29,7 +29,7 @@ archivo, en el mismo commit.
   tests`; en Windows, `venv\Scripts\python`). En macOS además corre `tests/test_web_frontend.py`, que en
   Linux se omite porque necesita el `jsc` de macOS.
 - **Documento de tesis** (`Plantilla/`): borrador completo (paso 6, hecho el
-  2026-11-04). Faltan los nombres de los autores (ver `OFICIAL.md`).
+  2026-11-04). Pendientes en `OFICIAL.md`.
 
 ---
 
@@ -256,8 +256,8 @@ nombre de quien usa la sesión y **sin** `Co-Authored-By` (ver
   (funcionalidad → vacío que atiende), la guía y los resultados del
   paso 5. Para compilar hace falta TeX Live (en la máquina de
   XGallardoX está en `~/texlive/2026`; ver `ESTADO_PROYECTO.md`).
-  *Hecho (2026-11-04), con los nombres de los autores pendientes.* Borrador
-  completo de 72 páginas que compila sin errores; detalle y pendientes en
+  *Hecho (2026-11-04).* Borrador
+  completo de 74 páginas que compila sin errores; detalle y pendientes en
   `OFICIAL.md`. Se agregaron los lotes `movilidad_datos.json` y
   `generalidad.json`, y `analysis/capitulo5.py` genera además diferencias
   pareadas con intervalo del 95 %. Pruebas: 371. Dos afirmaciones de los pasos

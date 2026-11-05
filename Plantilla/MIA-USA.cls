@@ -260,7 +260,7 @@
         
         {\scshape\large Universidad Sergio Arboleda \par}
         {\scshape\large Escuela de Ciencias Exactas e Ingenier\'ia \par}
-        {\scshape\large Maestr\'ia Inteligencia Artificial \par}
+        {\scshape\large Ingenier\'ia de Ciencias de la Computaci\'on e Inteligencia Artificial \par}
         {\scshape\large Bogot\'a D.C. \par}
         {\scshape\large \the\year \par}
         
@@ -276,7 +276,7 @@
         \vspace{2.5cm}
   		{\scshape\Large \@documenttype \unskip\strut\par}
  		\vspace{1.5cm}
- 		Asesor \par
+ 		Tutor \par
   		\@advisor \unskip\strut\par
   		
   		\if\coadvisor{}
@@ -290,7 +290,7 @@
         \vfill
         {\scshape\large Universidad Sergio Arboleda \par}
         {\scshape\large Escuela de Ciencias Exactas e Ingenier\'ia \par}
-        {\scshape\large Maestr\'ia en Inteligencia Artificial \par}
+        {\scshape\large Ingenier\'ia de Ciencias de la Computaci\'on e Inteligencia Artificial \par}
         {\scshape\large Bogot\'a D.C. \par}
         {\scshape\large \the\year \par}
 	\end{titlepage}
