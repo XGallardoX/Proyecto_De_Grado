@@ -1,58 +1,58 @@
-% En ella, el autor presenta y señala la importancia, el origen (los antecedentes teóricos y prácticos), los objetivos, los alcances, las limitaciones, la metodología empleada, el significado que el estudio tiene en el avance del campo respectivo y su aplicación en el área investigada.
+% Introducción: importancia, origen, objetivos, alcance, limitaciones y
+% metodología. Sin anticipar resultados ni conclusiones (NTC 1486).
 
-De acuerdo con la NTC1486, la introducción es un espacio dónde el autor presenta y señala la importancia, el origen (los antecedentes teóricos y prácticos), los objetivos, los alcances, las limitaciones, la metodología empleada, el significado que el estudio tiene en el avance del campo respectivo y su aplicación en el área investigada. No debe confundirse con el resumen, ni contener un recuento detallado de la teoría, el método o los resultados, como tampoco anticipar las conclusiones y recomendaciones~\cite{NTC14862008}, y se recomienda que la introducci\'{o}n tenga una extensi\'{o}n de m\'{\i}nimo 2 p\'{a}ginas y m\'{a}ximo de 4 p\'{a}ginas.\\
+Una red descentralizada se define por lo que le falta: no hay un servidor, un
+controlador ni un punto desde el cual se conozca el estado completo del sistema.
+Cada nodo decide con la información que le llega, y esa información es parcial y
+llega tarde. Esta propiedad es lo que hace valiosas a estas redes, porque no
+dependen de una infraestructura que pueda fallar, y también lo que las hace
+difíciles de evaluar: el comportamiento que importa no está en ningún nodo, sino
+en la distancia entre lo que cada uno cree y lo que realmente ocurre.
 
-Para el desarrollo del documento utilizando la plantilla en \LaTeX se recomienda la guía \textit{the not so short guide to \LaTeX}~\cite{Oetiker2016} que brinda una introducci\'on breve pero muy completa. En donde se presentan entro otras cosas los comandos y ambeintes para el trabajo con gr\'aficas y tablas, como las que se muestran a continuaci\'on:
+La evaluación de protocolos de red se apoya mayoritariamente en la simulación,
+porque desplegar decenas de radios, repetir las condiciones del canal y provocar
+fallos a voluntad resulta costoso o directamente imposible. Sin embargo, la
+credibilidad de los estudios de simulación es una preocupación documentada
+desde hace dos décadas~\cite{Pawlikowski2002Credibility,Kurkowski2005Incredibles},
+y se ha mostrado que simuladores distintos pueden dar resultados muy diferentes
+para un mismo protocolo~\cite{Cavin2002Accuracy}. A esto se suma un problema de
+fondo: una herramienta de propósito general evalúa un modelo del protocolo escrito
+para ella y, además, facilita decidir con información global que ningún nodo real
+tendría. Un experimento así puede hablar de una red descentralizada sin
+respetar la condición que la define.
 
-\begin{figure}[htbp!]
-    \caption{Muestra de inclusio\'on de un elemento gr\'afico}
-    \centering
-    \includegraphics[width=0.8\textwidth]{Images/ImagenYoda.jpg}
-    \label{fig:yoda}
-\end{figure}
+El origen de este trabajo es un simulador de la red B.A.T.M.A.N. orientado a
+operaciones de búsqueda y rescate~\cite{JofsanchezciSimulador}. Al revisarlo con
+la orientación del tutor, el foco del proyecto se desplazó hacia una pregunta más
+general: \textit{la necesidad de un simulador hecho a la medida para redes
+descentralizadas}. La revisión encontró que la herramienta de partida también
+decidía con información global en tres puntos: los Gateway se movían mirando las
+posiciones de todos los nodos, los mensajes se entregaban por el camino más corto
+del grafo real sin consultar las tablas de enrutamiento, y no circulaba tráfico
+de datos. Corregirlos se volvió parte central del trabajo, y la aplicación concreta
+pasó a ser una Red de Expansión de Cobertura.
 
-As\'i la Figura~\ref{fig:yoda} muestra una imagen que se encuentra en el directorio images, mientras la tabla~\ref{tab:tablasEx}, muestra dos ejemplos de información tabular con combinaci\'on de columnas, y combinaci\'on de filas.
+El objetivo de este documento es presentar el diseño, la construcción y la
+evaluación de ese simulador. La herramienta ejecuta en cada nodo simulado las
+mismas clases de enrutamiento y de detección de fallos que usa el nodo de red, y
+sustituye únicamente la capa de transporte por un modelo del medio radio con
+distancia y pisos. Se evalúa con un despliegue de cobertura en un edificio de tres
+pisos, sometido a distintos tipos de fallo, con Gateway fijos y móviles, y se
+compara con líneas base de movilidad centralizada y con un protocolo de inundación.
 
-\begin{table}[htbp!]
-    \centering
-    \caption{Ejemplo de tabla con multi columnas (arriba) y multi filas(abajo)}
-    \begin{tabular}{ |p{3cm}||p{3cm}|p{3cm}|p{3cm}|  }
-        \hline
-        \multicolumn{4}{|c|}{Country List} \\
-        \hline
-        Country Name or Area Name& ISO ALPHA 2 Code &ISO ALPHA 3 Code&ISO numeric Code\\
-        \hline
-        Afghanistan   & AF    &AFG&   004\\
-        Aland Islands&   AX  & ALA   &248\\
-        Albania &AL & ALB&  008\\
-        Algeria    &DZ & DZA&  012\\
-        American Samoa&   AS  & ASM&016\\
-        Andorra& AD  & AND   &020\\
-        Angola& AO  & AGO&024\\
-        \hline
-    \end{tabular}\\
-    \vspace{0.5cm}
-    \begin{tabular}{ |c|c|c|c| } 
-        \hline
-        col1 & col2 & col3 \\
-        \hline
-        \multirow{3}{4em}{Multiple row} & cell2 & cell3 \\ 
-        & cell5 & cell6 \\ 
-        & cell8 & cell9 \\ 
-        \hline
-    \end{tabular}
+La metodología combina el desarrollo iterativo guiado por pruebas automatizadas
+con un diseño experimental de corridas por semillas, en el que cada cifra del
+documento procede de un lote versionado que puede volver a ejecutarse. El trabajo
+se limita a un simulador por pasos de tiempo. No incluye un despliegue en hardware,
+no modela colisiones ni la capa de acceso al medio en detalle, y no mide latencia.
+Estas limitaciones se tratan de manera explícita a lo largo del documento, porque
+condicionan qué se puede afirmar a partir de los resultados.
 
-    \label{tab:tablasEx}
-\end{table}
-
-Adem\'as se recomienda consultar los manuales que aparecen en al secci\'on de aprendizaje de overleaf, por ejemplo el de \href{https://www.overleaf.com/learn/latex/Tables}{tablas}.
-
-La presente plantilla tiene en cuenta aspectos importantes de la Norma T\'{e}cnica Colombiana - NTC 1486~\cite{NTC14862008}. Las m\'{a}rgenes, numeraci\'{o}n, tama\~{n}o de las fuentes y dem\'{a}s aspectos de formato, deben ser conservada de acuerdo con esta plantilla, la cual esta dise\~{n}ada para imprimir por lado y lado en hojas tama\~{n}o carta. Se sugiere que los encabezados cambien seg\'{u}n la secci\'{o}n/cap\'{i}tulo del documento.\\
-
-La redacci\'{o}n debe ser impersonal y gen\'{e}rica. La numeraci\'{o}n de las hojas sugiere que las p\'{a}ginas preliminares se realicen en n\'{u}meros romanos en may\'{u}scula y las dem\'{a}s en n\'{u}meros ar\'{a}bigos, en forma consecutiva a partir de la introducci\'{o}n que comenzar\'{a} con el n\'{u}mero 1. La cubierta y la portada no se numeran pero si se cuentan como p\'{a}ginas.\\
-
-Para trabajos muy extensos se recomienda publicar m\'{a}s de un volumen. Se debe tener en cuenta que algunas facultades tienen reglamentada la extensi\'{o}n m\'{a}xima de las tesis  o trabajo de investigaci\'{o}n; en caso que no sea as\'{\i}, se sugiere que el documento no supere 120 p\'{a}ginas.\\
-
-No se debe utilizar numeraci\'{o}n compuesta como 13A, 14B \'{o} 17 bis, entre otros, que indican superposici\'{o}n de texto en el documento. Para resaltar, puede usarse letra cursiva o negrilla. Los t\'{e}rminos de otras lenguas que aparezcan dentro del texto se escriben en cursiva.\\
-
-El contenido de este documento esta basado principalmente en la NTC1486~\cite{NTC14862008} y la plantilla de Tesis de maestr\'ia y doctorado de la Universidad Nacional de colombia~\cite{Unal2014DocTesis}.
+El documento se organiza así. El Capítulo~\ref{cap:planteamiento} plantea el
+problema, los objetivos y el alcance. El Capítulo~\ref{cap:estado-arte} revisa las
+herramientas existentes y delimita la brecha. El Capítulo~\ref{cap:metodologia}
+describe el método de desarrollo y el diseño experimental. El
+Capítulo~\ref{cap:desarrollo} presenta la arquitectura y los mecanismos del
+simulador. El Capítulo~\ref{cap:resultados} reporta y discute los resultados, y el
+Capítulo~\ref{cap:conclusiones} responde a los objetivos y propone líneas futuras.
+El Anexo~\ref{anx:reproduccion} indica cómo reproducir los resultados.

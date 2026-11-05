@@ -1,1 +1,227 @@
-Se deben incluir tantos cap\'{\i}tulos como se requieran; sin embargo, se recomienda que la tesis  o trabajo de investigaci\'{o}n tenga un m\'{\i}nimo 3 cap\'{\i}tulos y m\'{a}ximo de 6 cap\'{\i}tulos (incluyendo las conclusiones).\\
+% Resultados y discusión. Tablas y figuras generadas por
+% python -m analysis.capitulo5 a partir de los lotes (Anexo A).
+
+Este capítulo presenta primero la verificación del simulador y luego los resultados de los experimentos de la
+Tabla~\ref{tab:experimentos}, con el despliegue de cobertura como caso principal. Salvo indicación contraria, las cifras son
+media $\pm$ desviación estándar de 10 semillas, generadas directamente desde los lotes.
+
+\section{Verificación}
+\label{sec:res-verificacion}
+
+\textbf{Pruebas.} Las 371 pruebas de la Sección~\ref{sec:pruebas} pasan, con una omitida en Linux porque requiere el motor
+de JavaScript de macOS.
+
+\textbf{Reproducibilidad entre máquinas.} El 4 de noviembre de 2026 se volvieron a correr todos los lotes en una máquina distinta de
+aquella en la que se generaron las tablas versionadas el 27 de octubre. Las cinco tablas de esos lotes salieron idénticas
+byte a byte. Es una comprobación de la capacidad de repetir exactamente los resultados, requisito R6, y no solo de que sean
+estadísticamente parecidos.
+
+\textbf{Contraste analítico.} Algunos valores se pueden calcular a mano a partir del escenario, y coinciden con la simulación:
+
+\begin{itemize}
+\item Caída de borde: N6, uno de 6 usuarios, queda sin cobertura durante 90~s de 240~s, de donde
+$1 - \frac{1}{6}\cdot\frac{90}{240} = 0.9375$. La simulación da 0.938.
+\item Cascada: hay 6 usuarios cubiertos durante 100~s, 4 durante 40~s y 3 durante 100~s, lo que da
+$\frac{6\cdot100 + 4\cdot40 + 3\cdot100}{6\cdot240} = 0.736$. La simulación da 0.736, con 3 cubiertos al final.
+\item Puente: la malla debe estar partida exactamente mientras G6 está caído, 90~s, sin dispersión entre semillas. La simulación da 90.0.
+\end{itemize}
+
+Estos contrastes validan la contabilidad de las métricas físicas, no el comportamiento del protocolo, que
+se verifica con las pruebas específicas de la Sección~\ref{sec:pruebas}.
+
+\textbf{Efecto de corregir el TQ.} Antes de la corrección, el TQ de toda ruta valía 1.0, por lo que la métrica central del protocolo no
+informaba nada. Con nodos fijos y semilla 1, el TQ medio pasó a 0.740 en \texttt{base}, 0.514 en \texttt{denso} y 0.711 en
+\texttt{particion}. Es la clase de defecto que una herramienta sin esta instrumentación puede ocultar: la red parecía perfecta.
+
+\section{Respuesta a los fallos con Gateway fijos}
+\label{sec:res-fallos}
+
+La Tabla~\ref{tab:cap5-fallos} resume la respuesta a cada fallo y la Figura~\ref{fig:cobertura-tiempo} muestra la evolución de la cobertura.
+
+\input{MainMatter/Cap5/tablas/fallos}
+
+\begin{figure}[htbp!]
+    \centering
+    \includegraphics[width=\textwidth]{Images/Cap5/cobertura_tiempo.pdf}
+    \caption{Cobertura en el tiempo en cada experimento (media y rango de 10 semillas). Las franjas grises marcan las caídas}
+    \label{fig:cobertura-tiempo}
+\end{figure}
+
+\textbf{La cobertura no revela la partición.} Es el primer resultado relevante: la caída del puente mantiene la malla partida los 90~s que
+dura, y sin embargo la cobertura media es de 1.000, porque cada lado conserva algún Gateway. En cambio, la caída de borde no parte
+la malla y sí reduce la cobertura, a 0.938. Las dos métricas miden daños distintos, y un reporte basado en una sola de ellas
+daría una imagen falsa del fallo. La Figura~\ref{fig:interfaz} muestra precisamente ese estado.
+
+\textbf{Reconvergencia.} Tras la vuelta de un Gateway, las rutas tardan 7.7~$\pm$~3.7~s en reconverger si cayó uno redundante, y
+19.4~$\pm$~6.7~s si cayó el puente, porque en ese caso deben restablecerse rutas entre dos partes que estuvieron
+separadas (Figura~\ref{fig:comparacion-fallos}). En la cascada no aplica porque ningún nodo vuelve.
+
+\begin{figure}[htbp!]
+    \centering
+    \includegraphics[width=\textwidth]{Images/Cap5/comparacion_fallos.pdf}
+    \caption{Comparación de los experimentos de fallo. Las barras de error indican la desviación estándar}
+    \label{fig:comparacion-fallos}
+\end{figure}
+
+\textbf{Detección y falsas alarmas.} La detección distribuida funciona, pero con ruido. La primera alerta llega a los
+72.5~$\pm$~9.2~s con la caída del puente y a los 78.0~$\pm$~12.7~s con la del Gateway redundante, es decir, menos de 30~s
+después de los 60~s de la caída: el tiempo límite se cuenta desde el último OGM oído, y en enlaces con pérdidas ya venía acumulado
+algo de silencio. El experimento de control muestra el costo de esa sensibilidad: sin ningún fallo hay 3.1~$\pm$~2.6 alertas, y la
+primera, en 9 de las 10 semillas, a los 126.1~$\pm$~58.6~s. Con enlaces entre 0.41 y 0.65, un tiempo límite de 30~s produce falsas
+alarmas ocasionales. Esto es un compromiso de diseño que la herramienta permite explorar variando un solo parámetro.
+
+\textbf{Calidad de las rutas.} La Tabla~\ref{tab:cap5-calidad} indica que el TQ medio es similar entre experimentos, entre 0.32 y 0.36. Es un valor bajo
+porque el TQ se multiplica salto a salto sobre enlaces de fiabilidad media, con rutas de casi 3 saltos. Que suba
+ligeramente con los fallos más severos no indica una mejora: al perderse nodos desaparecen las rutas más largas, las de peor TQ, del promedio.
+
+\input{MainMatter/Cap5/tablas/calidad}
+
+\section{Los mismos fallos con Gateway móviles}
+\label{sec:res-fallos-movil}
+
+Las Tablas~\ref{tab:cap5-fallos-movil} y~\ref{tab:cap5-calidad-movil} repiten los experimentos con la movilidad descentralizada.
+
+\input{MainMatter/Cap5/tablas/fallos_movil}
+
+\input{MainMatter/Cap5/tablas/calidad_movil}
+
+\textbf{La red se repara sola, con matices.} Sin ninguna orden central, los Gateway sobrevivientes se reubican. La partición por
+la caída del puente baja de 90~s a 6.2~$\pm$~6.4~s, y la cascada deja 4~$\pm$~1 usuarios cubiertos y una cobertura de 0.826, frente a 3 y 0.736 con
+nodos fijos. Pero moverse también tiene costo. En la caída del puente la cobertura baja de 1.000 a 0.922~$\pm$~0.043, y en la
+del Gateway redundante la reconvergencia se duplica, de 7.7~s a 15.5~$\pm$~9.5~s, porque la topología sigue cambiando mientras se
+reparan las rutas. El control también presenta más alertas (6.6 frente a 3.1). No es, por lo tanto, una mejora uniforme, sino un
+intercambio entre conectividad, cobertura y estabilidad.
+
+Una observación sobre la dispersión: en la caída de borde, el tiempo con la malla partida es de 17.0~$\pm$~53.8~s. Esa
+media la produce una sola semilla entre diez; no conviene leerla como un comportamiento típico.
+
+\section{Movilidad descentralizada frente a la línea base centralizada}
+\label{sec:res-movilidad}
+
+La Tabla~\ref{tab:cap5-movilidad} y la Figura~\ref{fig:movilidad} comparan los tres modos sin tráfico de datos.
+
+\input{MainMatter/Cap5/tablas/movilidad}
+
+\begin{figure}[htbp!]
+    \centering
+    \includegraphics[width=\textwidth]{Images/Cap5/movilidad.pdf}
+    \caption{Comparación de los tres modos de movilidad en los cinco escenarios}
+    \label{fig:movilidad}
+\end{figure}
+
+Los resultados muestran los defectos de cada regla global. Con \textit{seguir}, los Gateway se apilan: la entrega del radio es alta porque los
+enlaces son cortos, pero la cobertura es baja (0.40 en \texttt{base}, 0.51 en \texttt{denso}). Con \textit{repartir} la cobertura es casi
+total, pero la malla pasa partida casi toda la corrida (178~s de 200~s en \texttt{base}). La movilidad descentralizada queda en un punto
+intermedio útil: en \texttt{base} y \texttt{denso} mantiene una malla casi siempre unida (5~s y 0~s) con cobertura de 0.84 y 0.99. No domina
+en todo: en \texttt{colapso\_progresivo} su cobertura (0.42) es muy inferior a la de \textit{repartir} (0.82). Y paga un precio claro: el TQ
+y la tasa de entrega del radio son los más bajos, porque la malla estirada usa enlaces más largos.
+
+La Tabla~\ref{tab:cap5-movilidad-datos} y la Figura~\ref{fig:paquetes-movilidad} añaden tráfico de datos, lo que muestra qué significan esas diferencias para
+los paquetes.
+
+\input{MainMatter/Cap5/tablas/movilidad_datos}
+
+\begin{figure}[htbp!]
+    \centering
+    \includegraphics[width=\textwidth]{Images/Cap5/paquetes_movilidad.pdf}
+    \caption{En qué terminó cada paquete enviado, según el escenario y la movilidad}
+    \label{fig:paquetes-movilidad}
+\end{figure}
+
+Según la Tabla~\ref{tab:cap5-diferencias}, la movilidad descentralizada entrega más datos que \textit{repartir} en los tres escenarios, y
+más que \textit{seguir} en \texttt{base} y \texttt{denso}. En \texttt{colapso\_progresivo}, la diferencia con \textit{seguir} no es concluyente: el
+intervalo incluye el cero. Las
+entregas absolutas son bajas en todos los casos, entre 0.14 y 0.28. El origen de la ganancia también es instructivo: en la
+Figura~\ref{fig:paquetes-movilidad} se ve que la movilidad descentralizada reduce sobre todo los paquetes sin ningún camino por radio, pero aumenta
+los perdidos sin ruta y por la radio. Entre pares que sí tienen camino, entrega menos que \textit{seguir} en \texttt{base}
+($-0.104$) y sin diferencia concluyente en los otros dos: gana porque conecta a más pares, no porque enrute mejor.
+
+\textbf{El plano de control se degrada.} Este es el costo más revelador, y solo se aprecia con las métricas de descentralización. En \texttt{base},
+la exactitud del conocimiento cae de 0.95 con \textit{seguir} a 0.55 con la movilidad descentralizada: en un 44~\% de los pares, la radio los conecta y el nodo no
+tiene una ruta vigente. La malla que la movilidad logra mantener unida físicamente es tan débil que los OGM no alcanzan a mantener las
+rutas. Una métrica de conectividad física diría que la red está mejor, cuando lo que se tiene es una red conectada que no se conoce a sí misma.
+Esto sugiere ajustar la movilidad para considerar la calidad de los enlaces y no solo el alcance.
+
+\section{Fallos al azar frente a fallos dirigidos}
+\label{sec:res-robustez}
+
+La Tabla~\ref{tab:cap5-robustez} compara dos caídas sorteadas con dos dirigidas al nodo más crítico en el momento de cada caída.
+
+\input{MainMatter/Cap5/tablas/robustez}
+
+Los fallos dirigidos parten la malla durante 180~s en todas las semillas, frente a 42~$\pm$~57~s al azar, y dejan la entrega de datos en 0.284 frente a 0.502,
+una diferencia pareada de 0.218 (IC~95~\%: 0.149 a 0.287). Es consistente con la distinción clásica entre
+errores y ataques~\cite{Albert2000ErrorAttack}, aquí con una malla pequeña y física. Lo importante es lo que \textit{no} cambia: la cobertura media (0.925 y 0.917)
+no los distingue, con un intervalo que incluye el cero, porque cada parte conserva algún Gateway. Tampoco cambia la entrega entre
+pares con camino (0.686 y 0.696): el enrutamiento sigue funcionando dentro de cada parte y el daño es la falta de camino, que explica el 59.9~\% de los paquetes
+en los fallos dirigidos. Sin plano de datos, este daño no se habría visto con la métrica de cobertura.
+
+\section{B.A.T.M.A.N. frente a inundación}
+\label{sec:res-generalidad}
+
+La Tabla~\ref{tab:cap5-generalidad} y la Figura~\ref{fig:paquetes-comparacion} comparan los dos protocolos de datos en dos mapas.
+
+\input{MainMatter/Cap5/tablas/generalidad}
+
+\begin{figure}[htbp!]
+    \centering
+    \includegraphics[width=\textwidth]{Images/Cap5/paquetes_comparacion.pdf}
+    \caption{En qué terminó cada paquete enviado, en los experimentos de robustez y de comparación de protocolos}
+    \label{fig:paquetes-comparacion}
+\end{figure}
+
+La respuesta depende del entorno, y esta es una razón para no atar un simulador a un solo mapa. En campo abierto, la inundación entrega más entre pares con camino que
+B.A.T.M.A.N. (0.937 frente a 0.803 con usuarios en grupos; 0.743 frente a 0.544 con \textit{random waypoint}), con cerca del doble de transmisiones por
+paquete. Cuando los usuarios se mueven al azar, la causa principal de pérdida de B.A.T.M.A.N. es la ruta vieja (27.6~\% de los paquetes): las tablas no siguen el paso
+del movimiento. En el edificio ocurre lo contrario: B.A.T.M.A.N. entrega 0.786 frente a 0.430 de la inundación, con un número de transmisiones
+similar (7.19 y 6.96). Allí, las rutas son largas (casi 4 saltos) sobre enlaces de fiabilidad media, y B.A.T.M.A.N. reintenta cada salto hasta tres veces mientras que la
+difusión no tiene reintentos, por lo que sus copias se extinguen.
+
+Hay dos precauciones. Primero, las transmisiones por paquete solo cuentan datos, no los OGM que B.A.T.M.A.N. necesita y la inundación no. Segundo, el medio no modela
+colisiones, de modo que no captura el principal costo conocido de la inundación, la saturación del medio~\cite{Ni1999BroadcastStorm}. Ambos sesgos actúan en sentidos
+contrarios, y la comparación es válida para la entrega dentro de este modelo, no como un veredicto sobre los protocolos.
+
+La Tabla~\ref{tab:cap5-diferencias} reúne las diferencias pareadas de los experimentos de este capítulo.
+
+\input{MainMatter/Cap5/tablas/diferencias}
+
+\section{Hallazgos sobre el protocolo}
+\label{sec:res-protocolo}
+
+Tener el plano de datos sobre las tablas hizo visibles dos comportamientos que antes no se podían observar:
+
+\begin{itemize}
+\item \textbf{Bucles reales.} Entre el 1.3~\% y el 2.3~\% de los paquetes se pierde en bucles de enrutamiento en los experimentos con B.A.T.M.A.N. del lote de
+generalidad y de robustez. Su causa probable es que esta implementación reenvía la primera copia de cada OGM, en lugar de solo la del
+mejor vecino, como lo hace el protocolo.
+\item \textbf{Reparación lenta.} Tras caer un Gateway, la ruta por él permanece en las tablas cerca de 50~s (observado en corridas de examen de
+\texttt{fallo\_redundante}), porque solo se reemplaza cuando su TQ descontado cae por debajo del de otra opción. En el experimento de fallos al azar, el 7.4~\% de
+los paquetes se pierde por este motivo. El protocolo real purga el originador por tiempo.
+\end{itemize}
+
+Ninguno de los dos se corrigió, deliberadamente: hacerlo cambiaría el plano de control, y se prefirió reportarlos. Ambos son el tipo de hallazgo que justifica ejecutar el
+código en lugar de un modelo idealizado: un modelo escrito con la especificación en mente no los habría producido. Y, a la inversa, marcan el límite de los resultados:
+parte de las pérdidas de este capítulo pertenecen a esta implementación y no a B.A.T.M.A.N.\ en general.
+
+\section{Discusión}
+\label{sec:discusion}
+
+Volviendo a las preguntas del planteamiento:
+
+\textbf{Requisitos de la herramienta.} La Tabla~\ref{tab:requisitos} recoge los requisitos; la experiencia indica cuáles fueron decisivos. Separar causas físicas y de enrutamiento,
+y medir la creencia de los nodos frente a la realidad (R5), explica buena parte de los hallazgos de este capítulo. La regla de decidir solo con información local (R4) no es un
+purismo: al implantarla aparecieron la degradación del plano de control y los bucles, ocultos mientras los mensajes se entregaban por el grafo real. En cambio, R7 se cumple solo en
+parte, como muestra la Tabla~\ref{tab:escala}.
+
+\textbf{Qué revela la herramienta.} El resultado recurrente es que \textit{una sola métrica de conectividad oculta el daño}: la cobertura no distingue una partición, no separa un ataque
+de un fallo al azar, y la conectividad física no refleja que los nodos desconocen sus rutas. Para evaluar una red descentralizada hay que medir simultáneamente la física, la entrega
+y la creencia.
+
+\textbf{Decidir localmente.} La movilidad descentralizada consigue resultados que compiten con las reglas globales sin usar información global, y permite que la malla se repare sola. Sus
+costos son concretos: enlaces más débiles, un plano de control degradado y más alertas. Esto es coherente con el compromiso entre cobertura y conectividad que formula la
+literatura de autodespliegue~\cite{Poduri2004ConstrainedCoverage}.
+
+\textbf{Sobre el alcance de estas conclusiones.} Sin validación contra hardware ni contra batman-adv, las magnitudes absolutas no se pueden extrapolar. El medio es optimista en
+varios aspectos~\cite{Kotz2004Assumptions} y los umbrales de movilidad se ajustaron sobre parte de los mismos escenarios. Los resultados más sólidos son los
+de tipo cualitativo y los basados en contrastes con una causa física clara, como el de la cobertura frente a la partición; los más frágiles son las comparaciones de magnitud reducida,
+sobre todo las diferencias con intervalos cercanos al cero.

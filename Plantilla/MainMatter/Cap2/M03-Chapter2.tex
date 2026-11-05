@@ -206,39 +206,85 @@ señalización y la sensibilidad a la información topológica desactualizada.
 
 Su implementación de referencia, \textit{batman-adv}, opera en la capa de
 enlace y está incorporada al núcleo de Linux, lo que la convierte en una de
-las pocas implementaciones de protocolos de enrutamiento ad-hoc con despliegue
-real sostenido en redes comunitarias~\cite{OpenMesh2024Batmanadv}. En cuanto
-a su evaluación, la literatura reporta estudios de desempeño frente a enlaces
-asimétricos y trabajos de modelado y verificación formal del protocolo. Es
-significativo que estas evaluaciones se apoyen mayoritariamente en modelos del
-protocolo construidos dentro de un simulador, y no en la implementación
-efectivamente desplegada.
+las implementaciones de protocolos de enrutamiento ad-hoc con despliegue
+real sostenido en redes comunitarias~\cite{OpenMesh2024Batmanadv}. En cuanto a su
+evaluación, existen estudios experimentales sobre bancos de pruebas físicos: Murray et
+al.\ la comparan con otros protocolos en una red ad-hoc multisalto
+real~\cite{Murray2010Experimental} y Seither et al.\ evalúan batman-adv en la
+práctica~\cite{Seither2011BatmanAdv}. Estos trabajos dan la referencia más fiel, pero su
+costo limita la cantidad de nodos, la repetición de las corridas y la posibilidad de
+provocar fallos a voluntad; en general, las implementaciones reales de redes ad-hoc son
+mucho menos frecuentes en la literatura que los estudios simulados~\cite{Kiess2007RealWorld}.
 
-\section{Redes ad-hoc en escenarios de emergencia}
+\section{La credibilidad de los estudios de simulación}
+\label{sec:credibilidad}
+
+Elegir la herramienta no es una decisión neutra. Cavin et al.\ ejecutaron un mismo
+algoritmo de inundación en tres simuladores y obtuvieron diferencias importantes en los
+resultados~\cite{Cavin2002Accuracy}. Pawlikowski et al.\ alertaron sobre la falta de rigor
+estadístico en estudios de redes de telecomunicaciones~\cite{Pawlikowski2002Credibility}, y
+Kurkowski et al., al revisar los artículos de una conferencia de referencia en redes móviles,
+concluyeron que buena parte de los estudios no se podían repetir, por no declarar
+suficientemente su configuración~\cite{Kurkowski2005Incredibles}. Por su parte, Kotz et al.\
+contrastaron con mediciones reales supuestos habituales de los modelos de radio (alcance
+circular, enlaces simétricos, fiabilidad como función simple de la distancia) y mostraron
+que no se sostienen~\cite{Kotz2004Assumptions}.
+
+De esta línea se extraen dos exigencias que este trabajo adopta. La primera, que cada
+resultado sea reproducible a partir de una configuración declarada y que se reporte con
+su variabilidad. La segunda, que quede explícito qué parte del sistema es un modelo, y
+qué supuestos del modelo limitan las conclusiones.
+
+\section{Redes de expansión de cobertura}
 \label{sec:redes-desastre}
 
-El escenario de aplicación que motiva este trabajo cuenta con una línea de
-investigación propia. Las redes ad-hoc multisalto han sido estudiadas de forma
-sistemática como respuesta al problema de las comunicaciones en zonas de
-desastre, donde la infraestructura fija resulta destruida o
-saturada~\cite{Reina2015Disaster}. Las propiedades que las hacen adecuadas en
-ese contexto son el despliegue rápido, la configuración mínima, la
-conectividad multisalto y la capacidad de auto-reparación ante la pérdida de
-nodos. Los trabajos revisados en esa línea coinciden en señalar la evaluación
-de protocolos de enrutamiento y de esquemas de difusión como uno de los
-frentes abiertos.
+Las redes ad-hoc multisalto se han estudiado de forma sistemática como respuesta a la
+falta de comunicaciones cuando la infraestructura fija no existe, está destruida o se
+encuentra saturada, por ejemplo en zonas de desastre~\cite{Reina2015Disaster}. Las
+propiedades que las hacen adecuadas son el despliegue rápido, la configuración mínima, la
+conectividad multisalto y la capacidad de auto-reparación ante la pérdida de nodos.
+
+Este trabajo toma de allí su caso de aplicación, llamado aquí \textit{Red de Expansión de
+Cobertura}: una malla de radios (Gateway) que lleva conectividad a nodos finales (Nodos de
+usuario) sobre un área, sin un coordinador central. Las preguntas de interés son si los
+usuarios quedan cubiertos, si la malla sigue conectada y cómo se degrada y se recupera
+ante un fallo. Tres líneas de trabajo son directamente relevantes:
+
+\textbf{Autodespliegue por reglas locales.} Howard et al.\ proponen desplegar una red de
+sensores móviles mediante campos potenciales, en los que cada nodo es repelido por los
+demás y por los obstáculos, sin mapa ni coordinación central~\cite{Howard2002PotentialFields}.
+Zou y Chakrabarty emplean fuerzas virtuales para mejorar la cobertura de un despliegue
+inicial~\cite{Zou2003VirtualForces}, y Poduri y Sukhatme maximizan la cobertura con la restricción
+de que cada nodo conserve un número mínimo de vecinos~\cite{Poduri2004ConstrainedCoverage}, lo que
+hace explícito el compromiso entre cubrir más área y mantener la red conectada. La movilidad
+descentralizada de este trabajo (Sección~\ref{sec:movilidad-descentralizada}) pertenece a esta familia.
+
+\textbf{Modelos de movilidad.} Los modelos sintéticos más empleados para estudiar redes ad-hoc,
+entre ellos el de \textit{random waypoint}, se revisan en~\cite{Camp2002MobilitySurvey}; para los
+usuarios que se desplazan juntos existe el modelo de movilidad en grupo por punto de referencia
+(RPGM)~\cite{Hong1999GroupMobility}. Ambos se incorporaron al simulador para no atar sus
+resultados a una sola suposición sobre el movimiento de los usuarios.
+
+\textbf{Fallos al azar y ataques dirigidos.} Albert et al.\ mostraron que algunas redes complejas
+toleran muy bien la eliminación de nodos al azar y, sin embargo, son vulnerables a la eliminación de
+sus nodos más conectados~\cite{Albert2000ErrorAttack}. Esta distinción motiva comparar aquí las
+dos formas de fallo; para identificar los nodos cuya caída parte la red, se usan los puntos de
+articulación del grafo, calculables en tiempo lineal con búsqueda en
+profundidad~\cite{Hopcroft1973Algorithm447}. Por último, la inundación, el protocolo más simple de
+difusión, es la comparación natural de un protocolo de rutas, pero se sabe que sus retransmisiones
+redundantes pueden saturar el medio~\cite{Ni1999BroadcastStorm}.
 
 \section{Brecha identificada}
 \label{sec:brecha}
 
-De la revisión anterior se desprenden tres observaciones que, en conjunto,
+De la revisión anterior se desprenden cuatro observaciones que, en conjunto,
 delimitan el aporte de este trabajo:
 
 \begin{enumerate}
 \item Los simuladores de propósito general y los orientados a MANET
 (Sección~\ref{sec:simuladores-generales}) evalúan un modelo del protocolo, no
 su implementación. Las conclusiones obtenidas sobre B.A.T.M.A.N. en esas
-herramientas son, por tanto, conclusiones sobre el modelo.
+herramientas son, por tanto, conclusiones sobre el modelo, en general.
 
 \item Los emuladores (Sección~\ref{subsec:manet}) sí ejecutan código real, pero
 al precio de un costo por nodo considerable en el anfitrión y sin un modelo de
@@ -249,12 +295,19 @@ de interés.
 \item Las herramientas de redes descentralizadas de las
 Secciones~\ref{subsec:p2p} y~\ref{subsec:blockchain} operan en la capa de
 aplicación y no modelan ni el medio radio ni la movilidad física de los nodos.
+
+\item Hasta donde alcanza esta revisión, medir lo que cada nodo cree frente a lo
+que ocurre físicamente, o garantizar que las decisiones de los nodos no usen información
+global, depende de la disciplina de quien instrumenta el experimento: no forma parte del
+flujo de trabajo habitual de estas herramientas.
 \end{enumerate}
 
 Existe entonces un punto intermedio poco explorado: ejecutar la
 \textbf{implementación real del protocolo} —las mismas clases que correrían en
 un dispositivo desplegado— dentro de un mismo proceso, sustituyendo únicamente
 la capa de transporte por un modelo del medio radio que sí contemple la
-geometría del edificio y la atenuación entre pisos. Esta estrategia conserva
-la fidelidad del código evaluado sin incurrir en el costo por nodo de la
-emulación, y es la que adopta el simulador desarrollado en este trabajo.
+geometría del edificio y la atenuación entre pisos. Esta estrategia acerca el código evaluado al que se ejecuta en el
+nodo, sin virtualizar un sistema por cada uno, y es la que adopta el
+simulador desarrollado en este trabajo. Conviene precisar que la implementación
+que se ejecuta aquí es la del nodo en Python de este proyecto, no el módulo
+batman-adv; sus diferencias se documentan en la Sección~\ref{sec:fidelidad}.

@@ -1,1 +1,372 @@
-Se deben incluir tantos cap\'{\i}tulos como se requieran; sin embargo, se recomienda que la tesis  o trabajo de investigaci\'{o}n tenga un m\'{\i}nimo 3 cap\'{\i}tulos y m\'{a}ximo de 6 cap\'{\i}tulos (incluyendo las conclusiones).\\
+% Desarrollo: arquitectura, protocolo, medio, plano de datos, movilidad,
+% métricas, generalidad, interfaz y pruebas. Fidelidad al final.
+
+Este capítulo describe el simulador desarrollado: su arquitectura, los mecanismos que lo hacen
+adecuado para una red descentralizada y la forma de usarlo. El código está escrito en Python y
+depende solamente de \texttt{numpy}, \texttt{matplotlib} y \texttt{pygame-ce}; la interfaz web
+utiliza solo la biblioteca estándar y un frontend sin compilación.
+
+\section{Arquitectura}
+\label{sec:arquitectura}
+
+El sistema se organiza en las capas de la Figura~\ref{fig:arquitectura}. La decisión de
+diseño central es que la capa \texttt{mesh/} no sabe que está siendo simulada. La capa
+\texttt{sim/} instancia sus clases en cada nodo y reemplaza lo único que no puede existir en un
+simulador, los sockets, por un modelo del medio. Todo lo que queda por encima solamente
+lee ese estado o aplica operaciones sobre él.
+
+\begin{figure}[htbp!]
+\centering
+\begin{tikzpicture}[
+    capa/.style={draw=GrisUno, rounded corners=2pt, align=left, inner sep=6pt, font=\footnotesize},
+    flecha/.style={-{Latex}, thick, GrisUno}]
+  \node[capa, text width=6.4cm, fill=gray!8] (analysis) at (-3.5,0)
+    {\textbf{analysis/}: métricas, reportes, lotes, tablas y figuras, ventana \texttt{pygame}};
+  \node[capa, text width=6.4cm, fill=gray!8] (web) at (3.5,0)
+    {\textbf{web/}: sesión, servidor HTTP con SSE, editor, laboratorio y frontend};
+  \node[capa, text width=13.8cm, fill=orange!12] (sim) at (0,-2)
+    {\textbf{sim/} (modelado): \texttt{Simulation} (motor por pasos), \texttt{SimNode} (posición, batería, movilidad), \texttt{RadioMedium} (medio), \texttt{PlanoDatos} (tráfico) y validación de escenarios};
+  \node[capa, text width=13.8cm, fill=blue!10] (mesh) at (0,-4)
+    {\textbf{mesh/} (código del nodo): \texttt{BatmanRouter} (OGM, TQ, tabla de rutas, siguiente salto) y \texttt{FaultManager} (detección de fallos), compartidos con el nodo de red \texttt{mesh/node.py}};
+  \draw[flecha] (analysis.south) -- node[right, font=\scriptsize]{lee} (analysis.south |- sim.north);
+  \draw[flecha] (web.south) -- node[right, font=\scriptsize]{lee y aplica comandos} (web.south |- sim.north);
+  \draw[flecha] (sim.south) -- node[right, font=\scriptsize]{invoca los mismos métodos que el nodo de red} (mesh.north);
+\end{tikzpicture}
+\caption{Capas del simulador. La capa de color azul es código del nodo; la de color naranja es lo modelado}
+\label{fig:arquitectura}
+\end{figure}
+
+El motor avanza con un paso fijo de 0.5~s. En cada paso aplica los eventos programados, mueve a los
+nodos, hace que cada nodo procese lo recibido y emita sus mensajes, envía el tráfico de datos con las
+tablas ya actualizadas y registra una muestra de las métricas. Todo el azar sale de un único generador,
+de modo que una semilla y una configuración determinan una corrida completa.
+
+\section{El protocolo en cada nodo}
+\label{sec:protocolo}
+
+Cada nodo emite dos tipos de mensaje. El \textbf{beacon}, cada 2~s por defecto, anuncia su identidad y
+su posición a quienes lo oyen directamente. El \textbf{OGM}, cada 4~s por defecto, lleva un número de
+secuencia, un TTL de 6 saltos y un TQ inicial de 1.0, y es retransmitido por quienes lo reciben por
+primera vez. Todos los nodos vivos reenvían OGM, también los Nodos de usuario.
+
+\textbf{Calidad de enlace y TQ.} Para cada par (origen $o$, vecino $v$), \texttt{BatmanRouter} mantiene una
+ventana deslizante de las últimas 16 secuencias: un 1 por cada secuencia recibida y un 0 por cada secuencia
+saltada. La calidad de enlace y el TQ de la ruta candidata son:
+\begin{equation}
+LQ_{o,v} = \frac{1}{|W_{o,v}|}\sum_{w\in W_{o,v}} w, \qquad TQ_{o,v} = TQ_{\text{OGM}} \cdot LQ_{o,v},
+\end{equation}
+donde $TQ_{\text{OGM}}$ es el valor que trae el mensaje, degradado por cada nodo que lo retransmitió.
+
+\textbf{Elección de ruta.} El vecino actual refresca siempre la ruta. Otro vecino la reemplaza solo si su TQ
+es mayor que el del actual, una vez descontadas las secuencias que el actual ha dejado de entregar.
+Cualquier copia no vieja mantiene vigente la ruta, porque demuestra que el origen sigue alcanzable.
+
+\textbf{Detección de fallos.} Cada Gateway revisa a sus pares cada 5~s con \texttt{FaultManager} y marca
+como caído a quien lleva más de 30~s sin oír, sin ningún coordinador. Un OGM nuevo o un beacon del nodo
+apagan la alerta.
+
+\section{El modelo del medio}
+\label{sec:medio}
+
+\texttt{RadioMedium} es el único reemplazo de la red. Cada transmisión se entrega a cada receptor vivo de
+forma independiente con probabilidad:
+\begin{equation}
+r(d,\Delta f) =
+\begin{cases}
+\max\!\big(0,\ \min\!\big(1,\ [\,1 - \phi\, d/R - p_0\,]\; a_f^{\,\Delta f}\big)\big) & \text{si } d \le R \\
+0 & \text{si } d > R
+\end{cases}
+\label{eq:fiabilidad}
+\end{equation}
+La Tabla~\ref{tab:parametros} muestra los valores empleados. El modelo es deliberadamente simple: es simétrico,
+no varía en el tiempo y no contempla colisiones. Su aporte frente a un grafo lógico es la atenuación
+entre pisos y que la pérdida de mensajes haga variar el TQ. La distancia se calcula en el corte vertical del
+edificio: es un modelo de dos dimensiones con pisos, no una propagación tridimensional completa.
+
+\begin{table}[htbp!]
+    \centering
+    \caption{Parámetros del medio y del protocolo}
+    \label{tab:parametros}
+    \footnotesize
+    \begin{tabular}{|p{6.4cm}|p{1.8cm}|p{1.8cm}|p{2.2cm}|}
+        \hline
+        \textbf{Parámetro} & \textbf{Por defecto} & \textbf{Despliegue} & \textbf{Campo abierto} \\
+        \hline
+        Alcance de radio $R$ (m) & 16 & 12 & 30 \\
+        \hline
+        Degradación con la distancia $\phi$ & 0.85 & 0.5 & 0.6 \\
+        \hline
+        Pérdida base $p_0$ & 0.02 & 0.02 & 0.02 \\
+        \hline
+        Atenuación por piso $a_f$ & 0.55 & 0.8 & no aplica \\
+        \hline
+        Tiempo límite de detección (s) & 30 & 30 & 30 \\
+        \hline
+        Periodo de beacons / de OGM (s) & 2 / 4 & 2 / 4 & 2 / 4 \\
+        \hline
+        Velocidad de un Gateway (m por paso) & 0.32 & 0 (fijos) & 0.6 \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\section{Plano de datos sobre B.A.T.M.A.N.}
+\label{sec:plano-datos}
+
+En el simulador de partida, un mensaje se entregaba por búsqueda en el grafo real, con garantía de llegada
+si existía un camino. Las tablas de rutas no decidían nada. Con el plano de datos (\texttt{sim/datos.py}), cada
+paquete avanza salto a salto y en cada nodo el siguiente salto lo decide \texttt{BatmanRouter.next\_hop()} con
+la tabla de ese nodo: nadie conoce el camino completo. Cada salto es un envío unicast con hasta 3 reintentos,
+como en 802.11, sobre la fiabilidad del medio, y el TTL de los datos es 50.
+
+Así, un paquete puede perderse aun habiendo camino, y la causa queda registrada. Las pérdidas se separan
+en físicas (destino caído, sin ningún camino por radio) y de enrutamiento (sin ruta en la tabla, ruta vieja
+cuyo siguiente salto ya no está al alcance, salto perdido por la radio y bucle). Esta separación permite no
+culpar al protocolo de lo que es física. Los flujos se definen en el escenario, con origen, destino y
+periodo, o se sortean entre pares de usuarios. Cada salto se resuelve dentro del paso de tiempo, porque un salto
+real dura mucho menos que 0.5~s; por eso el simulador no mide latencia.
+
+\section{Movilidad descentralizada de los Gateway}
+\label{sec:movilidad-descentralizada}
+
+Las dos reglas heredadas o agregadas al principio deciden con información global: \textit{seguir} lleva
+a cada Gateway hacia el Nodo de usuario más cercano mirando las posiciones de todos, lo que termina apilando
+a los Gateway; y \textit{repartir} es un emparejamiento voraz que calcula el motor. Se conservan solo como
+línea base.
+
+En la movilidad \textit{descentralizada}, cada Gateway decide únicamente con lo que oyó en los beacons, que
+llevan la posición del emisor (un supuesto, habitual en estos algoritmos, de que existe un sistema
+de posicionamiento como GPS o UWB). Olvida a un vecino tras 3 periodos de beacon sin oírlo. La decisión es una
+suma de fuerzas virtuales, de la familia de los trabajos de autodespliegue revisados en la
+Sección~\ref{sec:redes-desastre}, con distancias expresadas como fracción del alcance $R$:
+
+\begin{itemize}
+\item \textbf{Cobertura.} Atracción hacia los Nodos de usuario que oye y de los que es el Gateway más cercano
+entre los que conoce (``a su cargo''), si están a más de $0.4R$.
+\item \textbf{Repulsión.} Repulsión de los Gateway que oye a menos de $0.55R$.
+\item \textbf{Expansión.} Si no tiene usuarios a su cargo, la repulsión llega hasta $0.75R$: la malla se estira y
+explora hasta oír usuarios nuevos.
+\item \textbf{Reconexión.} Si no oye a ningún Gateway, vuelve hacia el último que oyó.
+\end{itemize}
+
+A esas fuerzas se suma una regla de seguridad local: un Gateway no da un paso que rompa un enlace con un Gateway
+oído (a menos de $0.9R$), salvo que quede un rodeo de dos saltos a través de otro Gateway oído. Como las posiciones
+de los beacons pueden tener varios segundos, cuenta con que cada vecino pudo haberse movido y solo considera seguro
+un enlace si lo es en el peor caso.
+
+Los umbrales se eligieron con una búsqueda en rejilla sobre cuatro escenarios, con 5 semillas. Esta búsqueda dejó dos
+aprendizajes. Sin la expansión, Gateway que arrancan juntos y no oyen a nadie se quedan quietos: en
+\texttt{base}, la cobertura era de 0.23. Y una memoria más larga empeoraba las particiones, porque las posiciones
+viejas engañan más de lo que ayuda recordar al vecino; lo que las redujo fue considerar la incertidumbre de
+la posición.
+
+\section{Métricas de descentralización}
+\label{sec:metricas-descentralizacion}
+
+La función \texttt{conocimiento()} compara, en cada muestra y para cada par ordenado de nodos vivos, lo que cree el
+primero (si tiene una ruta vigente) con la realidad (si la radio los conecta). De ahí salen la exactitud del
+conocimiento y las rutas fantasma y faltantes de la Tabla~\ref{tab:metricas}. Una ruta es vigente si un OGM la refrescó
+hace menos que el tiempo límite; es un criterio necesario, porque las rutas de \texttt{BatmanRouter} no expiran solas.
+
+Los nodos críticos se obtienen como puntos de articulación del grafo de radio, con búsqueda en
+profundidad~\cite{Hopcroft1973Algorithm447}. Sobre esa base se añadieron los eventos \texttt{fail\_azar} y
+\texttt{fail\_critico}: el nodo que cae se elige al llegar el instante programado, y en el segundo caso es el que deja más
+nodos separados del grupo de radio más grande. Esto permite una caída dirigida sin fijar de antemano la víctima, lo que tiene
+sentido sobre todo cuando la red se reorganiza.
+
+\section{Generalidad}
+\label{sec:generalidad}
+
+Para que la herramienta no quede atada al edificio de partida se añadieron:
+
+\begin{itemize}
+\item \textbf{Mapa de campo abierto:} un área en planta sin pisos. El escenario \texttt{campo\_abierto} tiene
+120~$\times$~80~m, 6 Gateway que salen del mismo punto, 9 usuarios en 3 grupos y 6 flujos de datos.
+\item \textbf{Movilidad de usuarios:} además de usuarios quietos, \textit{random waypoint}~\cite{Camp2002MobilitySurvey} y
+movimiento en grupos inspirado en RPGM~\cite{Hong1999GroupMobility}.
+\item \textbf{Protocolo de comparación:} con \texttt{protocolo\_datos=inundacion}, cada nodo difunde una vez cada paquete
+nuevo, sin tablas ni reintentos, porque las difusiones no tienen confirmación.
+\item \textbf{Parámetros en un solo lugar:} cualquier parámetro del medio o del protocolo se puede variar desde la línea de
+comandos, un lote o la interfaz, con una sola tabla de validación.
+\end{itemize}
+
+\section{Escenarios, lotes y modos de ejecución}
+\label{sec:ejecucion}
+
+Un escenario es un archivo de texto o JSON que declara el medio, el protocolo, los nodos, los eventos y el tráfico. La
+validación rechaza con mensajes claros identificadores repetidos, roles inválidos o coordenadas fuera del mapa. Este es
+un fragmento del escenario de la caída del puente:
+
+\begin{verbatim}
+[medium]
+rango_comm=12
+falloff=0.5
+floor_atten=0.8
+
+[protocol]
+static=true
+
+[nodes]
+# id  rol  x   y
+1    G    4   5
+...
+6    G    24  22
+101  N    2   2
+
+[events]
+fail     6  60
+recover  6  150
+\end{verbatim}
+
+La misma simulación se puede ejecutar de cuatro formas, que construyen el mundo con la misma función: una ventana propia
+con \texttt{pygame}; sin ventana con \texttt{--headless} o \texttt{--inspect}; por lotes con \texttt{--batch}, que recorre escenarios por
+semillas y escribe el resumen estadístico; y en la interfaz con \texttt{--web}.
+
+\subsection{Costo por nodo}
+\label{subsec:costo}
+
+La Tabla~\ref{tab:escala} mide la velocidad del simulador con redes aleatorias de distinto tamaño en el mismo edificio, nodos
+fijos y 6 flujos de datos, en un computador portátil con un procesador Intel Core i5-1035G1. El costo crece mucho más rápido que
+el número de nodos. Al perfilar la corrida de 100 nodos, cerca del 90~\% del tiempo se consumió en el procesamiento y reenvío de OGM
+de cada nodo, y alrededor del 8~\% en las métricas: al crecer la red en la misma área, todos se oyen con todos y cada OGM se
+retransmite muchas veces. Esto marca el rango de uso real de la herramienta: redes de decenas de nodos corren por encima del tiempo
+real, a partir de unos 100 nodos densos corre por debajo de él, y no es apta para miles de nodos sin optimizarla. Hay que
+matizar, entonces, el requisito R7: se evita el costo de virtualizar un sistema por nodo, pero un emulador como CORE reporta
+topologías de más de un centenar de nodos virtuales en tiempo real~\cite{Ahrenholz2008Core}, de modo que la ventaja de esta herramienta
+frente a la emulación está en el control, la repetibilidad y la instrumentación, y no en la escala.
+
+\begin{table}[htbp!]
+    \centering
+    \caption{Velocidad del simulador según el tamaño de la red (una corrida, semilla 1)}
+    \label{tab:escala}
+    \footnotesize
+    \begin{tabular}{|p{2.4cm}|p{2.4cm}|p{3.0cm}|p{3.2cm}|}
+        \hline
+        \textbf{Nodos} & \textbf{Gateway} & \textbf{Tiempo por paso (ms)} & \textbf{Segundos simulados por segundo real} \\
+        \hline
+        14 & 8 & 1.8 & 284.5 \\
+        \hline
+        25 & 10 & 9.2 & 54.1 \\
+        \hline
+        50 & 20 & 78.6 & 6.4 \\
+        \hline
+        100 & 40 & 816.7 & 0.6 \\
+        \hline
+        200 & 80 & 12\,006 & 0.04 \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\section{Interfaz web}
+\label{sec:interfaz}
+
+La interfaz (\texttt{python main.py --web}) se sirve desde el mismo proceso y funciona sin conexión a Internet. El navegador
+solo dibuja lo que recibe: la fiabilidad, las rutas y las métricas se calculan en el servidor con el mismo núcleo, de
+modo que no hay un segundo modelo que pueda divergir. Se probó que, con la misma semilla, la sesión produce la misma
+serie de métricas que la ejecución por terminal.
+
+La Figura~\ref{fig:interfaz} muestra el experimento de la caída del puente a los 99~s simulados: G6 está caído, el
+indicador avisa de la red partida en dos, y los seis Nodos de usuario siguen cubiertos. La Tabla~\ref{tab:interfaz}
+relaciona las funciones de la interfaz con los vacíos identificados en el estado del arte.
+
+\begin{figure}[htbp!]
+    \centering
+    \includegraphics[width=\textwidth]{Images/Cap4/interfaz_fallo_puente.png}
+    \caption{Interfaz web durante la caída del Gateway puente (G6). La red está partida y la cobertura sigue completa; los Gateway marcados en rojo tienen alertas activas}
+    \label{fig:interfaz}
+\end{figure}
+
+\begin{table}[htbp!]
+    \centering
+    \caption{Funciones de la interfaz y vacío de la Sección~\ref{sec:brecha} que atienden}
+    \label{tab:interfaz}
+    \footnotesize
+    \begin{tabular}{|p{5.6cm}|p{6.8cm}|p{1.2cm}|}
+        \hline
+        \textbf{Función} & \textbf{Qué permite} & \textbf{Vacío} \\
+        \hline
+        Panel de nodo, con rutas y fallos en vivo & Inspeccionar el estado de las clases del protocolo sin instrumentar hardware & 1 \\
+        \hline
+        Panel ``Real / modelo'' & Ver con contadores qué parte es código del protocolo y qué parte es modelo & 1, 2 \\
+        \hline
+        ``Ver como este nodo'' & Observar la red solo con lo que sabe un nodo: no hay una vista global para decidir & 1, 4 \\
+        \hline
+        Matriz de conocimiento N$\times$N & Ver cómo se propaga la información y qué rutas sobreviven a una partición & 4 \\
+        \hline
+        OGM de un origen, con el TTL & Seguir la inundación del protocolo salto a salto & 1, 3 \\
+        \hline
+        Enlaces por fiabilidad y mapa de cobertura & Ver el efecto de la distancia y los pisos sobre los enlaces & 2, 3 \\
+        \hline
+        Capas de fuerzas y de nodos críticos & Ver la decisión de cada Gateway y los puntos de articulación & 4 \\
+        \hline
+        Arrastrar nodos y cambiar parámetros en vivo & Experimentar sin desplegar hardware & 2 \\
+        \hline
+        Editor de escenarios y laboratorio de lotes & Pasar de la exploración a resultados con semillas, con los mismos números de la terminal & 1, 2 \\
+        \hline
+        Exportar la sesión & Obtener un escenario y un comando equivalente si solo hubo caídas y recuperaciones & 1, 2 \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\section{Pruebas}
+\label{sec:pruebas}
+
+La suite tiene 371 pruebas en \texttt{unittest}, distribuidas como indica la Tabla~\ref{tab:pruebas}. Incluyen casos
+específicos del protocolo (los OGM saltados bajan el TQ, los duplicados no lo alteran y un enlace sin pérdidas se mantiene
+en 1.0), la equivalencia entre una caída programada y la misma caída aplicada a mano en la interfaz, y que una corrida sin
+tráfico no consuma azar adicional. Se corren con \texttt{python -m unittest discover -s tests}.
+
+\begin{table}[htbp!]
+    \centering
+    \caption{Pruebas automatizadas por área}
+    \label{tab:pruebas}
+    \footnotesize
+    \begin{tabular}{|p{9.2cm}|p{1.6cm}|}
+        \hline
+        \textbf{Área} & \textbf{Pruebas} \\
+        \hline
+        Protocolo (TQ, elección de rutas) y medio radio & 17 \\
+        \hline
+        Motor y nodos simulados & 57 \\
+        \hline
+        Validación de escenarios & 26 \\
+        \hline
+        Fallos programables y reconvergencia & 30 \\
+        \hline
+        Plano de datos & 19 \\
+        \hline
+        Movilidad descentralizada & 13 \\
+        \hline
+        Métricas de descentralización & 12 \\
+        \hline
+        Generalidad (mapas, movilidad de usuarios, inundación) & 14 \\
+        \hline
+        Reportes, lotes, línea de comandos y análisis & 82 \\
+        \hline
+        Interfaz web & 101 \\
+        \hline
+        \textbf{Total} & \textbf{371} \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\section{Fidelidad y diferencias con B.A.T.M.A.N.}
+\label{sec:fidelidad}
+
+Es importante precisar el alcance de la expresión ``código real''. \texttt{BatmanRouter} y \texttt{FaultManager} son las clases
+que usa el nodo de red de este proyecto (\texttt{mesh/node.py}, con sockets UDP y TCP), de modo que lo que se evalúa es esa
+implementación y no un modelo escrito aparte. Pero esa implementación no es el módulo batman-adv, ni se ha
+ejecutado en este trabajo sobre radios físicas. Las principales diferencias conocidas son:
+
+\begin{itemize}
+\item \textbf{Reenvío de OGM.} Se reenvía la primera copia de cada secuencia, llegue por donde llegue. El protocolo real solo
+reenvía la que llegó por el mejor vecino. Esto genera bucles reales en las tablas (Sección~\ref{sec:res-protocolo}).
+\item \textbf{Expiración de rutas.} Las rutas no expiran solas: una ruta por un vecino caído solo se reemplaza cuando su TQ
+descontado cae por debajo del de otro vecino. El protocolo real purga el originador por tiempo.
+\item \textbf{Reinicio de secuencia.} Un nodo que se recupera conserva su número de secuencia; un arranque en frío queda fuera
+del modelo, porque los demás ignorarían sus OGM hasta superar la secuencia anterior.
+\end{itemize}
+
+Durante el desarrollo se corrigieron además defectos que afectaban a las conclusiones: el TQ valía siempre 1.0 porque
+nunca se registraban los OGM perdidos, la primera copia de cada secuencia ganaba la ruta sin mirar el TQ, y una alerta sobre un
+Gateway a varios saltos nunca se apagaba. Los dos primeros se corrigieron en \texttt{mesh/router.py}, y por tanto también valen
+para el nodo de red.

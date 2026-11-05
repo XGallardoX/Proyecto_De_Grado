@@ -1,6 +1,58 @@
-% \section{Manual de instalación}
+% Anexo: cómo reproducir los resultados.
 
-% \section{Manual de usuario}
+Todas las tablas y figuras del Capítulo~\ref{cap:resultados} se generan a partir de los lotes del
+repositorio. Se requiere Python 3 con las dependencias de \texttt{requirements.txt}.
 
-% \section{Informe de ejecución de pruebas}
+\section{Preparar el entorno}
 
+\begin{verbatim}
+python3 -m venv venv
+venv/bin/pip install -r requirements.txt
+venv/bin/python -m unittest discover -s tests
+\end{verbatim}
+
+\section{Correr los experimentos}
+
+Cada lote deja su salida en \texttt{reportes/}: resumen estadístico, una fila por corrida, y los
+reportes de cada semilla.
+
+\begin{verbatim}
+venv/bin/python main.py --batch lotes/capitulo5_fallos.json
+venv/bin/python main.py --batch lotes/capitulo5_fallos_movil.json
+venv/bin/python main.py --batch lotes/movilidad.json
+venv/bin/python main.py --batch lotes/movilidad_datos.json
+venv/bin/python main.py --batch lotes/robustez.json
+venv/bin/python main.py --batch lotes/generalidad.json
+\end{verbatim}
+
+\section{Generar tablas y figuras}
+
+El siguiente comando toma el lote más reciente de cada tipo y reescribe las tablas de
+\texttt{Plantilla/MainMatter/Cap5/tablas/} y las figuras de \texttt{Plantilla/Images/Cap5/}. No
+corre simulaciones.
+
+\begin{verbatim}
+venv/bin/python -m analysis.capitulo5
+\end{verbatim}
+
+\section{Explorar una corrida}
+
+\begin{verbatim}
+# Interfaz web local, con el escenario de la caída del puente
+venv/bin/python main.py --web --seed 1 \
+    --config escenarios/fallos/fallo_puente.txt
+
+# Una corrida sin ventana, con el resumen en la terminal
+venv/bin/python main.py --headless --duracion 240 --seed 1 \
+    --config escenarios/fallos/fallo_puente.txt
+\end{verbatim}
+
+\section{Compilar este documento}
+
+\begin{verbatim}
+cd Plantilla
+pdflatex main && bibtex main && pdflatex main && pdflatex main
+\end{verbatim}
+
+El repositorio incluye una guía más amplia, con casos de uso y sus salidas esperadas, en
+\texttt{docs/guia\_ejecucion.md}.

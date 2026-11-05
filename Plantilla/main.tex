@@ -6,13 +6,17 @@
 \usepackage{subcaption}
 \usepackage{paralist}
 \usepackage{breakcites}
+\usepackage{longtable}
+\usetikzlibrary{babel,positioning,fit,arrows.meta}
+% Secciones con el número del capítulo: las referencias cruzan capítulos.
+\renewcommand{\thesection}{\thechapter.\arabic{section}}
 
 \usepackage[pagebackref=true,breaklinks=true]{hyperref}
 \hypersetup{
-	pdftitle={Documento de trabajo Final Maestría Inteligencia Artificial}, 
-	pdfauthor={MIA-D.Martinez}, 
+	pdftitle={Un simulador a la medida para redes descentralizadas: cobertura y resiliencia de una malla B.A.T.M.A.N.}, 
+	pdfauthor={[Autores por completar]}, 
 	pdfsubject={}, 
-	pdfcreator={DarMart with Latex}, 
+	pdfcreator={LaTeX}, 
 	colorlinks=true,
 	linkcolor=GrisUno,
 	citecolor=AzulInstitucional,
@@ -22,13 +26,15 @@
 }
 
 \graphicspath{{Images/}}
+\AtBeginDocument{\renewcommand{\tablename}{Tabla}}
 
 
-\title{T\'itulo del proyecto}
-\author{Nombres y apellidos Estudiante}
-\documenttype{Docuemnto Final de Maestr\'ia}
+\title{Un simulador a la medida para redes descentralizadas: cobertura y resiliencia de una malla B.A.T.M.A.N.}
+% Nombres completos pendientes: ver contexto/OFICIAL.md
+\author{[Nombre completo del autor 1] \\{} [Nombre completo del autor 2]}
+\documenttype{Documento Final de Maestr\'ia}
 
-\advisor{Nombres y apellidos Asesor}
+\advisor{Joaquin Fernando Sánchez Cifuentes}
 
 % Si hay un coasesor 
 % \coadvisor{Nombres y apellidos Co-Asesor}
@@ -42,8 +48,8 @@
 	\maketitle
 	% Incluye la pagina de acptación (Opcional)
 	\input{FrontMatter/F01-Approval}
-	% Incluye la dedicatoria (Opcional)
-	\input{FrontMatter/F02-Dedication}
+	% Dedicatoria (Opcional): queda a decisión de los autores
+	% \input{FrontMatter/F02-Dedication}
 	% Incluye los agradecimientos (Opcional)
 	\input{FrontMatter/F03-Acknowledgements}
 	% Resumen
@@ -70,36 +76,39 @@
     
     % Introduction
     \chapter{Introducci\'on}
+    \label{cap:introduccion}
     \input{MainMatter/Cap0/M01-Introduction}
     
-    % Capitulo 2
-    \chapter{Cap\'{i}tulo 1}
+    % Capitulo 1
+    \chapter{Planteamiento del problema y objetivos}
+    \label{cap:planteamiento}
     \input{MainMatter/Cap1/M02-Chapter1}
     
     % Capitulo 2 - Estado del arte
     \chapter{Estado del arte}
+    \label{cap:estado-arte}
     \input{MainMatter/Cap2/M03-Chapter2}
     
     % Capitulo 3
-    \chapter{Cap\'{i}tulo 3}
+    \chapter{Metodolog\'ia}
+    \label{cap:metodologia}
     \input{MainMatter/Cap3/M04-Chapter3}
     
     % Capitulo 4
-    \chapter{Cap\'{i}tulo 4}
+    \chapter{Desarrollo del simulador}
+    \label{cap:desarrollo}
     \input{MainMatter/Cap4/M05-Chapter4}
     
     % Capitulo 5
-    \chapter{Cap\'{i}tulo 5}
+    \chapter{Resultados y discusi\'on}
+    \label{cap:resultados}
     \input{MainMatter/Cap5/M06-Chapter5}
     
     % Capitulo 10
     \chapter{Conclusiones y recomendaciones}
+    \label{cap:conclusiones}
     \input{MainMatter/Cap9/M10-Conclusiones}
     
-    
-    % Anexos (Opcional)
-    % \chapter*{Anexos}
-    % \input{BackMatter/B01-Anexos}
     
     % Indices (Opcional)
     % \chapter*{\'Indices}
@@ -108,5 +117,13 @@
 	% Incluye las referencias
     \bibliographystyle{apalike}
  	\bibliography{Bibliography/referencias}
+
+    % Anexos (Opcional)
+    \appendix
+    \renewcommand{\appendixname}{Anexo}
+    \renewcommand{\chaptername}{Anexo}
+    \chapter{Reproducción de los resultados}
+    \label{anx:reproduccion}
+    \input{BackMatter/B01-Anexos}
 
 \end{document}

@@ -1,1 +1,257 @@
-Se deben incluir tantos cap\'{\i}tulos como se requieran; sin embargo, se recomienda que la tesis  o trabajo de investigaci\'{o}n tenga un m\'{\i}nimo 3 cap\'{\i}tulos y m\'{a}ximo de 6 cap\'{\i}tulos (incluyendo las conclusiones).\\
+% Metodología: enfoque, etapas, requisitos, diseño experimental, métricas,
+% análisis estadístico, verificación y amenazas a la validez.
+
+Este capítulo describe cómo se construyó el simulador y cómo se diseñaron los
+experimentos que lo evalúan. El propósito es que cualquier cifra del
+Capítulo~\ref{cap:resultados} pueda rastrearse hasta una configuración declarada.
+
+\section{Enfoque}
+\label{sec:enfoque}
+
+El trabajo sigue un enfoque de investigación aplicada, cuantitativo y experimental, en el
+que el artefacto construido es a la vez un producto del trabajo y el instrumento con el
+que se obtienen sus resultados. Por eso se le exigen dos condiciones: que su
+comportamiento esté verificado y que su frontera entre lo implementado y lo modelado sea
+explícita. El desarrollo fue iterativo, con pruebas automatizadas en cada incremento y una
+comprobación de regresión sobre los lotes de experimentos cuando un cambio no debía alterar
+los resultados.
+
+\section{Etapas del trabajo}
+\label{sec:etapas}
+
+La Tabla~\ref{tab:etapas} resume las etapas. Conviene destacar dos cambios de encuadre, porque
+explican varias decisiones técnicas. El proyecto partió de un simulador de búsqueda y
+rescate~\cite{JofsanchezciSimulador}. En septiembre de 2026 pasó a ser una Red de Expansión de
+Cobertura y se retiró el mecanismo de ``hallar supervivientes''. Luego, con la indicación
+del tutor de centrar el problema en \textit{la necesidad de un simulador hecho a la medida para
+redes descentralizadas}, se revisó la herramienta con ese criterio y se encontraron las
+tres dependencias de información global que describe la Sección~\ref{sec:problema}.
+
+\begin{table}[htbp!]
+    \centering
+    \caption{Etapas del desarrollo}
+    \label{tab:etapas}
+    \footnotesize
+    \begin{tabular}{|p{1.9cm}|p{4.6cm}|p{7.6cm}|}
+        \hline
+        \textbf{Periodo (2026)} & \textbf{Etapa} & \textbf{Resultado} \\
+        \hline
+        Agosto & Migración del repositorio base & Paquetes \texttt{mesh/}, \texttt{sim/} y \texttt{analysis/}; escenarios en archivos JSON; primeras pruebas \\
+        \hline
+        Septiembre & Encuadre de cobertura y cierre de la versión por terminal & Roles Gateway y Nodo de usuario; ejecución sin ventana, semillas y lotes; guía de ejecución \\
+        \hline
+        Septiembre y octubre & Interfaz web & Interfaz local con la lente de descentralización, el editor de escenarios y el laboratorio de experimentos \\
+        \hline
+        Octubre & Fallos y correcciones del protocolo & Caídas programables, reconvergencia de rutas, corrección del TQ y de la elección de rutas, cobertura media \\
+        \hline
+        Octubre & Mecanismos descentralizados & Plano de datos, movilidad descentralizada, métricas de descentralización, campo abierto, movilidad de usuarios, inundación \\
+        \hline
+        Octubre y noviembre & Evaluación y documento & Corridas finales, análisis pareado y redacción \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\section{Requisitos derivados de la brecha}
+\label{sec:requisitos}
+
+De la brecha de la Sección~\ref{sec:brecha} y de las exigencias de la
+Sección~\ref{sec:credibilidad} se derivan los requisitos de la Tabla~\ref{tab:requisitos}. Son el
+criterio con el que se juzgó cada decisión de diseño y responden a la primera pregunta del
+planteamiento.
+
+\begin{table}[htbp!]
+    \centering
+    \caption{Requisitos de un simulador a la medida para redes descentralizadas}
+    \label{tab:requisitos}
+    \footnotesize
+    \begin{tabular}{|p{0.7cm}|p{6.4cm}|p{7.0cm}|}
+        \hline
+        \textbf{Req.} & \textbf{Requisito} & \textbf{Cómo se atiende} \\
+        \hline
+        R1 & Ejecutar la lógica del protocolo de los nodos, no un modelo aparte & Cada nodo simulado instancia las clases \texttt{BatmanRouter} y \texttt{FaultManager} de \texttt{mesh/} \\
+        \hline
+        R2 & Hacer explícito lo que se modela & El medio radio es el único reemplazo de los sockets; un panel de la interfaz lo muestra \\
+        \hline
+        R3 & Modelar el medio de una edificación & Distancia, alcance, pérdida base y atenuación por piso \\
+        \hline
+        R4 & Decidir solo con información local & Plano de datos por tablas y movilidad basada en lo oído; las reglas centralizadas se conservan solo como línea base \\
+        \hline
+        R5 & Medir la vista de cada nodo frente a la realidad & Exactitud del conocimiento, rutas fantasma y faltantes, nodos críticos \\
+        \hline
+        R6 & Permitir repetir cada resultado & Escenario en archivo, semilla, lote versionado y todo el azar en un solo generador \\
+        \hline
+        R7 & Costo bajo por nodo & Un solo proceso, sin virtualización ni dependencias de red; su alcance real se mide en la Sección~\ref{subsec:costo} \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\section{Diseño experimental}
+\label{sec:diseno-experimental}
+
+\subsection{Despliegue de referencia}
+\label{subsec:despliegue}
+
+El caso principal es un despliegue de 7 Gateway y 6 Nodos de usuario en un edificio de 40~m
+de ancho y tres pisos de 10~m, representado como un corte vertical
+(Figura~\ref{fig:despliegue}). Se diseñó para contener los tipos de nodo que importan en una
+malla: G1, G2, G4 y G5 forman un núcleo redundante en los pisos 1 y 2; G6 es el único puente
+hacia el piso 3; G7 es el único Gateway al alcance de N6, y G3 el único al alcance de N2.
+
+\begin{figure}[htbp!]
+    \centering
+    \includegraphics[width=\textwidth]{Images/Cap5/despliegue.pdf}
+    \caption{Despliegue de referencia en el corte vertical del edificio. El grosor de cada enlace aumenta con su fiabilidad}
+    \label{fig:despliegue}
+\end{figure}
+
+El medio de este despliegue tiene un alcance de 12~m, una degradación $\phi=0.5$ y una
+atenuación por piso $a_f=0.8$, que representan radios de baja potencia para interiores. Se
+eligieron estos valores en lugar de los valores por defecto del simulador
+(Figura~\ref{fig:fiabilidad}) por una razón práctica: con el medio por defecto, un despliegue que
+tenga un puente y un borde en este edificio requiere enlaces tan largos que la entrega cae a
+0.32, y las falsas alarmas ocultan los fallos que se quieren estudiar. Esta elección es un
+supuesto del experimento y no una calibración contra radios reales.
+
+\begin{figure}[htbp!]
+    \centering
+    \includegraphics[width=\textwidth]{Images/Cap5/fiabilidad.pdf}
+    \caption{Fiabilidad de un enlace según la distancia, en el medio por defecto y en el del despliegue}
+    \label{fig:fiabilidad}
+\end{figure}
+
+\subsection{Experimentos}
+\label{subsec:experimentos}
+
+La Tabla~\ref{tab:experimentos} presenta los experimentos. Cada uno es un lote versionado en el
+repositorio, que define los escenarios, las semillas y la duración.
+
+\begin{table}[htbp!]
+    \centering
+    \caption{Experimentos: cada fila es un lote del directorio \texttt{lotes/}}
+    \label{tab:experimentos}
+    \footnotesize
+    \begin{tabular}{|p{4.2cm}|p{4.6cm}|p{1.5cm}|p{1.5cm}|p{1.7cm}|}
+        \hline
+        \textbf{Lote} & \textbf{Qué compara} & \textbf{Entradas} & \textbf{Semillas} & \textbf{Duración (s)} \\
+        \hline
+        \texttt{capitulo5\_fallos} & Control y caídas de un Gateway redundante, un puente, un borde y una cascada, con Gateway fijos & 5 & 10 & 240 \\
+        \hline
+        \texttt{capitulo5\_fallos\_movil} & Las mismas caídas con movilidad descentralizada & 5 & 10 & 240 \\
+        \hline
+        \texttt{movilidad} & \textit{seguir}, \textit{repartir} y \textit{descentralizada} en 5 escenarios & 15 & 10 & 200 \\
+        \hline
+        \texttt{movilidad\_datos} & Los tres modos con 6 flujos de datos, en 3 escenarios & 9 & 10 & 200 \\
+        \hline
+        \texttt{robustez} & Dos caídas al azar contra dos dirigidas al nodo más crítico, con 6 flujos & 2 & 10 & 240 \\
+        \hline
+        \texttt{generalidad} & B.A.T.M.A.N. contra inundación en campo abierto (dos movilidades de usuarios) y en el edificio & 6 & 10 & 300 \\
+        \hline
+    \end{tabular}
+\end{table}
+
+En el lote de fallos, el Gateway redundante (G2), el puente (G6) y el de borde (G7) caen a los
+60~s y vuelven a los 150~s. En la cascada caen G6 a los 60~s, G7 a los 100~s y G3 a los 140~s, sin
+vuelta. En total son 42 entradas por 10 semillas, es decir, 420 corridas. Los cinco escenarios
+heredados del repositorio base (\texttt{base}, \texttt{colapso\_progresivo}, \texttt{particion},
+\texttt{rescatista\_perdido} y \texttt{denso}) se usan para comparar la movilidad; el nombre
+\texttt{rescatista\_perdido} se conserva por trazabilidad y designa simplemente a un Gateway que se
+aleja del grupo. Los modos \textit{seguir} y \textit{repartir} usan información global a propósito: son la
+línea base centralizada contra la que se mide lo que se gana o se pierde al decidir localmente.
+
+\section{Métricas}
+\label{sec:metricas}
+
+Cada corrida produce las métricas de la Tabla~\ref{tab:metricas}. Se distingue
+entre las que describen la física (qué se puede conectar por radio) y las que describen el
+protocolo o la creencia de los nodos, porque precisamente esa distancia es el objeto de estudio.
+
+\begin{table}[htbp!]
+    \centering
+    \caption{Principales métricas de una corrida}
+    \label{tab:metricas}
+    \footnotesize
+    \begin{tabular}{|p{3.5cm}|p{10.7cm}|}
+        \hline
+        \textbf{Métrica} & \textbf{Definición} \\
+        \hline
+        Cobertura media & Promedio en el tiempo de la fracción de Nodos de usuario vivos que comparten componente de radio con algún Gateway vivo \\
+        \hline
+        Malla partida (s) & Tiempo con los Gateway vivos en más de un componente. La conectividad se calcula sobre los enlaces de radio entre todos los nodos vivos, de modo que un Nodo de usuario también puede unir dos grupos \\
+        \hline
+        Reconvergencia de rutas (s) & Desde que vuelve un Gateway o se reunifica la malla hasta que todo par de Gateway conectados por radio tiene una ruta vigente. ``No aplica'' si no hubo un episodio cerrado \\
+        \hline
+        Alertas & Veces en que un Gateway deja de oír a otro más allá del tiempo límite (30~s) \\
+        \hline
+        TQ medio y saltos medios & Promedios sobre las rutas de las tablas de todos los nodos vivos \\
+        \hline
+        Tasa de entrega del radio & Transmisiones entregadas sobre intentadas por el medio \\
+        \hline
+        Entrega de datos & Paquetes entregados sobre enviados, enrutados por las tablas \\
+        \hline
+        Entrega con camino & Lo mismo, solo entre los paquetes con destino vivo y algún camino por radio al enviarse. Aísla el enrutamiento de la física \\
+        \hline
+        Estiramiento & Saltos recorridos sobre saltos del camino más corto por radio al enviar \\
+        \hline
+        Causas de pérdida & Fracción de los paquetes perdidos sin camino por radio, sin ruta, por ruta vieja, por el salto de radio, o en un bucle (TTL agotado) \\
+        \hline
+        Transmisiones por paquete & Intentos unicast o difusiones de datos por cada paquete. No incluye los OGM del plano de control \\
+        \hline
+        Exactitud del conocimiento & Fracción de pares ordenados $(a,b)$ de nodos vivos en que $a$ cree lo correcto: tiene ruta vigente si y solo si la radio los conecta \\
+        \hline
+        Rutas fantasma y faltantes & Fracción de pares con ruta vigente sin conexión por radio, y con conexión por radio sin ruta vigente \\
+        \hline
+        Nodos críticos & Promedio en el tiempo de la cantidad de puntos de articulación del grafo de radio \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\section{Análisis estadístico}
+\label{sec:analisis-estadistico}
+
+Cada configuración se corre con 10 semillas (1 a 10) y se reporta como media $\pm$ desviación
+estándar muestral. Las corridas son independientes entre semillas, y en cada corrida la semilla
+inicializa el único generador de números aleatorios del simulador. Las métricas que no aplican en
+una corrida no entran en el promedio.
+
+Para comparar configuraciones se emplean diferencias pareadas por semilla: para cada
+semilla se resta el resultado de las dos configuraciones y se construye un intervalo de confianza
+del 95~\% con la distribución $t$ de Student con 9 grados de libertad. El emparejamiento reduce la
+variabilidad debida a los flujos sorteados, pero no la elimina, porque las trayectorias aleatorias
+divergen en cuanto la configuración cambia. No se aplica corrección por comparaciones múltiples, de
+modo que un intervalo que excluye el cero por poco debe leerse como indicio y no como prueba. Con
+10 semillas tampoco se contrasta la normalidad de las diferencias.
+
+\section{Verificación del simulador}
+\label{sec:verificacion}
+
+La verificación combina cuatro mecanismos:
+
+\begin{itemize}
+\item \textbf{Pruebas automatizadas} con \texttt{unittest} sobre cada capa (Sección~\ref{sec:pruebas}).
+\item \textbf{Regresión de lotes:} un cambio que no debe alterar los resultados se compara, celda por
+celda, contra la corrida previa de los lotes.
+\item \textbf{Reproducibilidad:} misma semilla y misma configuración deben dar la misma
+corrida, también entre la terminal y la interfaz web y entre máquinas distintas.
+\item \textbf{Contraste analítico:} cuando la métrica se puede calcular a mano a partir del
+escenario, se compara con la simulación (Sección~\ref{sec:res-verificacion}).
+\end{itemize}
+
+\section{Amenazas a la validez}
+\label{sec:amenazas}
+
+\textbf{Validez de constructo.} La cobertura se define como pertenecer a un componente de radio con
+algún Gateway, lo que no garantiza un enlace de buena calidad ni que exista una ruta en las tablas.
+Por eso se reporta junto a la entrega de datos.
+
+\textbf{Validez interna.} Hay parámetros elegidos por los autores: los umbrales de la movilidad
+descentralizada salieron de una búsqueda en rejilla sobre cuatro de los escenarios en los que luego
+se compara, y eso favorece a ese modo. El despliegue de referencia se diseñó para exhibir puentes y
+bordes, de modo que no representa a un despliegue típico.
+
+\textbf{Validez externa.} El modelo de radio es simple y simétrico, sin colisiones ni variación
+temporal, supuestos que la literatura ha mostrado optimistas~\cite{Kotz2004Assumptions}. Por ello, las
+magnitudes absolutas no se extrapolan a un despliegue físico, aunque las comparaciones relativas sí
+sirven para orientar hipótesis.
+
+\textbf{Validez de conclusión.} Diez semillas dan intervalos amplios en las métricas más variables. En
+algunas tablas un solo caso domina la dispersión, como se señala al discutirlas.

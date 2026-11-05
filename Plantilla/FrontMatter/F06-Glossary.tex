@@ -1,5 +1,28 @@
-% Lista alfabética de términos y sus definiciones o explicaciones necesarios para la comprensión del documento. La existencia de un glosario no justifica la omisión de una explicación en el texto la primera vez que aparece un término. El título glosario se escribe en mayúscula sostenida, centrado, a 3 cm del borde superior de la hoja.  El primer término aparece a dos interlíneas del título glosario, contra el margen izquierdo. Los términos se escriben con mayúscula sostenida seguidos de dos puntos y en orden alfabético. La definición correspondiente se coloca después de los dos puntos, se deja un espacio y se inicia con minúscula. Si ocupa más de un renglón, el segundo y los subsiguientes comienzan contra el margen izquierdo. Entre término y término se deja una interlínea. Su uso es opcional
-
 \chapter*{Glosario}
+\addcontentsline{toc}{chapter}{\hspace{1em} Glosario}
 
-Lista alfabética de términos y sus definiciones o explicaciones necesarios para la comprensión del documento. La existencia de un glosario no justifica la omisión de una explicación en el texto la primera vez que aparece un término. El título glosario se escribe en mayúscula sostenida, centrado, a 3 cm del borde superior de la hoja.  El primer término aparece a dos interlíneas del título glosario, contra el margen izquierdo. Los términos se escriben con mayúscula sostenida seguidos de dos puntos y en orden alfabético. La definición correspondiente se coloca después de los dos puntos, se deja un espacio y se inicia con minúscula. Si ocupa más de un renglón, el segundo y los subsiguientes comienzan contra el margen izquierdo. Entre término y término se deja una interlínea. Su uso es opcional~\cite{NTC14862008}
+\textbf{BEACON:} mensaje periódico con el que un nodo anuncia su identidad y su posición a quienes lo oyen directamente; no se reenvía.\\
+
+\textbf{COBERTURA MEDIA:} promedio en el tiempo de la fracción de Nodos de usuario vivos que comparten componente de radio con algún Gateway vivo.\\
+
+\textbf{ESTIRAMIENTO:} saltos que recorrió un paquete entregado divididos por los del camino más corto por radio en el instante del envío.\\
+
+\textbf{GATEWAY:} nodo de la malla que retransmite tráfico y extiende la cobertura; es el rol que puede moverse para reubicarse.\\
+
+\textbf{INUNDACIÓN:} protocolo de comparación sin tablas de rutas en el que cada nodo difunde una vez cada paquete nuevo.\\
+
+\textbf{LOTE:} archivo que define un conjunto de corridas (escenarios por semillas) y del que se obtiene un resumen estadístico.\\
+
+\textbf{NODO CRÍTICO:} punto de articulación de la malla: si cae, la red queda dividida en más componentes.\\
+
+\textbf{NODO DE USUARIO:} nodo final que necesita cobertura de la malla.\\
+
+\textbf{PLANO DE DATOS:} parte del simulador que lleva el tráfico de usuario salto a salto usando la tabla de rutas de cada nodo.\\
+
+\textbf{RED DE EXPANSIÓN DE COBERTURA:} malla de Gateway desplegada para llevar conectividad a Nodos de usuario en un área, sin coordinador central.\\
+
+\textbf{RUTA FANTASMA:} ruta vigente en la tabla de un nodo hacia un destino con el que ya no existe ningún camino por radio.\\
+
+\textbf{RUTA VIGENTE:} ruta presente en la tabla y refrescada por un OGM hace menos que el tiempo límite.\\
+
+\textbf{SEMILLA:} valor inicial del generador de números aleatorios; con la misma semilla y configuración se repite la misma corrida.

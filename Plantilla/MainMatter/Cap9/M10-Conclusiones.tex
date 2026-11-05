@@ -1,5 +1,53 @@
 \section{Conclusiones}
-Las conclusiones constituyen un cap\'{\i}tulo independiente y presentan, en forma l\'{o}gica, los resultados de la tesis  o trabajo de investigaci\'{o}n. Las conclusiones deben ser la respuesta a los objetivos o prop\'{o}sitos planteados. Se deben titular con la palabra conclusiones en el mismo formato de los t\'{\i}tulos de los cap\'{\i}tulos anteriores (T\'{\i}tulos primer nivel), precedida por el numeral correspondiente (seg\'{u}n la presente plantilla).\\
+\label{sec:conclusiones}
+
+Este trabajo partió de la necesidad de un simulador hecho a la medida para redes descentralizadas y lo construyó, verificó y
+utilizó para evaluar una Red de Expansión de Cobertura. Las conclusiones se ordenan según los objetivos específicos.
+
+\textbf{Sobre las herramientas existentes (objetivo 1).} La revisión mostró que los simuladores de propósito general evalúan un modelo del protocolo, que los emuladores ejecutan
+código real pero no traen un modelo listo de atenuación entre pisos, y que las herramientas de redes entre pares y de consenso no modelan el medio radio. Además, se
+identificó un riesgo propio de cualquier simulador: su vista global facilita decisiones que ningún nodo real podría tomar. El simulador de partida incurría en él en tres
+lugares, lo que confirma que la condición de descentralización se debe imponer explícitamente.
+
+\textbf{Sobre la construcción (objetivo 2).} Se obtuvo un simulador configurable por archivos, en el que cada nodo ejecuta las clases de enrutamiento y de detección de fallos del
+nodo de red, con el medio como único reemplazo. Soporta dos tipos de mapa, tres modos de movilidad de Gateway, tres de usuarios contando el reposo, y cuatro formas
+de ejecución. Su límite es la escala: corre por encima del tiempo real hasta unas decenas de nodos, y por debajo con 100 nodos densos, de modo que su ventaja
+frente a la emulación es el control y la instrumentación, no el tamaño.
+
+\textbf{Sobre los mecanismos locales (objetivo 3).} El plano de datos y la movilidad descentralizada eliminaron las tres dependencias de información global, las cuales
+quedan solo como línea base declarada. Las métricas de descentralización aportaron el hallazgo más revelador: en el escenario \texttt{base}, la exactitud del conocimiento cae de 0.95 a 0.55
+con la movilidad descentralizada, algo que ninguna métrica física mostraba.
+
+\textbf{Sobre la verificación (objetivo 4).} Las 371 pruebas automatizadas, la regresión de lotes, la coincidencia con valores calculados a mano y la reproducción byte a byte de las tablas
+en dos máquinas respaldan la consistencia interna de la herramienta. Se detectaron y corrigieron defectos de fondo, como un TQ que valía siempre 1.0. Queda sin hacer la validación
+externa, contra radios físicas o batman-adv, que es la principal deuda del trabajo.
+
+\textbf{Sobre la evaluación (objetivo 5).} Con el despliegue de referencia y 10 semillas se concluye que:
+
+\begin{itemize}
+\item La cobertura no revela el daño a la conectividad: la caída de un puente parte la malla 90~s con cobertura media de 1.000, y dos fallos dirigidos reducen la entrega de datos de 0.502 a 0.284 sin una diferencia de
+cobertura concluyente. Evaluar una red de este tipo exige medir a la vez la física, la entrega y la creencia de los nodos.
+\item La malla se puede reparar sin coordinador: con Gateway móviles, la partición por la caída del puente baja de 90~s a 6.2~s. El costo es una cobertura de 0.922 en ese mismo fallo, una
+reconvergencia más lenta tras la caída de un nodo redundante y un plano de control más débil.
+\item La movilidad descentralizada entrega más datos que \textit{repartir} en los tres escenarios comparados y más que \textit{seguir} en dos de ellos. Lo logra conectando a más pares, no enrutando mejor.
+\item La comparación entre protocolos depende del entorno: la inundación supera a B.A.T.M.A.N. en campo abierto con cerca del doble de transmisiones, y queda muy por debajo en el edificio (0.430 frente a 0.786). Este
+resultado se limita a un medio sin colisiones.
+\end{itemize}
+
+En conjunto, el trabajo muestra que la necesidad planteada es real: varios de estos resultados solo aparecieron al ejecutar el código del nodo, imponer decisiones locales y medir la
+creencia de los nodos, y algunos contradijeron lo que el propio proyecto daba por sentado. Estas conclusiones valen para esta implementación bajo este medio; su extrapolación a un despliegue físico está
+pendiente de validación.
 
 \section{Recomendaciones}
-Se presentan como una serie de aspectos que se podr\'{\i}an realizar en un futuro para emprender investigaciones similares o fortalecer la investigaci\'{o}n realizada. Deben contemplar las perspectivas de la investigaci\'{o}n, las cuales son sugerencias, proyecciones o alternativas que se presentan para modificar, cambiar o incidir sobre una situaci\'{o}n espec\'{\i}fica o una problem\'{a}tica encontrada. Pueden presentarse como un texto con caracter\'{\i}sticas argumentativas, resultado de una reflexi\'{o}n acerca de la tesis o trabajo de investigaci\'{o}n.\\
+\label{sec:recomendaciones}
+
+\begin{itemize}
+\item \textbf{Validación externa.} Es la prioridad. Desplegar \texttt{mesh/node.py} en un banco pequeño de radios, repetir los experimentos de fallo y comparar con la simulación; y contrastar una topología contra batman-adv en un emulador o contra un modelo en ns-3.
+\item \textbf{Acercar el protocolo a B.A.T.M.A.N.} Reenviar solo la copia del mejor vecino y purgar originadores por tiempo, y medir cuánto se reducen los bucles y las pérdidas por rutas viejas.
+\item \textbf{Mejorar el medio.} Añadir enlaces asimétricos, variación temporal, colisiones y una capa de acceso al medio, para responder a las críticas conocidas a los modelos simples~\cite{Kotz2004Assumptions} y para evaluar la inundación con su costo real. Calibrar el medio con mediciones en un edificio.
+\item \textbf{Movilidad consciente de la calidad.} Incluir en las fuerzas la calidad de los enlaces y no solo el alcance, para atacar la degradación del plano de control. Evaluar los umbrales sobre escenarios no usados en su ajuste.
+\item \textbf{Aprendizaje de las reglas locales.} El simulador ofrece un entorno reproducible con agentes de observación parcial, recompensas medibles y un costo por corrida bajo. Esto permite plantear, como continuación en inteligencia artificial, el aprendizaje por refuerzo multiagente de la regla de movilidad, comparándola con la de fuerzas virtuales de este trabajo.
+\item \textbf{Escala.} Optimizar el procesamiento de OGM, que domina el tiempo de ejecución, para superar el límite actual de unos 100 nodos densos.
+\item \textbf{Rigor estadístico.} Aumentar el número de semillas en las comparaciones de magnitud reducida y aplicar corrección por comparaciones múltiples.
+\item \textbf{Latencia.} Resolver los saltos con un retardo modelado en lugar de dentro de un paso, lo que permitiría medir la latencia.
+\end{itemize}
