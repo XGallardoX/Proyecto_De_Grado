@@ -34,6 +34,30 @@ class FormatoTests(unittest.TestCase):
                          "no aplica")
 
 
+class DiferenciaPareadaTests(unittest.TestCase):
+    def test_empareja_por_semilla_e_ignora_faltantes(self):
+        corridas = {
+            "a": {"1": {"m": 3.0}, "2": {"m": 5.0}, "3": {"m": None}},
+            "b": {"1": {"m": 1.0}, "2": {"m": 2.0}, "3": {"m": 9.0}}}
+        d, h, n = c5.diferencia_pareada(corridas, "a", "b", "m")
+        self.assertEqual(n, 2)
+        self.assertAlmostEqual(d, 2.5)
+        # t(1 g.l.) = 12.706, desv. de (2, 3) = 0.7071, raíz de 2
+        self.assertAlmostEqual(h, 12.706 * 0.70711 / 2 ** 0.5, places=2)
+
+    def test_con_menos_de_dos_pares_no_hay_intervalo(self):
+        corridas = {"a": {"1": {"m": 3.0}}, "b": {"1": {"m": 1.0}}}
+        self.assertEqual(c5.diferencia_pareada(corridas, "a", "b", "m"),
+                         (None, None, 1))
+
+    def test_fila_dice_si_el_intervalo_excluye_el_cero(self):
+        corridas = {
+            "a": {"1": {"m": 3.0}, "2": {"m": 3.1}, "3": {"m": 2.9}},
+            "b": {"1": {"m": 1.0}, "2": {"m": 1.0}, "3": {"m": 1.0}}}
+        self.assertEqual(
+            c5.fila_diferencia(corridas, "x", "a", "b", "m")[-1], "sí")
+
+
 class GenerarTests(unittest.TestCase):
     """De punta a punta con un lote chico del Capítulo 5 y otro de
     movilidad (pocos segundos simulados, una semilla)."""
@@ -56,10 +80,27 @@ class GenerarTests(unittest.TestCase):
                 ("movilidad",
                  [{"escenario": e, "movilidad": m, "etiqueta": f"{e}_{m}"}
                   for e in c5.ESCENARIOS_MOVILIDAD
-                  for m, _ in c5.MODOS_MOVILIDAD])):
+                  for m, _ in c5.MODOS_MOVILIDAD]),
+                ("movilidad_datos",
+                 [{"escenario": e, "movilidad": m, "trafico": 6}
+                  for e in c5.ESCENARIOS_DATOS
+                  for m, _ in c5.MODOS_MOVILIDAD]),
+                ("robustez",
+                 [{"config": os.path.join(main_mod.ESCENARIOS_DIR, "fallos",
+                                          f"robustez_{e}.txt"),
+                   "etiqueta": e, "trafico": 2}
+                  for e in ("azar", "dirigida")]),
+                ("generalidad",
+                 [{"config": os.path.join(main_mod.ESCENARIOS_DIR, "fallos",
+                                          "cobertura_edificio.txt"),
+                   "etiqueta": f"{base}_{p}", "trafico": 2,
+                   "parametros": {"protocolo_datos": p}}
+                  for _n, base in c5.ENTORNOS_GENERALIDAD
+                  for p in ("batman", "inundacion")])):
             ruta = os.path.join(tmp, f"{nombre}.json")
             with open(ruta, "w", encoding="utf-8") as f:
-                json.dump({"nombre": nombre, "duracion": 5, "semillas": 1,
+                # dos semillas: las diferencias pareadas necesitan dos pares
+                json.dump({"nombre": nombre, "duracion": 5, "semillas": 2,
                            "escenarios": entradas}, f)
             with contextlib.redirect_stdout(io.StringIO()):
                 carpetas[nombre] = main_mod.ejecutar_lote(
@@ -67,12 +108,18 @@ class GenerarTests(unittest.TestCase):
         escritos = c5.generar(carpetas["capitulo5_fallos"],
                               carpetas["movilidad"],
                               os.path.join(tmp, "Plantilla"),
-                              carpetas["capitulo5_fallos_movil"])
+                              carpetas["capitulo5_fallos_movil"],
+                              carpetas["movilidad_datos"],
+                              carpetas["robustez"],
+                              carpetas["generalidad"])
         nombres = sorted(os.path.basename(r) for r in escritos)
         self.assertEqual(nombres, [
             "calidad.tex", "calidad_movil.tex", "cobertura_tiempo.pdf",
-            "comparacion_fallos.pdf", "fallos.tex", "fallos_movil.tex",
-            "movilidad.pdf", "movilidad.tex"])
+            "comparacion_fallos.pdf", "despliegue.pdf", "diferencias.tex",
+            "fallos.tex", "fallos_movil.tex", "fiabilidad.pdf",
+            "generalidad.tex", "movilidad.pdf", "movilidad.tex",
+            "movilidad_datos.tex", "paquetes_comparacion.pdf",
+            "paquetes_movilidad.pdf", "robustez.tex"])
         for ruta in escritos:
             self.assertGreater(os.path.getsize(ruta), 0, ruta)
         with open(escritos[0], encoding="utf-8") as f:

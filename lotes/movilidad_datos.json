@@ -1,0 +1,16 @@
+{
+  "nombre": "movilidad_datos",
+  "duracion": 200,
+  "semillas": 10,
+  "escenarios": [
+    { "escenario": "base", "movilidad": "seguir", "trafico": 6 },
+    { "escenario": "base", "movilidad": "repartir", "trafico": 6 },
+    { "escenario": "base", "movilidad": "descentralizada", "trafico": 6 },
+    { "escenario": "colapso_progresivo", "movilidad": "seguir", "trafico": 6 },
+    { "escenario": "colapso_progresivo", "movilidad": "repartir", "trafico": 6 },
+    { "escenario": "colapso_progresivo", "movilidad": "descentralizada", "trafico": 6 },
+    { "escenario": "denso", "movilidad": "seguir", "trafico": 6 },
+    { "escenario": "denso", "movilidad": "repartir", "trafico": 6 },
+    { "escenario": "denso", "movilidad": "descentralizada", "trafico": 6 }
+  ]
+}

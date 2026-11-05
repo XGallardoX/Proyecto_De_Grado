@@ -1,0 +1,17 @@
+{
+  "nombre": "generalidad",
+  "duracion": 300,
+  "semillas": 10,
+  "escenarios": [
+    { "escenario": "campo_abierto", "etiqueta": "campo_grupos_batman" },
+    { "escenario": "campo_abierto", "etiqueta": "campo_grupos_inundacion",
+      "parametros": { "protocolo_datos": "inundacion" } },
+    { "escenario": "campo_abierto", "etiqueta": "campo_rwp_batman",
+      "parametros": { "movilidad_usuarios": "random_waypoint" } },
+    { "escenario": "campo_abierto", "etiqueta": "campo_rwp_inundacion",
+      "parametros": { "movilidad_usuarios": "random_waypoint", "protocolo_datos": "inundacion" } },
+    { "config": "escenarios/fallos/cobertura_edificio.txt", "etiqueta": "edificio_batman", "trafico": 6 },
+    { "config": "escenarios/fallos/cobertura_edificio.txt", "etiqueta": "edificio_inundacion", "trafico": 6,
+      "parametros": { "protocolo_datos": "inundacion" } }
+  ]
+}
