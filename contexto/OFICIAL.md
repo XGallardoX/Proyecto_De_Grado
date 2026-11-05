@@ -124,7 +124,7 @@ cita rota).
 | Tipo | Cantidad | Qué se comprobó |
 |---|---|---|
 | Artículos, capítulos y RFC con DOI | 34 | Existe en Crossref; título, año y autores coinciden. El RFC 3626 no trae autores en Crossref: se comprobó en el RFC |
-| Norma y borrador de la IETF | 2 | El borrador existe en el IETF, con esos autores. NTC 1486 ya no aparece impresa si la dedicatoria no la cita |
+| Borrador de la IETF | 1 | Existe en el IETF, con esos autores; está vencido y no es un estándar |
 | Documentación de proyectos | 4 | ns-3, INET, EMANE, batman-adv: páginas en línea. Son primarias, no revisadas por pares |
 | Repositorio base | 1 | `jofsanchezci/Simulador_BATMAN`, en línea |
 
