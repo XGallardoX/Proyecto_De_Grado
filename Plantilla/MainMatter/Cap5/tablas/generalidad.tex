@@ -1,0 +1,27 @@
+% Generado por python -m analysis.capitulo5 (no editar a mano).
+\begin{table}[htbp!]
+    \centering
+    \caption{B.A.T.M.A.N. contra inundación en dos mapas}
+    \label{tab:cap5-generalidad}
+    \footnotesize
+    \setlength{\tabcolsep}{3pt}
+    \begin{tabular}{|>{\raggedright\arraybackslash\hspace{0pt}}p{3.3cm}|>{\raggedright\arraybackslash\hspace{0pt}}p{2.2cm}|>{\raggedright\arraybackslash\hspace{0pt}}p{2.1cm}|>{\raggedright\arraybackslash\hspace{0pt}}p{2.1cm}|>{\raggedright\arraybackslash\hspace{0pt}}p{2.1cm}|>{\raggedright\arraybackslash\hspace{0pt}}p{1.6cm}|}
+        \hline
+        \textbf{Entorno} & \textbf{Protocolo} & \textbf{Entrega de datos} & \textbf{Entrega con camino} & \textbf{Transmisiones por paquete} & \textbf{Saltos} \\
+        \hline
+        Campo abierto, usuarios en grupos & B.A.T.M.A.N. & 0.575 $\pm$ 0.128 & 0.803 $\pm$ 0.090 & 2.86 $\pm$ 0.91 & 1.55 $\pm$ 0.21 \\
+        \hline
+        Campo abierto, usuarios en grupos & Inundación & 0.607 $\pm$ 0.127 & 0.937 $\pm$ 0.042 & 5.62 $\pm$ 1.38 & 1.56 $\pm$ 0.20 \\
+        \hline
+        Campo abierto, random waypoint & B.A.T.M.A.N. & 0.446 $\pm$ 0.064 & 0.544 $\pm$ 0.078 & 3.38 $\pm$ 1.08 & 1.79 $\pm$ 0.23 \\
+        \hline
+        Campo abierto, random waypoint & Inundación & 0.618 $\pm$ 0.063 & 0.743 $\pm$ 0.071 & 7.40 $\pm$ 1.27 & 2.24 $\pm$ 0.29 \\
+        \hline
+        Edificio, nodos fijos & B.A.T.M.A.N. & 0.786 $\pm$ 0.054 & 0.786 $\pm$ 0.054 & 7.19 $\pm$ 1.73 & 3.90 $\pm$ 0.74 \\
+        \hline
+        Edificio, nodos fijos & Inundación & 0.430 $\pm$ 0.081 & 0.430 $\pm$ 0.081 & 6.96 $\pm$ 0.34 & 4.30 $\pm$ 0.78 \\
+        \hline
+    \end{tabular}
+
+    \vspace{0.4em}\parbox{14.6cm}{\scriptsize Media $\pm$ desviación estándar de 10 corridas de 300 s (lote \texttt{lotes/generalidad.json}). B.A.T.M.A.N. reintenta cada salto hasta 3 veces (unicast); la inundación difunde una vez, sin reintentos.}
+\end{table}

@@ -1,0 +1,33 @@
+% Generado por python -m analysis.capitulo5 (no editar a mano).
+\begin{table}[htbp!]
+    \centering
+    \caption{Plano de datos según la movilidad de los Gateway}
+    \label{tab:cap5-movilidad-datos}
+    \footnotesize
+    \setlength{\tabcolsep}{3pt}
+    \begin{tabular}{|>{\raggedright\arraybackslash\hspace{0pt}}p{2.85cm}|>{\raggedright\arraybackslash\hspace{0pt}}p{2.5cm}|>{\raggedright\arraybackslash\hspace{0pt}}p{1.75cm}|>{\raggedright\arraybackslash\hspace{0pt}}p{1.75cm}|>{\raggedright\arraybackslash\hspace{0pt}}p{1.75cm}|>{\raggedright\arraybackslash\hspace{0pt}}p{1.75cm}|>{\raggedright\arraybackslash\hspace{0pt}}p{1.75cm}|}
+        \hline
+        \textbf{Escenario} & \textbf{Movilidad} & \textbf{Entrega de datos} & \textbf{Entrega con camino} & \textbf{Pérdida sin camino} & \textbf{Estiramiento} & \textbf{Exactitud del conocimiento} \\
+        \hline
+        base & seguir & 0.21 $\pm$ 0.13 & 0.40 $\pm$ 0.15 & 0.53 $\pm$ 0.28 & 1.04 $\pm$ 0.12 & 0.95 $\pm$ 0.02 \\
+        \hline
+        base & repartir & 0.20 $\pm$ 0.12 & 0.35 $\pm$ 0.13 & 0.47 $\pm$ 0.24 & 1.53 $\pm$ 0.17 & 0.90 $\pm$ 0.01 \\
+        \hline
+        base & descentralizada & 0.28 $\pm$ 0.15 & 0.30 $\pm$ 0.15 & 0.10 $\pm$ 0.05 & 1.03 $\pm$ 0.06 & 0.55 $\pm$ 0.05 \\
+        \hline
+        colapso\_progresivo & seguir & 0.22 $\pm$ 0.13 & 0.41 $\pm$ 0.15 & 0.53 $\pm$ 0.28 & 1.01 $\pm$ 0.04 & 0.94 $\pm$ 0.03 \\
+        \hline
+        colapso\_progresivo & repartir & 0.20 $\pm$ 0.12 & 0.33 $\pm$ 0.13 & 0.47 $\pm$ 0.24 & 1.67 $\pm$ 0.23 & 0.88 $\pm$ 0.01 \\
+        \hline
+        colapso\_progresivo & descentralizada & 0.23 $\pm$ 0.14 & 0.33 $\pm$ 0.16 & 0.36 $\pm$ 0.19 & 1.00 & 0.71 $\pm$ 0.07 \\
+        \hline
+        denso & seguir & 0.14 $\pm$ 0.08 & 0.30 $\pm$ 0.14 & 0.54 $\pm$ 0.14 & 1.20 $\pm$ 0.26 & 0.89 $\pm$ 0.06 \\
+        \hline
+        denso & repartir & 0.18 $\pm$ 0.09 & 0.28 $\pm$ 0.08 & 0.38 $\pm$ 0.20 & 1.41 $\pm$ 0.18 & 0.82 $\pm$ 0.07 \\
+        \hline
+        denso & descentralizada & 0.28 $\pm$ 0.07 & 0.28 $\pm$ 0.07 & 0.01 $\pm$ 0.01 & 1.32 $\pm$ 0.25 & 0.86 $\pm$ 0.03 \\
+        \hline
+    \end{tabular}
+
+    \vspace{0.4em}\parbox{15.5cm}{\scriptsize Media $\pm$ desviación estándar de 10 corridas de 200 s con 6 flujos de datos aleatorios (lote \texttt{lotes/movilidad\_datos.json}).}
+\end{table}
