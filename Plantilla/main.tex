@@ -8,8 +8,12 @@
 \usepackage{breakcites}
 \usepackage{longtable}
 \usetikzlibrary{babel,positioning,fit,arrows.meta}
-% Secciones con el número del capítulo: las referencias cruzan capítulos.
-\renewcommand{\thesection}{\thechapter.\arabic{section}}
+% Títulos numerados como en la plantilla; las referencias llevan el capítulo,
+% porque cruzan capítulos.
+\makeatletter
+\renewcommand{\p@section}{\thechapter.}
+\renewcommand{\p@subsection}{\thechapter.}
+\makeatother
 
 \usepackage[pagebackref=true,breaklinks=true]{hyperref}
 \hypersetup{
@@ -26,7 +30,6 @@
 }
 
 \graphicspath{{Images/}}
-\AtBeginDocument{\renewcommand{\tablename}{Tabla}}
 
 
 \title{Un simulador a la medida para redes descentralizadas: cobertura y resiliencia de una malla B.A.T.M.A.N.}
@@ -109,6 +112,11 @@
     \input{MainMatter/Cap9/M10-Conclusiones}
     
     
+    % Anexos (Opcional)
+    \chapter*{Anexos}
+    \addcontentsline{toc}{chapter}{Anexos}
+    \input{BackMatter/B01-Anexos}
+
     % Indices (Opcional)
     % \chapter*{\'Indices}
     % \input{BackMatter/B10-Index}
@@ -116,13 +124,5 @@
 	% Incluye las referencias
     \bibliographystyle{apalike}
  	\bibliography{Bibliography/referencias}
-
-    % Anexos (Opcional)
-    \appendix
-    \renewcommand{\appendixname}{Anexo}
-    \renewcommand{\chaptername}{Anexo}
-    \chapter{Reproducción de los resultados}
-    \label{anx:reproduccion}
-    \input{BackMatter/B01-Anexos}
 
 \end{document}

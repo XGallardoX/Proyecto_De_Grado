@@ -2,9 +2,9 @@
 % métricas, generalidad, interfaz y pruebas. Fidelidad al final.
 
 Este capítulo describe el simulador desarrollado: su arquitectura, los mecanismos que lo hacen
-adecuado para una red descentralizada y la forma de usarlo. El código está escrito en Python y
-depende solamente de \texttt{numpy}, \texttt{matplotlib} y \texttt{pygame-ce}; la interfaz web
-utiliza solo la biblioteca estándar y un frontend sin compilación.
+adecuado para una red descentralizada y la forma de usarlo. El código está escrito en Python~\cite{Python} y
+depende solamente de NumPy~\cite{Harris2020Numpy}, Matplotlib~\cite{Hunter2007Matplotlib} y pygame-ce~\cite{PygameCe}; la interfaz web
+utiliza solo la biblioteca estándar y un \textit{frontend} sin compilación.
 
 \section{Arquitectura}
 \label{sec:arquitectura}
@@ -12,7 +12,7 @@ utiliza solo la biblioteca estándar y un frontend sin compilación.
 El sistema se organiza en las capas de la Figura~\ref{fig:arquitectura}. La decisión de
 diseño central es que la capa \texttt{mesh/} no sabe que está siendo simulada. La capa
 \texttt{sim/} instancia sus clases en cada nodo y reemplaza lo único que no puede existir en un
-simulador, los sockets, por un modelo del medio. Todo lo que queda por encima solamente
+simulador, los \textit{sockets}, por un modelo del medio. Todo lo que queda por encima solamente
 lee ese estado o aplica operaciones sobre él.
 
 \begin{figure}[htbp!]
@@ -51,8 +51,9 @@ primera vez. Todos los nodos vivos reenvían OGM, también los Nodos de usuario.
 
 \textbf{Calidad de enlace y TQ.} Para cada par (origen $o$, vecino $v$), \texttt{BatmanRouter} mantiene una
 ventana deslizante de las últimas 16 secuencias: un 1 por cada secuencia recibida y un 0 por cada secuencia
-saltada. La calidad de enlace y el TQ de la ruta candidata son:
+saltada. La calidad de enlace y el TQ de la ruta candidata se calculan con la Ecuación~(\ref{eq:tq}):
 \begin{equation}
+\label{eq:tq}
 LQ_{o,v} = \frac{1}{|W_{o,v}|}\sum_{w\in W_{o,v}} w, \qquad TQ_{o,v} = TQ_{\text{OGM}} \cdot LQ_{o,v},
 \end{equation}
 donde $TQ_{\text{OGM}}$ es el valor que trae el mensaje, degradado por cada nodo que lo retransmitió.
@@ -62,14 +63,14 @@ es mayor que el del actual, una vez descontadas las secuencias que el actual ha 
 Cualquier copia no vieja mantiene vigente la ruta, porque demuestra que el origen sigue alcanzable.
 
 \textbf{Detección de fallos.} Cada Gateway revisa a sus pares cada 5~s con \texttt{FaultManager} y marca
-como caído a quien lleva más de 30~s sin oír, sin ningún coordinador. Un OGM nuevo o un beacon del nodo
+como caído a quien lleva más de 30~s sin oír, sin ningún coordinador. Un OGM nuevo o un \textit{beacon} del nodo
 apagan la alerta.
 
 \section{El modelo del medio}
 \label{sec:medio}
 
 \texttt{RadioMedium} es el único reemplazo de la red. Cada transmisión se entrega a cada receptor vivo de
-forma independiente con probabilidad:
+forma independiente con la probabilidad de la Ecuación~(\ref{eq:fiabilidad}):
 \begin{equation}
 r(d,\Delta f) =
 \begin{cases}
@@ -102,7 +103,7 @@ edificio: es un modelo de dos dimensiones con pisos, no una propagación tridime
         \hline
         Tiempo límite de detección (s) & 30 & 30 & 30 \\
         \hline
-        Periodo de beacons / de OGM (s) & 2 / 4 & 2 / 4 & 2 / 4 \\
+        Periodo de \textit{beacons} / de OGM (s) & 2 / 4 & 2 / 4 & 2 / 4 \\
         \hline
         Velocidad de un Gateway (m por paso) & 0.32 & 0 (fijos) & 0.6 \\
         \hline
@@ -115,7 +116,7 @@ edificio: es un modelo de dos dimensiones con pisos, no una propagación tridime
 En el simulador de partida, un mensaje se entregaba por búsqueda en el grafo real, con garantía de llegada
 si existía un camino. Las tablas de rutas no decidían nada. Con el plano de datos (\texttt{sim/datos.py}), cada
 paquete avanza salto a salto y en cada nodo el siguiente salto lo decide \texttt{BatmanRouter.next\_hop()} con
-la tabla de ese nodo: nadie conoce el camino completo. Cada salto es un envío unicast con hasta 3 reintentos,
+la tabla de ese nodo: nadie conoce el camino completo. Cada salto es un envío \textit{unicast} con hasta 3 reintentos,
 como en 802.11, sobre la fiabilidad del medio, y el TTL de los datos es 50.
 
 Así, un paquete puede perderse aun habiendo camino, y la causa queda registrada. Las pérdidas se separan
@@ -133,9 +134,9 @@ a cada Gateway hacia el Nodo de usuario más cercano mirando las posiciones de t
 a los Gateway; y \textit{repartir} es un emparejamiento voraz que calcula el motor. Se conservan solo como
 línea base.
 
-En la movilidad \textit{descentralizada}, cada Gateway decide únicamente con lo que oyó en los beacons, que
+En la movilidad \textit{descentralizada}, cada Gateway decide únicamente con lo que oyó en los \textit{beacons}, que
 llevan la posición del emisor (un supuesto, habitual en estos algoritmos, de que existe un sistema
-de posicionamiento como GPS o UWB). Olvida a un vecino tras 3 periodos de beacon sin oírlo. La decisión es una
+de posicionamiento como GPS o UWB). Olvida a un vecino tras 3 periodos de \textit{beacon} sin oírlo. La decisión es una
 suma de fuerzas virtuales, de la familia de los trabajos de autodespliegue revisados en la
 Sección~\ref{sec:redes-desastre}, con distancias expresadas como fracción del alcance $R$:
 
@@ -150,7 +151,7 @@ explora hasta oír usuarios nuevos.
 
 A esas fuerzas se suma una regla de seguridad local: un Gateway no da un paso que rompa un enlace con un Gateway
 oído (a menos de $0.9R$), salvo que quede un rodeo de dos saltos a través de otro Gateway oído. Como las posiciones
-de los beacons pueden tener varios segundos, cuenta con que cada vecino pudo haberse movido y solo considera seguro
+de los \textit{beacons} pueden tener varios segundos, cuenta con que cada vecino pudo haberse movido y solo considera seguro
 un enlace si lo es en el peor caso.
 
 Los umbrales se eligieron con una búsqueda en rejilla sobre cuatro escenarios, con 5 semillas. Esta búsqueda dejó dos
@@ -284,7 +285,7 @@ relaciona las funciones de la interfaz con los vacíos identificados en el estad
         \hline
         \textbf{Función} & \textbf{Qué permite} & \textbf{Vacío} \\
         \hline
-        Panel de nodo, con rutas y fallos en vivo & Inspeccionar el estado de las clases del protocolo sin instrumentar hardware & 1 \\
+        Panel de nodo, con rutas y fallos en vivo & Inspeccionar el estado de las clases del protocolo sin instrumentar \textit{hardware} & 1 \\
         \hline
         Panel ``Real / modelo'' & Ver con contadores qué parte es código del protocolo y qué parte es modelo & 1, 2 \\
         \hline
@@ -298,7 +299,7 @@ relaciona las funciones de la interfaz con los vacíos identificados en el estad
         \hline
         Capas de fuerzas y de nodos críticos & Ver la decisión de cada Gateway y los puntos de articulación & 4 \\
         \hline
-        Arrastrar nodos y cambiar parámetros en vivo & Experimentar sin desplegar hardware & 2 \\
+        Arrastrar nodos y cambiar parámetros en vivo & Experimentar sin desplegar \textit{hardware} & 2 \\
         \hline
         Editor de escenarios y laboratorio de lotes & Pasar de la exploración a resultados con semillas, con los mismos números de la terminal & 1, 2 \\
         \hline
@@ -353,7 +354,7 @@ tráfico no consuma azar adicional. Se corren con \texttt{python -m unittest dis
 \label{sec:fidelidad}
 
 Es importante precisar el alcance de la expresión ``código real''. \texttt{BatmanRouter} y \texttt{FaultManager} son las clases
-que usa el nodo de red de este proyecto (\texttt{mesh/node.py}, con sockets UDP y TCP), de modo que lo que se evalúa es esa
+que usa el nodo de red de este proyecto (\texttt{mesh/node.py}, con \textit{sockets} UDP y TCP), de modo que lo que se evalúa es esa
 implementación y no un modelo escrito aparte. Pero esa implementación no es el módulo batman-adv, ni se ha
 ejecutado en este trabajo sobre radios físicas. Las principales diferencias conocidas son:
 

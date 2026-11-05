@@ -53,7 +53,7 @@
   \usepackage{tcolorbox}
   \usepackage{hhline}
   \usepackage{pdfpages}
-  \usepackage[nottoc]{tocbibind}
+  \usepackage[nottoc,numbib]{tocbibind}
   \usepackage{array,colortbl,tabularx}
   \usepackage{makeidx}
   \usepackage{threeparttable}

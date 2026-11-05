@@ -1,9 +1,11 @@
 % Anexo: cómo reproducir los resultados.
 
+\section*{Reproducción de los resultados}
+
 Todas las tablas y figuras del Capítulo~\ref{cap:resultados} se generan a partir de los lotes del
 repositorio. Se requiere Python 3 con las dependencias de \texttt{requirements.txt}.
 
-\section{Preparar el entorno}
+\section*{Preparar el entorno}
 
 \begin{verbatim}
 python3 -m venv venv
@@ -11,7 +13,7 @@ venv/bin/pip install -r requirements.txt
 venv/bin/python -m unittest discover -s tests
 \end{verbatim}
 
-\section{Correr los experimentos}
+\section*{Correr los experimentos}
 
 Cada lote deja su salida en \texttt{reportes/}: resumen estadístico, una fila por corrida, y los
 reportes de cada semilla.
@@ -25,7 +27,7 @@ venv/bin/python main.py --batch lotes/robustez.json
 venv/bin/python main.py --batch lotes/generalidad.json
 \end{verbatim}
 
-\section{Generar tablas y figuras}
+\section*{Generar tablas y figuras}
 
 El siguiente comando toma el lote más reciente de cada tipo y reescribe las tablas de
 \texttt{Plantilla/MainMatter/Cap5/tablas/} y las figuras de \texttt{Plantilla/Images/Cap5/}. No
@@ -35,7 +37,7 @@ corre simulaciones.
 venv/bin/python -m analysis.capitulo5
 \end{verbatim}
 
-\section{Explorar una corrida}
+\section*{Explorar una corrida}
 
 \begin{verbatim}
 # Interfaz web local, con el escenario de la caída del puente
@@ -47,7 +49,7 @@ venv/bin/python main.py --headless --duracion 240 --seed 1 \
     --config escenarios/fallos/fallo_puente.txt
 \end{verbatim}
 
-\section{Compilar este documento}
+\section*{Compilar este documento}
 
 \begin{verbatim}
 cd Plantilla

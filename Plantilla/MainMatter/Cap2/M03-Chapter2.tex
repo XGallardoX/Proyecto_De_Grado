@@ -74,8 +74,8 @@ MANET junto con modelos de movilidad configurables~\cite{Varga2008Omnetpp,InetFr
 \item \textbf{Cooja}, el simulador del sistema operativo Contiki para redes de
 sensores, introduce la noción de \textit{simulación multinivel}: permite
 simular simultáneamente a nivel de red, de sistema operativo y de instrucción
-de máquina, ejecutando el firmware real del nodo sobre una emulación del
-hardware~\cite{Osterlind2006Cooja}. TOSSIM, del ecosistema TinyOS, simula
+de máquina, ejecutando el \textit{firmware} real del nodo sobre una emulación del
+\textit{hardware}~\cite{Osterlind2006Cooja}. TOSSIM, del ecosistema TinyOS, simula
 aplicaciones completas de ese sistema operativo~\cite{Levis2003Tossim}.
 
 \item \textbf{EMANE} (\textit{Extendable Mobile Ad-hoc Network Emulator})
@@ -85,12 +85,12 @@ de radio intercambiables~\cite{Emane}.
 
 \item \textbf{CORE} (\textit{Common Open Research Emulator}) es un emulador en
 tiempo real que instancia topologías híbridas compuestas por nodos virtuales y
-hardware real, apoyándose en la virtualización de la pila de red del sistema
+\textit{hardware} real, apoyándose en la virtualización de la pila de red del sistema
 operativo; escala a topologías de más de un centenar de nodos virtuales sobre
 un único servidor~\cite{Ahrenholz2008Core}.
 
 \item \textbf{Mininet-WiFi} extiende Mininet a redes inalámbricas definidas por
-software: cada nodo es un proceso ubicado en un espacio de nombres de red de
+\textit{software}: cada nodo es un proceso ubicado en un espacio de nombres de red de
 Linux, interconectado mediante pares de interfaces virtuales, de manera que
 cualquier programa que corra sobre Linux corre sin modificaciones dentro de la
 topología emulada~\cite{Fontes2015MininetWifi}.
@@ -148,7 +148,7 @@ brecha entre el modelo validado y la implementación desplegada.
 \item \textbf{Emulación.} El código real se ejecuta sobre un sistema operativo
 virtualizado o sobre espacios de nombres de red. La fidelidad es alta, pero
 cada nodo cuesta recursos del sistema anfitrión y el modelado del medio radio
-requiere componentes adicionales o hardware específico.
+requiere componentes adicionales o \textit{hardware} específico.
 
 \item \textbf{Enfoques híbridos o multinivel.} El código real del protocolo se
 ejecuta sobre un modelo del medio, como en la simulación multinivel de
@@ -173,13 +173,13 @@ según estos criterios.
         \hline
         GloMoSim / QualNet & Simulador & Redes inalámbricas a gran escala & Modelo reimplementado \\
         \hline
-        Cooja & Multinivel & Redes de sensores (Contiki) & Firmware real sobre hardware emulado \\
+        Cooja & Multinivel & Redes de sensores (Contiki) & Firmware real sobre \textit{hardware} emulado \\
         \hline
         EMANE & Emulador & MANET, capa física detallada & Código real del sistema \\
         \hline
         CORE & Emulador & Topologías híbridas en tiempo real & Código real del sistema \\
         \hline
-        Mininet-WiFi & Emulador & Redes inalámbricas definidas por software & Binarios reales de Linux \\
+        Mininet-WiFi & Emulador & Redes inalámbricas definidas por \textit{software} & Binarios reales de Linux \\
         \hline
         PeerSim & Simulador & Superposiciones entre pares & Modelo abstracto \\
         \hline

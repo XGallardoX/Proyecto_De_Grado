@@ -22,10 +22,11 @@ tendría. Un experimento así puede hablar de una red descentralizada sin
 respetar la condición que la define.
 
 El origen de este trabajo es un simulador de la red B.A.T.M.A.N. orientado a
-operaciones de búsqueda y rescate~\cite{JofsanchezciSimulador}. Al revisarlo con
+operaciones de búsqueda y rescate, disponible en el repositorio del
+tutor~\cite{JofsanchezciSimulador}. Al revisarlo con
 la orientación del tutor, el foco del proyecto se desplazó hacia una pregunta más
 general: \textit{la necesidad de un simulador hecho a la medida para redes
-descentralizadas}. La revisión encontró que la herramienta de partida también
+descentralizadas}. La revisión encontró que la herramienta de partida, concebida para otro propósito,
 decidía con información global en tres puntos: los Gateway se movían mirando las
 posiciones de todos los nodos, los mensajes se entregaban por el camino más corto
 del grafo real sin consultar las tablas de enrutamiento, y no circulaba tráfico
@@ -43,7 +44,7 @@ compara con líneas base de movilidad centralizada y con un protocolo de inundac
 La metodología combina el desarrollo iterativo guiado por pruebas automatizadas
 con un diseño experimental de corridas por semillas, en el que cada cifra del
 documento procede de un lote versionado que puede volver a ejecutarse. El trabajo
-se limita a un simulador por pasos de tiempo. No incluye un despliegue en hardware,
+se limita a un simulador por pasos de tiempo. No incluye un despliegue en \textit{hardware},
 no modela colisiones ni la capa de acceso al medio en detalle, y no mide latencia.
 Estas limitaciones se tratan de manera explícita a lo largo del documento, porque
 condicionan qué se puede afirmar a partir de los resultados.
@@ -55,4 +56,4 @@ describe el método de desarrollo y el diseño experimental. El
 Capítulo~\ref{cap:desarrollo} presenta la arquitectura y los mecanismos del
 simulador. El Capítulo~\ref{cap:resultados} reporta y discute los resultados, y el
 Capítulo~\ref{cap:conclusiones} responde a los objetivos y propone líneas futuras.
-El Anexo~\ref{anx:reproduccion} indica cómo reproducir los resultados.
+Los anexos indican cómo reproducir los resultados.

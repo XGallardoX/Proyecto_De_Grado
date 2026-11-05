@@ -22,8 +22,8 @@ A estas diferencias se suma un riesgo más sutil. Un simulador tiene, por
 construcción, una vista global del sistema: conoce todas las posiciones, todos los
 enlaces y el camino más corto entre cualquier par de nodos. Si el experimento usa
 esa información para decidir algo que en la red real decidiría un nodo, ya no está
-evaluando una red descentralizada. El simulador del que parte este trabajo cometía
-ese error en tres lugares: la movilidad de los Gateway consultaba las posiciones de
+evaluando una red descentralizada. El simulador del que parte este trabajo, concebido para otro propósito, se apoyaba en
+esa vista global en tres lugares: la movilidad de los Gateway consultaba las posiciones de
 todos los nodos, los mensajes se entregaban por búsqueda en el grafo real con
 garantía de llegada si existía un camino, y no había tráfico de datos que pusiera a
 prueba las tablas de rutas. Además, la calidad de transmisión (TQ), la métrica central

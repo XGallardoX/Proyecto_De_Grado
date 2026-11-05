@@ -1,24 +1,32 @@
-\chapter*{Lista de s\'{\i}mbolos y abreviaturas}
-\addcontentsline{toc}{chapter}{\hspace{1em} Lista de s\'{\i}mbolos y abreviaturas}
+\chapter*{Lista de s\'{\i}mbolos}
+\addcontentsline{toc}{chapter}{\hspace{1em} Lista de s\'{\i}mbolos}
 
-\section*{S\'{\i}mbolos}
+\section*{S\'{\i}mbolos con letras latinas}
 \label{simbolos}
 \renewcommand{\arraystretch}{1.3}
-\begin{longtable}[l]{>{$}l<{$}p{11.8cm}}
-\textbf{S\'{\i}mbolo} & \textbf{Significado} \\[0.5ex]\hline
+\begin{longtable}[l]{>{$}l<{$}p{8.2cm}l>{$}l<{$}}
+\textbf{S\'{\i}mbolo}&\textbf{T\'{e}rmino}&\textbf{Unidad SI}&\textbf{Definici\'{o}n}\\[0.5ex]\hline
 \endfirsthead
-\textbf{S\'{\i}mbolo} & \textbf{Significado} \\[0.5ex]\hline
+\textbf{S\'{\i}mbolo}&\textbf{T\'{e}rmino}&\textbf{Unidad SI}&\textbf{Definici\'{o}n}\\[0.5ex]\hline
 \endhead
-a_f & Factor de atenuación por piso de diferencia (\texttt{floor\_atten}). \\
-d & Distancia entre dos nodos, en metros. \\
-\Delta f & Diferencia de pisos entre dos nodos. \\
-h & Semiancho de un intervalo de confianza. \\
-LQ & Calidad de enlace: fracción de la ventana de secuencias recibidas de un origen por un vecino. \\
-p_0 & Pérdida base del medio (\texttt{perdida\_base}). \\
-\phi & Degradación de la fiabilidad con la distancia (\texttt{falloff}). \\
-R & Alcance máximo de radio (\texttt{rango\_comm}), en metros. \\
-r(d,\Delta f) & Fiabilidad: probabilidad de entrega de una transmisión. \\
-TQ & Calidad de transmisión acumulada de una ruta. \\
+a_f & Atenuación por piso de diferencia (\texttt{floor\_atten}) & 1 & \text{Ec.~\ref{eq:fiabilidad}}\\
+d & Distancia entre dos nodos & m & \\
+h & Semiancho de un intervalo de confianza & & \\
+LQ & Calidad de enlace: fracción recibida de la ventana de secuencias & 1 & \text{Ec.~\ref{eq:tq}}\\
+p_0 & Pérdida base del medio (\texttt{perdida\_base}) & 1 & \text{Ec.~\ref{eq:fiabilidad}}\\
+R & Alcance máximo de radio (\texttt{rango\_comm}) & m & \text{Ec.~\ref{eq:fiabilidad}}\\
+r & Fiabilidad: probabilidad de entrega de una transmisión & 1 & \text{Ec.~\ref{eq:fiabilidad}}\\
+TQ & Calidad de transmisión acumulada de una ruta & 1 & \text{Ec.~\ref{eq:tq}}\\
+\end{longtable}
+
+\section*{S\'{\i}mbolos con letras griegas}
+\begin{longtable}[l]{>{$}l<{$}p{8.2cm}l>{$}l<{$}}
+\textbf{S\'{\i}mbolo}&\textbf{T\'{e}rmino}&\textbf{Unidad SI}&\textbf{Definici\'{o}n}\\[0.5ex]\hline
+\endfirsthead
+\textbf{S\'{\i}mbolo}&\textbf{T\'{e}rmino}&\textbf{Unidad SI}&\textbf{Definici\'{o}n}\\[0.5ex]\hline
+\endhead
+\Delta f & Diferencia de pisos entre dos nodos & 1 & \text{Ec.~\ref{eq:fiabilidad}}\\
+\phi & Degradación de la fiabilidad con la distancia (\texttt{falloff}) & 1 & \text{Ec.~\ref{eq:fiabilidad}}\\
 \end{longtable}
 
 \section*{Abreviaturas}
@@ -29,8 +37,8 @@ TQ & Calidad de transmisión acumulada de una ruta. \\
 \endhead
 B.A.T.M.A.N. & \textit{Better Approach To Mobile Ad-hoc Networking} \\
 IC & Intervalo de confianza \\
-MANET & \textit{Mobile Ad-hoc Network}, red ad-hoc móvil \\
 MAC & \textit{Medium Access Control}, control de acceso al medio \\
+MANET & \textit{Mobile Ad-hoc Network}, red ad-hoc móvil \\
 OGM & \textit{Originator Message}, mensaje de originador \\
 OLSR & \textit{Optimized Link State Routing} \\
 P2P & \textit{Peer-to-peer}, red entre pares \\

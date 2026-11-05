@@ -13,13 +13,13 @@ manda este. Los demás quedan como historia y detalle (ver el final).
 | Título | *Un simulador a la medida para redes descentralizadas: cobertura y resiliencia de una malla B.A.T.M.A.N.* | Confirmado |
 | Tutor y profesor | Joaquín Fernando Sánchez Cifuentes | Confirmado |
 | Autores | Juan Camilo Gallardo Sánchez (XGallardoX) y Jefferson Gutiérrez Tovar | Confirmado |
-| Programa | Pregrado en Ingeniería de Ciencias de la Computación e Inteligencia Artificial, Universidad Sergio Arboleda | Confirmado. La clase `MIA-USA.cls` viene de la maestría; se ajustó la portada |
+| Programa | Pregrado en Ingeniería de Ciencias de la Computación e Inteligencia Artificial, Universidad Sergio Arboleda | Confirmado. La plantilla `MIA-USA.cls` es la misma de pregrado y posgrado: solo cambian los datos de portada |
 | Encuadre | Problema: la necesidad de un simulador hecho a la medida para redes descentralizadas. Caso de aplicación: Red de Expansión de Cobertura | Decidido |
 
 ## Estado actual
 
 **El simulador y el borrador completo del documento están hechos.** El PDF
-compila sin errores ni referencias rotas: 74 páginas. Copia para leer sin
+compila sin errores ni referencias rotas: 75 páginas. Copia para leer sin
 instalar LaTeX: `Plantilla/documento_actual.pdf`.
 
 | Parte del documento | Archivo en `Plantilla/` | Estado |
@@ -36,7 +36,7 @@ instalar LaTeX: `Plantilla/documento_actual.pdf`.
 | Cap. 5 Desarrollo | `MainMatter/Cap4/` | Escrito |
 | Cap. 6 Resultados y discusión | `MainMatter/Cap5/` | Escrito |
 | Cap. 7 Conclusiones | `MainMatter/Cap9/` | Escrito |
-| Anexo A Reproducción | `BackMatter/B01-Anexos.tex` | Escrito |
+| Anexos (reproducción) | `BackMatter/B01-Anexos.tex` | Escrito |
 
 Ojo con los números: los nombres de carpeta no coinciden con el capítulo
 impreso. Lo que el código y los documentos viejos llaman "Capítulo 5" es el
@@ -51,10 +51,12 @@ impreso. Lo que el código y los documentos viejos llaman "Capítulo 5" es el
 3. Leer el borrador completo. Lo escribió Claude a partir del repo: los
    objetivos, la metodología y las conclusiones son una propuesta que el tutor
    debe validar.
-4. Confirmar en qué plantilla y con qué norma se entrega en pregrado: esta nació
-   para la maestría, y las referencias salen en estilo `apalike` (con "and" e
-   "in" en inglés).
+4. Revisar con el tutor cómo se presenta su repositorio base: se le cita como
+   autor y el texto dice que estaba concebido para otro propósito, pero también
+   menciona defectos concretos, como el TQ siempre en 1.0.
 5. Leer de primera mano las fuentes que más pesan (ver "Fuentes").
+6. Averiguar la norma de la universidad sobre IA generativa: el borrador lo
+   redactó Claude y el documento aún no lo declara.
 
 **Límites del trabajo, ya declarados en la tesis:**
 
@@ -118,15 +120,15 @@ Después solo cambió su formato (anchos de columna).
 
 ## Fuentes
 
-Auditoría del 2026-11-04 sobre la bibliografía impresa (40 referencias, ninguna
+Auditoría del 2026-11-04 sobre la bibliografía impresa (44 referencias, ninguna
 cita rota).
 
 | Tipo | Cantidad | Qué se comprobó |
 |---|---|---|
-| Artículos, capítulos y RFC con DOI | 34 | Existe en Crossref; título, año y autores coinciden. El RFC 3626 no trae autores en Crossref: se comprobó en el RFC |
+| Artículos, capítulos y RFC con DOI | 36 | Existe en Crossref; título, año y autores coinciden. El RFC 3626 no trae autores en Crossref: se comprobó en el RFC |
 | Borrador de la IETF | 1 | Existe en el IETF, con esos autores; está vencido y no es un estándar |
-| Documentación de proyectos | 4 | ns-3, INET, EMANE, batman-adv: páginas en línea. Son primarias, no revisadas por pares |
-| Repositorio base | 1 | `jofsanchezci/Simulador_BATMAN`, en línea |
+| Documentación y software | 6 | ns-3, INET, EMANE, batman-adv, Python y pygame-ce: páginas en línea. Son primarias, no revisadas por pares |
+| Repositorio base del tutor | 1 | `jofsanchezci/Simulador_BATMAN`, en línea; el perfil de GitHub coincide con su nombre |
 
 **Nivel de lectura:** se comparó lo que afirma el texto con los **resúmenes**, no
 con los artículos completos (salvo una parte de Seither et al.). Sin resumen
@@ -162,6 +164,9 @@ export PATH=~/texlive/2026/bin/x86_64-linux:$PATH
 cd Plantilla && pdflatex main && bibtex main && pdflatex main && pdflatex main
 ```
 
+- **Formato:** manda la plantilla. Títulos, márgenes, numeración, "Cuadro" en los
+  títulos de tablas, bibliografía numerada y anexos antes de ella quedan como los
+  trae. Las referencias a secciones sí llevan el capítulo ("Sección 3.7").
 - Las tablas de `MainMatter/Cap5/tablas/` y las figuras de `Images/Cap5/` son
   generadas: no se editan a mano. Si cambia un resultado, hay que revisar
   también las cifras citadas en la prosa del Capítulo 6, el resumen y las

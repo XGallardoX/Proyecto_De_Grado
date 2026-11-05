@@ -6,8 +6,7 @@ utilizó para evaluar una Red de Expansión de Cobertura. Las conclusiones se or
 
 \textbf{Sobre las herramientas existentes (objetivo 1).} La revisión mostró que los simuladores de propósito general evalúan un modelo del protocolo, que los emuladores ejecutan
 código real pero no traen un modelo listo de atenuación entre pisos, y que las herramientas de redes entre pares y de consenso no modelan el medio radio. Además, se
-identificó un riesgo propio de cualquier simulador: su vista global facilita decisiones que ningún nodo real podría tomar. El simulador de partida incurría en él en tres
-lugares, lo que confirma que la condición de descentralización se debe imponer explícitamente.
+identificó un riesgo propio de cualquier simulador: su vista global facilita decisiones que ningún nodo real podría tomar. El simulador de partida, concebido para otro propósito, se apoyaba en esa vista en tres lugares, lo que muestra que la condición de descentralización se debe imponer explícitamente.
 
 \textbf{Sobre la construcción (objetivo 2).} Se obtuvo un simulador configurable por archivos, en el que cada nodo ejecuta las clases de enrutamiento y de detección de fallos del
 nodo de red, con el medio como único reemplazo. Soporta dos tipos de mapa, tres modos de movilidad de Gateway, tres de usuarios contando el reposo, y cuatro formas
