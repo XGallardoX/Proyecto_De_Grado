@@ -26,7 +26,7 @@ instalar LaTeX: `Plantilla/documento_actual.pdf`.
 |---|---|---|
 | Portada | `main.tex` | Completa |
 | Agradecimientos | `FrontMatter/F03-Acknowledgements.tex` | Borrador breve; los autores lo revisan |
-| Dedicatoria | `FrontMatter/F02-Dedication.tex` | Activa con texto provisional; **la escriben los autores** |
+| Dedicatoria | `FrontMatter/F02-Dedication.tex` | Espacio para cada autor; **falta escribirla** |
 | Resumen y abstract | `FrontMatter/F04-Abstract.tex` | Escrito |
 | Símbolos y glosario | `FrontMatter/F05`, `F06` | Escritos |
 | Cap. 1 Introducción | `MainMatter/Cap0/` | Escrito |
@@ -46,17 +46,12 @@ impreso. Lo que el código y los documentos viejos llaman "Capítulo 5" es el
 
 **De los autores (no se puede resolver desde el repo):**
 
-1. Escribir la dedicatoria: hoy dice `[Dedicatoria por escribir]`.
-2. Revisar los agradecimientos.
-3. Leer el borrador completo. Lo escribió Claude a partir del repo: los
-   objetivos, la metodología y las conclusiones son una propuesta que el tutor
-   debe validar.
-4. Revisar con el tutor cómo se presenta su repositorio base: se le cita como
-   autor y el texto dice que estaba concebido para otro propósito, pero también
-   menciona defectos concretos, como el TQ siempre en 1.0.
-5. Leer de primera mano las fuentes que más pesan (ver "Fuentes").
-6. Averiguar la norma de la universidad sobre IA generativa: el borrador lo
-   redactó Claude y el documento aún no lo declara.
+1. Escribir cada uno su dedicatoria, debajo de su nombre en
+   `Plantilla/FrontMatter/F02-Dedication.tex`.
+2. Revisión a cargo de XGallardoX: agradecimientos, borrador completo, cómo se
+   presenta el repositorio del tutor y lectura de las fuentes clave (ver "Fuentes").
+
+Decisión de los autores (2026-11-04): el documento no lleva nota sobre el uso de IA.
 
 **Límites del trabajo, ya declarados en la tesis:**
 
