@@ -32,3 +32,8 @@ reportes/
 
 # Figuras sueltas de versiones anteriores (hoy la figura va a reportes/)
 /analisis_red_*.png
+
+# Capturas de la guía visual: se regeneran (docs/guia_visual/LEEME.md)
+/docs/guia_visual/img/
+/docs/guia_visual/*.woff2
+/tmp_guia/

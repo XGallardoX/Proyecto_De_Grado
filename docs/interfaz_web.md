@@ -91,6 +91,8 @@ Sólo en `127.0.0.1:<puerto>` (por defecto 8765), sin autenticación.
 | `agregar_nodo` | `rol` (`G`/`N`), `x`, `y` opcionales | Sin datos, igual que la tecla `A` de pygame |
 | `mover_nodo` | `id`, `x`, `y` | Recortado a los límites de `_try_move`; evento `MOVE` |
 | `eliminar_nodo` | `id` | Error si es el único Gateway |
+| `enviar_paquetes` | `origen`, `destino` (ids), `tipo` (`udp`, `icmp` o `tcp`; `udp` por defecto), `cantidad` (1 por defecto), `cada` (0 a 600 s; 0 por defecto) | Con `cada` = 0 manda todos los paquetes en ese instante (una ráfaga) y devuelve `enviados`, `entregados`, `confirmados`, `retransmisiones` y el `camino` y la `vuelta` del último. Con `cada` > 0 crea un flujo que termina solo al llegar a `cantidad` y devuelve su id |
+| `quitar_flujo` | `flujo` (id) | Quita un flujo; error si no existe |
 | `mensaje` | `texto` (`G1>N2 hola`) | Lo manda por el plano de datos (salto a salto por las tablas de BATMAN). Devuelve `camino` e `ids` (lo que recorrió, hasta donde se perdió), `entregado`, `causa`, `motivo`, `optimo` (el camino más corto por radio) y `ruta_batman_convergida` |
 | `parametro` | `clave`, `valor` | Lista blanca con tipo y rango (abajo) |
 | `restaurar_parametro` | `clave` | Vuelve al valor con que arrancó la sesión |
@@ -108,7 +110,8 @@ cambiar cualquiera altera la corrida a partir de ese paso):
 (`SimNode._make_ogm`), `move_speed` y `movilidad` (`SimNode.move`).
 
 **Intervenciones.** Toda acción que cambia la corrida (caer, recuperar,
-agregar, mover, eliminar, mensaje, parámetro) se registra con su
+agregar, mover, eliminar, mensaje, enviar paquetes, quitar un flujo,
+parámetro) se registra con su
 instante simulado. El **comando equivalente** de terminal existe si no
 hubo intervenciones, o si las únicas fueron caer y recuperar y la sesión
 salió de un archivo con nodos explícitos. En ese segundo caso,
@@ -142,6 +145,14 @@ evento: `wander`, caída (`fail`) y recuperación (`recover`).
   muestra determinista de a lo sumo 300 (a paso fijo, sin `random`), y
   `paquetes_total`. Con 50 nodos hay miles en vuelo; la interfaz avisa
   cuando dibuja una muestra.
+- **`trafico`** (`web/estado.py:trafico()`, para la pestaña Tráfico):
+  `tipos`, `por_tipo` (enviados, entregados, retransmisiones y
+  sin_respuesta de cada tipo), `enviados`, `entregados`,
+  `transmisiones`, `perdidas` (por causa), `flujos` (id, origen,
+  destino, tipo, cada, cantidad, enviados, entregados, activo) y
+  `recientes` (los últimos paquetes, con su `camino` de ida, la `vuelta`
+  de la respuesta en ICMP y TCP, `intentos`, `confirmado` y el `motivo`
+  si se perdió).
 - **Conectividad:** `resumen` (`sim.summary()`), `grupos`
   (`_union_find` sobre todos los nodos vivos), `nodos_alcanzables`.
 - **Lente:** `vigilancia` (cada Gateway observador, a quién vigila,
@@ -174,37 +185,76 @@ hacia arriba): en pantalla se invierte `y`.
 
 ---
 
-## 3. Cómo apoya la interfaz la necesidad de un simulador a la medida
+## 3. Cómo apoya la interfaz la necesidad de un simulador para redes descentralizadas
 
-Indicación del director: *"la idea es que el problema esté enfocado en
-la necesidad de un simulador hecho a la medida para redes
-descentralizadas"*. El Capítulo 2 de la tesis
-(`Plantilla/MainMatter/Cap2/M03-Chapter2.tex`, `sec:brecha`) identifica
-tres vacíos:
+El problema de la tesis es cómo implementar un simulador para redes
+descentralizadas (el tutor pidió el 2026-11-13 no decir "a la medida").
+El estado del arte (Capítulo 3 del PDF;
+`Plantilla/MainMatter/Cap2/M03-Chapter2.tex`, `sec:brecha`) deja cuatro
+observaciones:
 
 1. ns-3, OMNeT++ y similares evalúan un *modelo* del protocolo, no su
-   implementación.
+   implementación. La ejecución directa de código de ns-3 reduce esa
+   diferencia, pero está pensada para programas de Linux.
 2. Los emuladores corren código real, pero con un costo alto por nodo y
-   sin un modelo de propagación que contemple la atenuación entre pisos.
+   sin un modelo de propagación listo para usar que contemple la
+   atenuación entre pisos.
 3. Las herramientas P2P y blockchain operan en la capa de aplicación: no
    modelan el medio de radiofrecuencia ni la movilidad física.
+4. Medir lo que cada nodo cree frente a lo que ocurre físicamente, o
+   garantizar que los nodos no decidan con información global, depende
+   de quien instrumenta el experimento: no viene en el flujo de trabajo
+   habitual de esas herramientas.
 
-| Funcionalidad de la interfaz | Capacidad que demuestra | Vacío que atiende |
+| Funcionalidad de la interfaz | Capacidad que demuestra | Observación que atiende |
 |---|---|---|
 | Panel "Nodo": tabla de rutas, vecinos y detección de fallos del `BatmanRouter` y el `FaultManager` reales, en vivo | Se inspecciona el estado interno exacto de la implementación, no de un modelo, sin instrumentar hardware | 1 |
 | Panel "Real / modelo" con contadores de llamadas a `receive_ogm()` y `FaultManager.check()` | Deja explícito qué parte es código del protocolo y qué parte es simulación | 1 y 2 |
-| "Ver como este nodo" | Cada nodo tiene su propia visión de la red: no hay vista global ni coordinador | 1 y 3 (ni los simuladores de modelos ni las herramientas de aplicación la exponen de forma interactiva) |
-| Matriz de conocimiento N×N y su indicador de convergencia | Cuánto tarda la información en propagarse y qué rutas sobreviven a una partición (la ruta "vigente" que la radio ya no sostiene) | 1 |
+| "Ver como este nodo" | Cada nodo tiene su propia visión de la red: no hay vista global ni coordinador | 1, 3 y 4 (ni los simuladores de modelos ni las herramientas de aplicación la exponen de forma interactiva) |
+| Matriz de conocimiento N×N y su indicador de convergencia | Cuánto tarda la información en propagarse y qué rutas sobreviven a una partición (la ruta "vigente" que la radio ya no sostiene) | 1 y 4 |
+| Pestaña "Tráfico": paquetes UDP, ICMP o TCP con el recorrido de ida y vuelta de cada uno y el motivo de cada pérdida | Los datos viajan por las tablas de la implementación, salto a salto, y se ve en qué nodo y por qué se pierde cada paquete | 1 y 4 |
 | Anillos de vigilancia contra el `timeout` | La detección de fallos es distribuida: cada Gateway decide por su cuenta, con la latencia real del chequeo cada 5 s | 1 |
 | OGM de un origen, con el TTL bajando | La inundación del protocolo real salto a salto | 1 y 3 |
 | Enlaces coloreados por fiabilidad y mapa de cobertura (distancia + pisos) | Un medio con atenuación entre pisos de un edificio, no un grafo lógico | 2 y 3 |
 | Arrastrar nodos, agregar Gateways, cambiar parámetros en vivo | Experimentar el efecto de la topología y del medio sobre el protocolo real sin desplegar hardware | 2 |
 | Envolventes de partición y aviso de partición/reunificación | La auto-reorganización de la malla, visible | 3 |
 | Exportar con `sesion_web.json` y el comando equivalente | La exploración interactiva no reemplaza el dato reproducible: una sesión sin intervenciones, o con sólo caídas y recuperaciones (exportadas como eventos del escenario), es literalmente una corrida de terminal | 1 y 2 |
-| Editor de escenarios que guarda en el formato de `--config` | Diseñar el caso a la medida y llevarlo a lotes con semillas | 2 y 3 |
+| Editor de escenarios que guarda en el formato de `--config` | Diseñar un caso propio y llevarlo a lotes con semillas | 2 y 3 |
 | Laboratorio de experimentos (lotes `--batch` en un subproceso, con tabla y gráfica) | Pasar de la exploración a resultados con varias semillas sin salir de la interfaz, con los mismos números que la terminal | 1 y 2 |
 
-Insumo para los capítulos 1 y 4 de la tesis.
+Insumo para la introducción y el capítulo de desarrollo de la tesis
+(Capítulos 1 y 5 del PDF).
+
+### La pestaña Tráfico
+
+Agregada el 2026-11-13 (`web/static/js/paneles/trafico.js`), entre
+**Red** y **Métricas**. No calcula nada: muestra lo que el plano de
+datos (`sim/datos.py`) deja en `frame.trafico`.
+
+- **Formulario:** origen, destino, tipo de paquete (UDP sin
+  confirmación, ICMP eco, TCP con confirmación), cantidad (1 a 1000) y
+  "Cada (s)" (0 a 600). Con 0 s salen todos en ese instante; con más de
+  0 se crea un flujo que manda uno cada tantos segundos simulados y
+  termina solo. Por defecto propone el primer y el último Nodo de
+  usuario. Usa el comando `enviar_paquetes`.
+- **Por tipo de paquete:** enviados, entregados y porcentaje de entrega
+  de cada tipo; las retransmisiones (solo TCP) y los paquetes sin
+  respuesta (ecos de ICMP sin respuesta o segmentos de TCP sin
+  confirmación). La fila del total trae las transmisiones por radio.
+- **Flujos:** cada flujo con su tipo, intervalo y avance
+  (`enviados / cantidad`), y un botón para quitarlo (`quitar_flujo`).
+- **Últimos paquetes:** instante, tipo, resultado y recorrido. La ida
+  sale salto a salto y, en ICMP y TCP, también la vuelta de la
+  respuesta. Si se perdió, dice el motivo y si fue la respuesta la que
+  no volvió; en TCP, cuántos envíos hizo falta.
+- **Por qué se perdieron:** la cuenta por causa (sin ruta, la radio
+  perdió el salto, bucle, sin camino por radio…).
+
+Qué significa cada tipo y cuándo cuenta como entregado: README, "Tipos
+de paquete". Mandar paquetes es una intervención, así que una sesión que
+los usa no tiene comando equivalente de terminal (queda en
+`sesion_web.json`). Probado en `tests/test_tipos_paquete.py`. Un
+recorrido con su salida: [`guia_ejecucion.md`](guia_ejecucion.md), caso 15.
 
 ---
 

@@ -217,6 +217,13 @@ multisalto, con Babel como el de mejor desempeño~\cite{Murray2010Experimental};
 al.\ estudian batman-adv en un entorno real de oficina, con AODV como
 referencia~\cite{Seither2011BatmanAdv}; y, más recientemente, Diniz et al.\ comparan OLSR,
 batman-adv y Babel para enjambres de drones con dispositivos Raspberry Pi~\cite{Diniz2025Uav}.
+Turlykozhayeva et al.\ comparan los mismos tres protocolos en una malla de hasta once
+Raspberry Pi, en interiores y exteriores, y encuentran que B.A.T.M.A.N. conserva la mejor
+tasa de entrega de paquetes, aunque esta cae a medida que crece la
+red~\cite{Turlykozhayeva2024Proactive}. Wang et al.\ estudian el caso que más se acerca al de
+este trabajo, la caída de un Gateway en una red de drones con varios Gateway: miden en
+equipos reales que batman-adv tarda en promedio 36.48 s en cambiar de Gateway, y proponen una
+modificación que lo reduce a 1.24 s~\cite{Wang2026QGSwitch}.
 Estos trabajos dan la referencia más fiel, pero su costo limita la cantidad de nodos, la
 repetición de las corridas y la posibilidad de provocar fallos a voluntad. La distancia
 entre simulación y realidad tampoco es menor: Kiess y Mauve recogen que incluso la
@@ -267,7 +274,8 @@ hace explícito el compromiso entre cubrir más área y mantener la red conectad
 combinan fuerzas de atracción y repulsión para mejorar la cobertura de un despliegue
 inicial, en redes organizadas en clústeres, de modo que no se trata de un método plenamente local~\cite{Zou2003VirtualForces}.
 La idea sigue vigente en redes de drones: Fang et al.\ la usan en el autodespliegue de grupos de drones para
-redes de emergencia~\cite{Fang2021Uav}, y Liu et al.\ construyen con ella una red conectada que cubre a usuarios
+redes de emergencia~\cite{Fang2021Uav}, Alam y Moh controlan con fuerzas virtuales el movimiento de un enjambre
+que sigue a objetivos en tierra sin perder la conectividad~\cite{Alam2022JTCR}, y Liu et al.\ construyen con ella una red conectada que cubre a usuarios
 en tierra~\cite{Liu2024Uav}. La movilidad descentralizada de este trabajo
 (Sección~\ref{sec:movilidad-descentralizada}) pertenece a esta familia.
 

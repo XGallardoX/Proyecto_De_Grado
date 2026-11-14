@@ -230,8 +230,10 @@ red real, y llegaba siempre que existiera alguno. Las tablas de rutas no
 decidían nada. En este diseño, cada paquete avanza salto a salto: en cada nodo,
 el siguiente salto lo decide \texttt{BatmanRouter.next\_hop()} con la tabla de
 ese nodo. Nadie conoce el camino completo. Cada salto es un envío dirigido a un
-solo vecino, que se reintenta hasta 3 veces si se pierde, como hace la capa de
-enlace de las redes inalámbricas~\cite{IEEE80211}. Un paquete que da más de 50
+solo vecino, que se reintenta hasta 3 veces si se pierde. La capa de enlace de
+las redes inalámbricas también reenvía las tramas que no se confirman, con sus
+propios límites de reintento~\cite{IEEE80211}; el valor de 3 es una
+simplificación de este simulador. Un paquete que da más de 50
 saltos se descarta.
 
 Así, un paquete puede perderse aunque exista un camino, y la causa queda

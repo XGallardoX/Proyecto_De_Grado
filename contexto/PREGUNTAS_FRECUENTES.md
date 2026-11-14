@@ -16,13 +16,15 @@ agregan al final.
 7. [¿Un nodo cae solo si se le acaba la batería?](#7-un-nodo-cae-solo-si-se-le-acaba-la-batería)
 8. [¿Qué son OGM, beacon y TTL?](#8-qué-son-ogm-beacon-y-ttl)
 9. [¿Hasta dónde llega un OGM y un beacon?](#9-hasta-dónde-llega-un-ogm-y-un-beacon)
+10. [¿Qué tipos de paquete de datos hay?](#10-qué-tipos-de-paquete-de-datos-hay)
 
 ---
 
 ## 1. ¿Qué hace el programa?
 
 Simula una **red de radios que se organizan solos**, sin una central que
-mande, para medir cuánto aguanta cuando algunos fallan o se mueven.
+mande, para medir qué cobertura da y cómo se adapta cuando algunos
+fallan o se mueven.
 
 - Los **Gateways** (`G`) son los radios que forman la malla y se hablan
   entre sí.
@@ -51,7 +53,9 @@ Desde la raíz del repo, con el entorno virtual (en Windows,
 
 Opciones que se agregan encima: `--seed N` (la corrida sale siempre
 igual), `--static` (nadie se mueve), `--movilidad seguir|repartir|descentralizada`,
-`--duracion S` y `--trafico K` (K flujos de datos entre usuarios).
+`--duracion S`, `--trafico K` (K flujos de datos entre usuarios) y
+`--param tipo_paquete=udp|icmp|tcp` (el tipo de paquete de esos flujos;
+ver la [pregunta 10](#10-qué-tipos-de-paquete-de-datos-hay)).
 Los resultados quedan en `reportes/`. Guía completa con casos:
 `docs/guia_ejecucion.md`.
 
@@ -69,8 +73,8 @@ Los cinco predefinidos usan el mismo edificio (40 × 30 m, 3 pisos):
 
 Además: `campo_abierto` (un terreno de 120 × 80 m con usuarios que
 caminan), `escenarios/casos/` (ejemplos de la guía) y `escenarios/fallos/`
-(los experimentos del Capítulo 5: un mismo despliegue de 7 Gateways con
-distintos fallos). Se pueden crear escenarios propios en `.json` o `.txt`
+(las pruebas del Capítulo 6 de la tesis: un mismo despliegue de 7
+Gateways con distintos fallos). Se pueden crear escenarios propios en `.json` o `.txt`
 (`--config`) o con el editor de la interfaz web.
 
 ## 4. ¿Cuál es la arquitectura?
@@ -80,9 +84,14 @@ main.py            puerta de entrada: lee las opciones y arma la simulación
 ├── mesh/          el protocolo BATMAN real (rutas, TQ, detección de fallos)
 ├── sim/           el mundo simulado: nodos, radio con pérdidas, movilidad,
 │                  eventos programados y plano de datos
-├── analysis/      métricas, figuras, reportes, lotes y tablas del Capítulo 5
+├── analysis/      métricas, figuras, reportes, lotes y tablas del Capítulo 6
 └── web/           servidor local + interfaz en el navegador
 ```
+
+(El módulo que genera esas tablas se sigue llamando
+`analysis/capitulo5.py` y las deja en `Plantilla/MainMatter/Cap5/`: son
+nombres de antes de renumerar. En el PDF, los resultados son el
+Capítulo 6.)
 
 Una corrida avanza en pasos de 0.5 s: `sim/` mueve los nodos y entrega
 los mensajes con pérdidas, `mesh/` decide las rutas dentro de cada nodo
@@ -106,8 +115,10 @@ Se abre con `python main.py --web`. Zonas:
   nodo sabe), anillos de vigilancia, "OGM de" (`O`) y compositor de
   mensajes (`M`).
 - **Panel lateral:** Nodo (rutas y vecinos), Red (matriz de
-  conocimiento N×N), Métricas (gráficas en vivo), Real / modelo,
-  Inspector y Parámetros (ajustes en vivo con "restaurar").
+  conocimiento N×N), Tráfico (enviar paquetes UDP, ICMP o TCP y ver qué
+  pasó con cada uno; [pregunta 10](#10-qué-tipos-de-paquete-de-datos-hay)),
+  Métricas (gráficas en vivo), Real / modelo, Inspector y Parámetros
+  (ajustes en vivo con "restaurar").
 - **Editor de escenarios:** coloca nodos con clic, edita medio,
   protocolo, movilidad y eventos; valida y guarda en `escenarios/`.
 - **Laboratorio:** corre un lote con varias semillas, con progreso,
@@ -120,8 +131,9 @@ Detalle: README ("Versión de escritorio") y `docs/interfaz_web.md`.
 ## 6. ¿Es un simulador de rescatistas?
 
 No. Nació así (agosto), pero hoy es un simulador de **cobertura y
-resiliencia en redes descentralizadas**. Los resultados principales del
-Capítulo 5 se miden con nodos fijos, y se repiten con Gateways móviles
+adaptabilidad en redes descentralizadas** (el título de la tesis dice
+"adaptabilidad", no "resiliencia", por indicación del tutor). Los
+resultados principales del Capítulo 6 se miden con nodos fijos, y se repiten con Gateways móviles
 que deciden solos con lo que oyen. Historia completa y decisiones:
 [`HISTORIA_ENCUADRE.md`](HISTORIA_ENCUADRE.md).
 
@@ -272,6 +284,40 @@ Con ella el vecino sabe que existe, que sigue vivo y dónde está.
 | Se reenvía | Sí, una vez por nodo | No |
 | Alcance total | Hasta `ttl` saltos (6) | 1 salto |
 | Para qué | Que todos conozcan rutas y calidad | Vecinos directos, batería, posición |
+
+## 10. ¿Qué tipos de paquete de datos hay?
+
+Tres: **UDP, ICMP y TCP** (`sim/datos.py`, desde el 2026-11-13). Los OGM
+y los beacons son mensajes del protocolo; estos son los datos que los
+usuarios mandan por la malla. Los tres avanzan igual, salto a salto, con
+la tabla de rutas del nodo que tiene el paquete. Cambia lo que pasa de
+extremo a extremo:
+
+| Tipo | Qué hace | Cuándo cuenta como entregado |
+|---|---|---|
+| `udp` (por defecto) | Un datagrama de ida, sin confirmación | Si llega al destino |
+| `icmp` | Un eco (ping): el destino responde por su propia tabla de rutas | Si la respuesta vuelve al origen |
+| `tcp` | El destino confirma y el origen retransmite hasta 3 veces | Si el segmento llega al destino |
+
+- **Son modelos simplificados:** no hay establecimiento de conexión,
+  ventanas ni control de congestión. Las retransmisiones de TCP ocurren
+  dentro del mismo paso de 0.5 s, así que solo recuperan pérdidas de la
+  radio, no una ruta que falta.
+- **Cómo se elige el tipo:** en la terminal y en los lotes, con
+  `--param tipo_paquete=icmp` (o `"parametros"` en el lote); en un
+  escenario, con `tipo=...` en `[traffic]` o en cada flujo; en la
+  interfaz web, en la pestaña **Tráfico**.
+- **Pestaña Tráfico:** se eligen origen, destino, tipo, cantidad e
+  intervalo (con 0 s salen todos de una vez). Muestra las cuentas por
+  tipo, los flujos y el recorrido de ida y vuelta de los últimos
+  paquetes, con el motivo de cada pérdida.
+- **Resultado medido** (`lotes/tipos_paquete.json`, 10 semillas, 6
+  flujos en el edificio): TCP entrega 0.924, UDP 0.772 e ICMP 0.646. TCP
+  lo consigue con 2.6 veces las transmisiones de UDP (19.39 contra 7.46
+  por paquete). ICMP entrega menos porque necesita que lleguen la ida y
+  la vuelta.
+
+Caso con su salida esperada: `docs/guia_ejecucion.md`, caso 15.
 
 ---
 

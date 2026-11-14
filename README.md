@@ -665,7 +665,8 @@ la red lleva datos además de OGM y beacons (`sim/datos.py`). Cada
 paquete avanza **salto a salto**: en cada nodo, el siguiente salto lo
 elige `BatmanRouter.next_hop()` (`mesh/router.py`) con la tabla de rutas
 de *ese* nodo; nadie conoce el camino completo. Cada salto es un unicast
-con los reintentos de la capa de enlace (3, como 802.11) y la fiabilidad
+con reintentos de la capa de enlace (3: 802.11 también reintenta las
+tramas sin confirmación, pero con otros límites por defecto) y la fiabilidad
 del medio de radiofrecuencia.
 
 - Un paquete puede perderse aunque haya camino por radio: es lo que mide

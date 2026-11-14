@@ -39,6 +39,7 @@ algún día cambian, es que cambió el código, no el azar.
    12. [Ver la red como la ve cada nodo (interfaz web)](#caso-12--ver-la-red-como-la-ve-cada-nodo-interfaz-web)
    13. [Un Gateway puente que cae y vuelve: las dos reconvergencias](#caso-13--un-gateway-puente-que-cae-y-vuelve-las-dos-reconvergencias)
    14. [Escenarios de fallo de un despliegue de cobertura (laboratorio)](#caso-14--escenarios-de-fallo-de-un-despliegue-de-cobertura-laboratorio)
+   15. [UDP, ICMP y TCP: qué cambia de extremo a extremo](#caso-15--udp-icmp-y-tcp-qué-cambia-de-extremo-a-extremo)
 5. [Dónde quedan los resultados y cómo leerlos](#5-dónde-quedan-los-resultados-y-cómo-leerlos)
 6. [Problemas frecuentes](#6-problemas-frecuentes)
 
@@ -233,7 +234,9 @@ con `--seed 3` G1 todavía no tiene ruta a N3. El log dice en qué nodo y por qu
 Para tráfico continuo en vez de mensajes sueltos, `--trafico K` agrega K
 flujos entre Nodos de usuario al azar (un paquete cada 2 s); el resumen
 de `--headless` y `--batch` suma la entrega de datos y por qué se perdió
-cada paquete (ver el README, "Plano de datos").
+cada paquete (ver el README, "Plano de datos"). Esos flujos son UDP por
+defecto; el [caso 15](#caso-15--udp-icmp-y-tcp-qué-cambia-de-extremo-a-extremo)
+los compara con ICMP y TCP.
 
 ### Caso 3 — Una corrida reproducible sin ventana
 
@@ -758,7 +761,9 @@ intervenciones como eventos `fail`/`recover` y un comando de terminal
 
 **Objetivo:** comparar tipos de fallo sobre un mismo despliegue, con 10
 semillas, desde la terminal o desde el laboratorio de la interfaz. Son los
-escenarios del Capítulo 5 (decisión D5 de `contexto/PLAN_SIGUIENTE.md`).
+escenarios del capítulo de resultados de la tesis (Capítulo 6 del PDF; los
+archivos y lotes conservan "capitulo5" en el nombre; decisión D5 de
+`contexto/PLAN_SIGUIENTE.md`).
 
 [`escenarios/fallos/`](../escenarios/fallos/) tiene un despliegue de 7
 Gateway fijos en los 3 pisos que cubren 6 Nodos de usuario
@@ -859,7 +864,7 @@ python -m analysis.capitulo5
 Toma el último lote de cada uno, o los que se le pasen con `--fallos`,
 `--movilidad` y `--fallos-movil` (este último, la variante con Gateway
 móviles de arriba, si existe), y escribe en `Plantilla/` lo que el
-Capítulo 5 incluye con `\input{}` y `\includegraphics{}`:
+capítulo de resultados (Capítulo 6 del PDF) incluye con `\input{}` y `\includegraphics{}`:
 - las tablas `MainMatter/Cap5/tablas/fallos.tex`, `calidad.tex`,
   `fallos_movil.tex`, `calidad_movil.tex` y `movilidad.tex` (esta última
   compara los tres modos de movilidad: etiquetas `tab:cap5-fallos`,
@@ -873,6 +878,95 @@ No corre simulaciones: las cifras son las del `resumen.json` del lote.
 Con `"figuras": true` en el lote, además, cada corrida guarda su figura
 de 6 paneles (`analisis_red.png`) en `reportes/`. Con esa opción las
 cifras salen idénticas: se verificó.
+
+### Caso 15 — UDP, ICMP y TCP: qué cambia de extremo a extremo
+
+**Objetivo:** comparar los tres tipos de paquete de datos sobre el mismo
+despliegue y ver, paquete por paquete, la ida y la vuelta.
+
+Los tres avanzan salto a salto con la tabla de rutas de cada nodo. UDP
+es un datagrama de ida; ICMP es un eco que solo cuenta si la respuesta
+vuelve al origen; TCP confirma y retransmite hasta 3 veces (README,
+"Tipos de paquete"). El tipo de los flujos se elige con
+`--param tipo_paquete=...`:
+
+```bash
+python main.py --headless --config escenarios/fallos/cobertura_edificio.txt --trafico 6 --duracion 240 --seed 1 --param tipo_paquete=udp
+python main.py --headless --config escenarios/fallos/cobertura_edificio.txt --trafico 6 --duracion 240 --seed 1 --param tipo_paquete=icmp
+python main.py --headless --config escenarios/fallos/cobertura_edificio.txt --trafico 6 --duracion 240 --seed 1 --param tipo_paquete=tcp
+```
+
+**Qué deberías ver** en el resumen de cada corrida (semilla 1):
+
+| Línea del resumen | UDP | ICMP | TCP |
+|---|---|---|---|
+| Entrega de datos | 0.840 | 0.686 | 0.933 |
+| Saltos de los datos entregados | 3.38 | 3.37 | 3.73 |
+| Datos perdidos: sin ruta | 0.028 | 0.061 | 0.028 |
+| Datos perdidos: la radio perdió el salto | 0.117 | 0.213 | 0.019 |
+| Datos perdidos: bucle | 0.015 | 0.040 | 0.021 |
+| Transmisiones por paquete de datos | 6.21 | 12.81 | 18.19 |
+
+Las líneas que no dependen del tráfico casi no cambian: cobertura media
+1.000, 6 Nodos de usuario alcanzables y tasa de entrega del radio de
+0.60.
+
+**Con 10 semillas:**
+
+```bash
+python main.py --batch lotes/tipos_paquete.json
+```
+
+| Tipo | Entrega de datos | Transmisiones por paquete | Perdidos por el radio | Perdidos sin ruta |
+|---|---|---|---|---|
+| UDP (`edificio_udp`) | 0.772 ± 0.061 | 7.46 ± 1.96 | 0.155 ± 0.048 | 0.053 ± 0.035 |
+| ICMP (`edificio_icmp`) | 0.646 ± 0.082 | 11.83 ± 2.67 | 0.256 ± 0.060 | 0.079 ± 0.024 |
+| TCP (`edificio_tcp`) | 0.924 ± 0.024 | 19.39 ± 4.46 | 0.007 ± 0.007 | 0.041 ± 0.012 |
+
+(240 s, 6 flujos entre Nodos de usuario, nodos fijos. Es la tabla
+`tipos_paquete` de la tesis.)
+
+**Cómo leerlo:**
+
+- **TCP entrega más (0.924) porque retransmite**, y lo paga con 2.6
+  veces las transmisiones de UDP. Casi no pierde paquetes por el radio
+  (0.007).
+- **TCP no arregla una ruta que falta.** Las retransmisiones ocurren
+  dentro del mismo paso, así que "perdidos sin ruta" queda parecido al
+  de UDP (0.041 contra 0.053).
+- **ICMP entrega menos (0.646) porque necesita la ida y la vuelta.** La
+  respuesta viaja por la tabla del destino y puede perderse aunque la
+  petición haya llegado.
+
+**El mismo caso en la interfaz web** (pestaña **Tráfico**):
+
+```bash
+python main.py --web --config escenarios/fallos/cobertura_edificio.txt --seed 1
+```
+
+1. Pausa en t = 40 s (Espacio; `⏭ Paso` avanza de a 0.5 s). En
+   **Tráfico** deja origen N1, destino N6, cantidad 10 y "Cada (s)" en
+   0, y pulsa "Enviar" con UDP. El log dice
+   `UDP N1→N6: 0 de 10 entregados (último: sin ruta en la tabla)`: N1
+   todavía no tiene ruta hacia N6, que queda en la otra punta de la
+   malla. Con ICMP y TCP pasa lo mismo.
+2. Usa "Reiniciar", pausa en t = 120 s y manda, en este orden, 10 de
+   UDP, 10 de ICMP y 10 de TCP. Deberías ver:
+
+| Tipo | Entregados | Retransmisiones | Recorrido del último paquete |
+|---|---|---|---|
+| UDP | 9 de 10 | no aplica | N1 → G1 → G4 → G5 → N4 → G6 → G7 → N6 |
+| ICMP | 6 de 10 | no aplica | La misma ida; vuelta N6 → G7 → G6 → G5 → G2 → N1 |
+| TCP | 10 de 10 | 4 | La misma ida; vuelta N6 → G7 → G6 → G5 → G2 → N1 |
+
+La ida y la vuelta no usan el mismo camino: cada sentido lo decide la
+tabla del nodo que tiene el paquete. "Por tipo de paquete" lleva las
+cuentas, y "Últimos paquetes" muestra el recorrido y el motivo de cada
+pérdida. Con "Cada (s)" mayor que 0 se crea un flujo, que aparece en
+"Flujos" y se quita con `✕`.
+
+Mandar paquetes cuenta como intervención: la sesión queda en
+`sesion_web.json`, sin comando equivalente de terminal.
 
 ---
 

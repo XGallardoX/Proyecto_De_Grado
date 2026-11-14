@@ -72,6 +72,34 @@ Pendiente de esas correcciones: que los autores lean el texto nuevo; el tutor
 también pidió revisar la redacción y comparar el simulador con otros modelos
 (la Tabla `tab:faltantes` del Cap. 6 es un primer paso).
 
+## Avance del 2026-11-13 (después de las correcciones)
+
+Hecho por Jefferson sobre la lista de pendientes de Juan Camilo:
+
+- **Documentos al día con la pestaña Tráfico y los tipos de paquete:**
+  `contexto/PREGUNTAS_FRECUENTES.md` (pregunta 10 nueva; "adaptabilidad" y
+  "Capítulo 6"), `docs/interfaz_web.md` (sin "a la medida"; comandos
+  `enviar_paquetes` y `quitar_flujo`; campo `trafico` del frame; apartado de la
+  pestaña) y `docs/guia_ejecucion.md` (caso 15, con la salida de la semilla 1 y
+  del lote).
+- **Guía visual rehecha:** `docs/guia_visual_simulador.pdf` (26 páginas) tiene
+  todas las capturas tomadas de nuevo con la interfaz actual, una página para
+  la pestaña Tráfico y la redacción al día. Su fuente y los guiones para
+  regenerarla quedaron en `docs/guia_visual/` (ver su `LEEME.md`).
+- **Brecha frente a ns-3, confirmada en su documentación:** el módulo de
+  edificios sí modela la pérdida entre pisos y *Direct Code Execution* sí
+  ejecuta código de Linux. Lo que dice la tesis es correcto. La respuesta
+  propuesta para la sustentación está en `contexto/VERIFICACION_FUENTES.md`.
+- **Citas contra las fuentes:** una corregida (802.11 no reintenta 3 veces por
+  defecto; el 3 es una simplificación del simulador) y dos dudosas sin resolver
+  (ver "Fuentes").
+- **Literatura reciente:** tres artículos de 2022 a 2026 integrados al estado
+  del arte (61 referencias en total).
+
+**Compilado el 2026-11-13** en la máquina de Jefferson (Windows, MiKTeX 25.12):
+92 páginas, sin errores, sin citas ni referencias rotas y con las 61 entradas en
+la bibliografía. `Plantilla/documento_actual.pdf` ya es esa versión.
+
 ## Lo que falta
 
 **De los autores (no se puede resolver desde el repo):**
@@ -172,8 +200,18 @@ con una afirmación de repetibilidad que no se pudo comprobar; Albert et al. apl
 a una malla que no es libre de escala; herramientas nombradas sin cita; el sitio de
 ns-2, caído; y afirmaciones sin respaldo sobre ns-3 y batman-adv.
 
-**Reciente:** solo 3 de las referencias académicas son de 2021 en adelante. Hay que
-ampliar la búsqueda en Scopus o IEEE Xplore si el tutor pide literatura más actual.
+**Verificación del 2026-11-13** (`contexto/VERIFICACION_FUENTES.md`): se
+contrastaron las 14 referencias nuevas y las que habían quedado en resumen. No se
+pudo leer el texto completo de ningún artículo de pago. Quedan por leer con acceso
+de la universidad, por orden de riesgo: Kiess y Mauve (la frase sobre la
+inundación), Howard et al. (la frase "cada nodo conoce su posición", **dudosa**),
+Fontes et al., Jain (la cita de la corrección por comparaciones múltiples,
+**dudosa**), Zeng et al. y Riley y Henderson.
+
+**Reciente:** 6 de las referencias académicas son de 2021 en adelante (eran 3; el
+2026-11-13 se añadieron Wang et al., Turlykozhayeva et al. y Alam y Moh, con lo que
+la bibliografía llega a 61). La búsqueda se hizo en OpenAlex: falta repetirla en
+Scopus o IEEE Xplore.
 
 **Sin cita, como conocimiento general:** los nombres comerciales QualNet, Riverbed
 Modeler y NetSim.
@@ -192,6 +230,11 @@ venv/bin/python -m analysis.capitulo5
 export PATH=~/texlive/2026/bin/x86_64-linux:$PATH
 cd Plantilla && pdflatex main && bibtex main && pdflatex main && pdflatex main
 ```
+
+En Windows (máquina de Jefferson) se compila con MiKTeX, instalado con
+`winget install MiKTeX.MiKTeX`. Los mismos cuatro comandos, desde `Plantilla\`;
+a veces hace falta una pasada más de `pdflatex` si avisa "Rerun". MiKTeX descarga
+solo los paquetes que falten.
 
 - **Formato:** manda la plantilla, salvo la numeración de secciones, que por
   indicación del tutor lleva el capítulo (2.1, 2.2…). Márgenes, "Cuadro" en los
@@ -213,5 +256,8 @@ cd Plantilla && pdflatex main && bibtex main && pdflatex main && pdflatex main
 | `contexto/ESTADO_PROYECTO.md` | Crónica hasta el 3 de octubre (historia) |
 | `contexto/DECISIONES_FASE3.md` | Historia de la Fase 3 |
 | `contexto/HISTORIA_ENCUADRE.md` | Por qué cambió el objetivo del proyecto |
+| `contexto/PENDIENTES.md` | Qué se hizo y qué falta de la lista de 14 puntos, y por qué falta (2026-11-13) |
+| `contexto/VERIFICACION_FUENTES.md` | ns-3 frente a la brecha, citas contra las fuentes y literatura reciente (2026-11-13) |
+| `contexto/PREGUNTAS_FRECUENTES.md` | Respuestas cortas sobre cómo funciona el simulador |
 | `docs/guia_ejecucion.md` | Casos de uso con su salida esperada |
 | `docs/arquitectura.md`, `docs/movimiento_nodos.md`, `docs/interfaz_web.md` | Referencia técnica |
