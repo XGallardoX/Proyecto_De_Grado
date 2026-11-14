@@ -1,52 +1,102 @@
 \section{Conclusiones}
 \label{sec:conclusiones}
 
-Este trabajo partió de la necesidad de un simulador hecho a la medida para redes descentralizadas y lo construyó, verificó y
-utilizó para evaluar una Red de Expansión de Cobertura. Las conclusiones se ordenan según los objetivos específicos.
+Este trabajo implementó un simulador para redes descentralizadas y lo probó
+con simulaciones de una Red de Expansión de Cobertura. Las conclusiones siguen
+el orden de los objetivos específicos.
 
-\textbf{Sobre las herramientas existentes (objetivo 1).} La revisión mostró que los simuladores de propósito general evalúan un modelo del protocolo, que los emuladores ejecutan
-código real pero no traen un modelo listo de atenuación entre pisos, y que las herramientas de redes entre pares y de consenso no modelan el medio radio. Además, se
-identificó un riesgo propio de cualquier simulador: su vista global facilita decisiones que ningún nodo real podría tomar. El simulador de partida, concebido para otro propósito, se apoyaba en esa vista en tres lugares, lo que muestra que la condición de descentralización se debe imponer explícitamente.
+\textbf{Sobre los requerimientos (objetivo 1).} La revisión mostró que los
+simuladores de propósito general evalúan una copia del protocolo, que los
+emuladores ejecutan el programa real pero no traen un modelo listo de la pérdida
+de señal entre pisos, y que las herramientas de redes entre pares no representan
+el medio de radiofrecuencia. Además, cualquier simulador conoce toda la red, lo
+que facilita decisiones que ningún nodo real podría tomar; el simulador de
+partida lo hacía en tres lugares. De ahí salieron los diez requerimientos de la
+Tabla~\ref{tab:requisitos}, entre ellos ejecutar el código del nodo, decidir
+solo con información local y medir lo que cree cada nodo.
 
-\textbf{Sobre la construcción (objetivo 2).} Se obtuvo un simulador configurable por archivos, en el que cada nodo ejecuta las clases de enrutamiento y de detección de fallos del
-nodo de red, con el medio como único reemplazo. Soporta dos tipos de mapa, tres modos de movilidad de Gateway, tres de usuarios contando el reposo, y cuatro formas
-de ejecución. Su límite es la escala: corre por encima del tiempo real hasta unas decenas de nodos, y por debajo con 100 nodos densos, de modo que su ventaja
-frente a la emulación es el control y la instrumentación, no el tamaño.
+\textbf{Sobre el diseño (objetivo 2).} La arquitectura en capas deja el código
+del nodo sin cambios y reemplaza únicamente la red por un modelo del medio que
+depende de la distancia y de los pisos. Los paquetes avanzan con la tabla de
+rutas de cada nodo y los Gateway se mueven solo con lo que oyen, con lo que se
+eliminaron los tres usos de información global, que quedan solo como referencia
+de comparación.
 
-\textbf{Sobre los mecanismos locales (objetivo 3).} El plano de datos y la movilidad descentralizada eliminaron las tres dependencias de información global, las cuales
-quedan solo como línea base declarada. Las métricas de descentralización aportaron el hallazgo más revelador: en el escenario \texttt{base}, la exactitud del conocimiento cae de 0.95 a 0.55
-con la movilidad descentralizada, algo que ninguna métrica física mostraba.
+\textbf{Sobre la implementación (objetivo 3).} Se obtuvo un simulador que se
+configura con archivos, con dos tipos de mapa, tres modos de movimiento de los
+Gateway, tres de los usuarios, tres tipos de paquete (UDP, ICMP y TCP), caídas
+programables y cuatro formas de ejecución, entre ellas una interfaz web en la
+que cada función se puede observar. Su límite es el tamaño: corre más rápido
+que el tiempo real hasta unas decenas de nodos, y más lento con 100 nodos
+juntos. Su ventaja frente a la emulación es el control y las mediciones, no el
+tamaño.
 
-\textbf{Sobre la verificación (objetivo 4).} Las 371 pruebas automatizadas, la regresión de lotes, la coincidencia con valores calculados a mano y la reproducción byte a byte de las tablas
-en dos máquinas respaldan la consistencia interna de la herramienta. Se detectaron y corrigieron defectos de fondo, como un TQ que valía siempre 1.0. Queda sin hacer la validación
-externa, contra radios físicas o batman-adv, que es la principal deuda del trabajo.
-
-\textbf{Sobre la evaluación (objetivo 5).} Con el despliegue de referencia y 10 semillas se concluye que:
+\textbf{Sobre las pruebas (objetivo 4).} De las once pruebas de simulación,
+nueve dieron lo esperado y dos lo dieron en parte
+(Tabla~\ref{tab:resumen-pruebas}). Con el despliegue de referencia y 10
+semillas se concluye que:
 
 \begin{itemize}
-\item La cobertura no revela el daño a la conectividad: la caída de un puente parte la malla 90~s con cobertura media de 1.000, y dos fallos dirigidos reducen la entrega de datos de 0.502 a 0.284 sin una diferencia de
-cobertura concluyente. Evaluar una red de este tipo exige medir a la vez la física, la entrega y la creencia de los nodos.
-\item La malla se puede reparar sin coordinador: con Gateway móviles, la partición por la caída del puente baja de 90~s a 6.2~s. El costo es una cobertura de 0.922 en ese mismo fallo, una
-reconvergencia más lenta tras la caída de un nodo redundante y un plano de control más débil.
-\item La movilidad descentralizada entrega más datos que \textit{repartir} en los tres escenarios comparados y más que \textit{seguir} en dos de ellos. Lo logra conectando a más pares, no enrutando mejor.
-\item La comparación entre protocolos depende del entorno: la inundación supera a B.A.T.M.A.N. en campo abierto con cerca del doble de transmisiones, y queda muy por debajo en el edificio (0.430 frente a 0.786). Este
-resultado se limita a un medio sin colisiones.
+\item \textit{Cobertura.} La cobertura no muestra el daño a la conectividad:
+la caída de un puente parte la malla 90~s con cobertura media de 1.000, y dos
+fallos dirigidos reducen la entrega de datos de 0.502 a 0.284 sin una
+diferencia de cobertura concluyente. Evaluar una red de este tipo exige medir
+a la vez la física, la entrega de datos y lo que cree cada nodo.
+\item \textit{Adaptabilidad.} La malla se puede adaptar sin coordinador: con
+Gateway móviles, la partición por la caída del puente baja de 90~s a 6.2~s. El
+costo es una cobertura de 0.922 en ese mismo fallo, rutas que tardan más en
+rehacerse tras la caída de un nodo redundante y tablas de rutas menos exactas:
+en el escenario \texttt{base}, la exactitud del conocimiento baja de 0.95 a
+0.55.
+\item \textit{Tipos de paquete.} Con el mismo tráfico, TCP entrega 0.924, UDP
+0.772 e ICMP 0.646; TCP lo logra con cerca de 2.6 veces las transmisiones de
+UDP.
+\item \textit{Protocolos.} La comparación depende del lugar: la inundación
+supera a B.A.T.M.A.N. en campo abierto con cerca del doble de transmisiones, y
+queda muy por debajo en el edificio (0.430 frente a 0.786). Este resultado vale
+para un medio sin colisiones.
+\item \textit{Repetibilidad.} Las tablas de resultados salieron idénticas byte
+a byte al repetir las corridas en dos computadores.
 \end{itemize}
 
-En conjunto, el trabajo muestra que la necesidad planteada es real: varios de estos resultados solo aparecieron al ejecutar el código del nodo, imponer decisiones locales y medir la
-creencia de los nodos, y algunos contradijeron lo que el propio proyecto daba por sentado. Estas conclusiones valen para esta implementación bajo este medio; su extrapolación a un despliegue físico está
-pendiente de validación.
+En conjunto, varios de estos resultados solo aparecieron al ejecutar el código
+del nodo, exigir decisiones locales y medir lo que cree cada nodo, y algunos
+contradijeron lo que el propio proyecto daba por cierto. Las conclusiones valen
+para esta implementación bajo este medio. No se hizo una validación con equipos
+físicos ni contra batman-adv, que es la principal tarea pendiente.
 
 \section{Recomendaciones}
 \label{sec:recomendaciones}
 
 \begin{itemize}
-\item \textbf{Validación externa.} Es la prioridad. Desplegar \texttt{mesh/node.py} en un banco pequeño de radios, repetir los experimentos de fallo y comparar con la simulación; y contrastar una topología contra batman-adv en un emulador o contra un modelo en ns-3.
-\item \textbf{Acercar el protocolo a B.A.T.M.A.N.} Reenviar solo la copia del mejor vecino y purgar originadores por tiempo, y medir cuánto se reducen los bucles y las pérdidas por rutas viejas.
-\item \textbf{Mejorar el medio.} Añadir enlaces asimétricos, variación temporal, colisiones y una capa de acceso al medio, para responder a las críticas conocidas a los modelos simples~\cite{Kotz2004Assumptions} y para evaluar la inundación con su costo real. Calibrar el medio con mediciones en un edificio.
-\item \textbf{Movilidad consciente de la calidad.} Incluir en las fuerzas la calidad de los enlaces y no solo el alcance, para atacar la degradación del plano de control. Evaluar los umbrales sobre escenarios no usados en su ajuste.
-\item \textbf{Aprendizaje de las reglas locales.} El simulador ofrece un entorno reproducible con agentes de observación parcial, recompensas medibles y un costo por corrida bajo. Esto permite plantear, como continuación en inteligencia artificial, el aprendizaje por refuerzo multiagente de la regla de movilidad, comparándola con la de fuerzas virtuales de este trabajo.
-\item \textbf{Escala.} Optimizar el procesamiento de OGM, que domina el tiempo de ejecución, para superar el límite actual de unos 100 nodos densos.
-\item \textbf{Rigor estadístico.} Aumentar el número de semillas en las comparaciones de magnitud reducida y aplicar corrección por comparaciones múltiples.
-\item \textbf{Latencia.} Resolver los saltos con un retardo modelado en lugar de dentro de un paso, lo que permitiría medir la latencia.
+\item \textbf{Validación externa.} Es la prioridad. Instalar el nodo de red
+(\texttt{mesh/node.py}) en un grupo pequeño de equipos de radio, repetir las
+pruebas de fallo y comparar con la simulación; y comparar una topología con
+batman-adv en un emulador o con un modelo en ns-3.
+\item \textbf{Acercar el protocolo a B.A.T.M.A.N.} Reenviar solo la copia del
+mejor vecino y borrar los nodos de origen que llevan tiempo en silencio, y
+medir cuánto se reducen los bucles y las pérdidas por rutas viejas.
+\item \textbf{Mejorar el medio.} Añadir enlaces que no sean simétricos, cambios
+en el tiempo, colisiones y una capa de acceso al medio, para responder a las
+críticas conocidas a los modelos simples~\cite{Kotz2004Assumptions} y para
+evaluar la inundación con su costo real~\cite{Ni1999BroadcastStorm}. Calibrar
+el medio con mediciones en un edificio~\cite{Seidel1992Multifloor}.
+\item \textbf{Retardo y transporte.} Resolver los saltos con un retardo en
+lugar de dentro de un paso, lo que permitiría medir el retardo de los paquetes
+y representar TCP con sus tiempos de espera y su control de
+congestión~\cite{Eddy2022TCP}.
+\item \textbf{Movimiento que tenga en cuenta la calidad.} Incluir en las reglas
+la calidad de los enlaces y no solo el alcance, para que las tablas de rutas no
+se queden atrás. Evaluar los umbrales en escenarios que no se usaron para
+ajustarlos.
+\item \textbf{Aprendizaje de las reglas locales.} El simulador ofrece un
+entorno repetible, con agentes que solo tienen información parcial, resultados
+medibles y un costo bajo por corrida. Esto permite plantear, como continuación
+en inteligencia artificial, que los Gateway aprendan su regla de movimiento, y
+compararla con la de este trabajo.
+\item \textbf{Tamaño.} Optimizar el procesamiento de los OGM, que consume la
+mayor parte del tiempo, para superar el límite actual de unos 100 nodos juntos.
+\item \textbf{Estadística.} Aumentar el número de semillas en las comparaciones
+de magnitud pequeña y aplicar una corrección por hacer varias
+comparaciones~\cite{Jain1991Art}.
 \end{itemize}

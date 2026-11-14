@@ -1,59 +1,68 @@
 % Introducción: importancia, origen, objetivos, alcance, limitaciones y
 % metodología. Sin anticipar resultados ni conclusiones (NTC 1486).
 
-Una red descentralizada se define por lo que le falta: no hay un servidor, un
-controlador ni un punto desde el cual se conozca el estado completo del sistema.
-Cada nodo decide con la información que le llega, y esa información es parcial y
-llega tarde. Esta propiedad es lo que hace valiosas a estas redes, porque no
-dependen de una infraestructura que pueda fallar, y también lo que las hace
-difíciles de evaluar: el comportamiento que importa no está en ningún nodo, sino
-en la distancia entre lo que cada uno cree y lo que realmente ocurre.
+En una red descentralizada no hay un servidor, un controlador ni un punto desde
+el cual se conozca el estado completo del sistema: los nodos se comunican entre
+sí y cada uno reenvía los mensajes de los demás~\cite{Corson1999RFC2501,Akyildiz2005Mesh}.
+Cada nodo decide con la información que le llega, que es parcial y llega con
+retraso. Esta característica es la que hace valiosas a estas redes, porque no
+dependen de una infraestructura que pueda fallar~\cite{Reina2015Disaster}, y es
+también la que las hace difíciles de evaluar: lo que importa no está en ningún
+nodo en particular, sino en la diferencia entre lo que cada nodo cree y lo que
+realmente ocurre.
 
-La evaluación de protocolos de red se apoya mayoritariamente en la simulación,
-porque desplegar decenas de radios, repetir las condiciones del canal y provocar
-fallos a voluntad resulta costoso o directamente imposible. Sin embargo, la
-credibilidad de los estudios de simulación es una preocupación documentada
-desde hace dos décadas~\cite{Pawlikowski2002Credibility,Kurkowski2005Incredibles},
-y se ha mostrado que simuladores distintos pueden dar resultados muy diferentes
-para un mismo protocolo~\cite{Cavin2002Accuracy}. A esto se suma un problema de
-fondo: una herramienta de propósito general evalúa un modelo del protocolo escrito
-para ella y, además, facilita decidir con información global que ningún nodo real
-tendría. Un experimento así puede hablar de una red descentralizada sin
-respetar la condición que la define.
+Los protocolos de red se evalúan sobre todo mediante simulación, es decir, con
+un programa que imita la red en un computador, porque desplegar decenas de
+equipos, repetir las mismas condiciones y provocar fallos a voluntad resulta
+costoso o imposible~\cite{Wehrle2010Modeling,Kiess2007RealWorld}. Sin embargo, la
+confianza en los estudios de simulación es una preocupación documentada desde
+hace dos décadas~\cite{Pawlikowski2002Credibility,Kurkowski2005Incredibles}, y se
+ha mostrado que simuladores distintos pueden dar resultados muy diferentes para
+un mismo protocolo~\cite{Cavin2002Accuracy}. A esto se suma un problema de fondo.
+Un simulador de propósito general evalúa una copia del protocolo escrita para esa
+herramienta~\cite{Riley2010ns3,Varga2008Omnetpp} y, como el programa conoce toda
+la red, resulta fácil decidir con información que ningún nodo real tendría. Un
+experimento así puede hablar de una red descentralizada sin respetar la condición
+que la define.
 
-El origen de este trabajo es un simulador de la red B.A.T.M.A.N. orientado a
-operaciones de búsqueda y rescate, disponible en el repositorio del
-tutor~\cite{JofsanchezciSimulador}. Al revisarlo con
-la orientación del tutor, el foco del proyecto se desplazó hacia una pregunta más
-general: \textit{la necesidad de un simulador hecho a la medida para redes
-descentralizadas}. La revisión encontró que la herramienta de partida, concebida para otro propósito,
-decidía con información global en tres puntos: los Gateway se movían mirando las
-posiciones de todos los nodos, los mensajes se entregaban por el camino más corto
-del grafo real sin consultar las tablas de enrutamiento, y no circulaba tráfico
-de datos. Corregirlos se volvió parte central del trabajo, y la aplicación concreta
-pasó a ser una Red de Expansión de Cobertura.
+Este trabajo parte de un simulador de la red B.A.T.M.A.N. orientado a operaciones
+de búsqueda y rescate, disponible en el repositorio del
+tutor~\cite{JofsanchezciSimulador}. Al revisarlo con su orientación, el interés
+del proyecto pasó a una pregunta más general: qué debe tener un simulador para
+redes descentralizadas. La revisión encontró que la herramienta de partida,
+concebida para otro propósito, decidía con información global en tres puntos: los
+Gateway se movían mirando las posiciones de todos los nodos, los mensajes se
+entregaban por el camino más corto de la red real sin consultar las tablas de
+rutas, y no circulaban paquetes de datos. Corregir esos tres puntos se volvió
+parte central del trabajo, y la aplicación concreta pasó a ser una Red de
+Expansión de Cobertura: una malla de equipos de radio que lleva conectividad a
+los usuarios de un área.
 
-El objetivo de este documento es presentar el diseño, la construcción y la
-evaluación de ese simulador. La herramienta ejecuta en cada nodo simulado las
+El objetivo de este documento es presentar la implementación de ese simulador y
+las pruebas hechas con él. La herramienta ejecuta en cada nodo simulado las
 mismas clases de enrutamiento y de detección de fallos que usa el nodo de red, y
-sustituye únicamente la capa de transporte por un modelo del medio radio con
-distancia y pisos. Se evalúa con un despliegue de cobertura en un edificio de tres
-pisos, sometido a distintos tipos de fallo, con Gateway fijos y móviles, y se
-compara con líneas base de movilidad centralizada y con un protocolo de inundación.
+reemplaza únicamente la red por un modelo del medio de radiofrecuencia que
+depende de la distancia y de los pisos. Las pruebas son simulaciones de una malla
+en un edificio de tres pisos, sometida a distintos tipos de fallo, con Gateway
+fijos y móviles, con tres tipos de paquete y con un protocolo de inundación como
+comparación.
 
-La metodología combina el desarrollo iterativo guiado por pruebas automatizadas
-con un diseño experimental de corridas por semillas, en el que cada cifra del
-documento procede de un lote versionado que puede volver a ejecutarse. El trabajo
-se limita a un simulador por pasos de tiempo. No incluye un despliegue en \textit{hardware},
-no modela colisiones ni la capa de acceso al medio en detalle, y no mide latencia.
-Estas limitaciones se tratan de manera explícita a lo largo del documento, porque
-condicionan qué se puede afirmar a partir de los resultados.
+El desarrollo siguió cuatro etapas, que corresponden a los objetivos
+específicos: requerimientos, diseño, implementación y pruebas. Cada cifra del
+documento procede de un archivo de experimento guardado en el repositorio, que
+se puede volver a ejecutar. El trabajo se limita a un simulador que avanza por
+pasos de tiempo. No incluye un despliegue con equipos físicos, no representa
+las colisiones entre transmisiones ni el detalle del acceso al medio, y no mide
+el retardo de los paquetes. Estas limitaciones se tratan de manera explícita a lo
+largo del documento, porque condicionan lo que se puede afirmar a partir de los
+resultados.
 
 El documento se organiza así. El Capítulo~\ref{cap:planteamiento} plantea el
-problema, los objetivos y el alcance. El Capítulo~\ref{cap:estado-arte} revisa las
-herramientas existentes y delimita la brecha. El Capítulo~\ref{cap:metodologia}
-describe el método de desarrollo y el diseño experimental. El
-Capítulo~\ref{cap:desarrollo} presenta la arquitectura y los mecanismos del
-simulador. El Capítulo~\ref{cap:resultados} reporta y discute los resultados, y el
-Capítulo~\ref{cap:conclusiones} responde a los objetivos y propone líneas futuras.
-Los anexos indican cómo reproducir los resultados.
+problema, los objetivos y el alcance. El Capítulo~\ref{cap:estado-arte} revisa
+las herramientas existentes y señala lo que les falta. El
+Capítulo~\ref{cap:metodologia} describe el método de trabajo y la forma de medir.
+El Capítulo~\ref{cap:desarrollo} presenta el desarrollo del simulador en el orden
+de los objetivos: requerimientos, diseño, implementación y pruebas. El
+Capítulo~\ref{cap:resultados} reporta y discute los resultados de las pruebas, y
+el Capítulo~\ref{cap:conclusiones} responde a los objetivos y propone trabajo
+futuro. Los anexos indican cómo reproducir los resultados.

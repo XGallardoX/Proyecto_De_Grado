@@ -11,12 +11,17 @@
 \endhead
 a_f & Atenuación por piso de diferencia (\texttt{floor\_atten}) & 1 & \text{Ec.~\ref{eq:fiabilidad}}\\
 d & Distancia entre dos nodos & m & \\
-h & Semiancho de un intervalo de confianza & & \\
+\bar{D} & Promedio de las diferencias pareadas entre dos configuraciones & & \text{Ec.~\ref{eq:ic}}\\
 LQ & Calidad de enlace: fracción recibida de la ventana de secuencias & 1 & \text{Ec.~\ref{eq:tq}}\\
+n & Número de semillas (corridas) de una comparación & 1 & \text{Ec.~\ref{eq:ic}}\\
+o,\ v & Nodo que origina un OGM y vecino por el que llega & & \text{Ec.~\ref{eq:tq}}\\
 p_0 & Pérdida base del medio (\texttt{perdida\_base}) & 1 & \text{Ec.~\ref{eq:fiabilidad}}\\
 R & Alcance máximo de radio (\texttt{rango\_comm}) & m & \text{Ec.~\ref{eq:fiabilidad}}\\
 r & Fiabilidad: probabilidad de entrega de una transmisión & 1 & \text{Ec.~\ref{eq:fiabilidad}}\\
+s_D & Desviación estándar de las diferencias pareadas & & \text{Ec.~\ref{eq:ic}}\\
+t_{0.975,\,n-1} & Valor de la distribución $t$ de Student con $n-1$ grados de libertad & 1 & \text{Ec.~\ref{eq:ic}}\\
 TQ & Calidad de transmisión acumulada de una ruta & 1 & \text{Ec.~\ref{eq:tq}}\\
+W_{o,v} & Ventana de las últimas 16 secuencias de $o$ esperadas por $v$; $w$ es cada elemento (1 recibida, 0 perdida) & 1 & \text{Ec.~\ref{eq:tq}}\\
 \end{longtable}
 
 \section*{S\'{\i}mbolos con letras griegas}
@@ -37,12 +42,15 @@ TQ & Calidad de transmisión acumulada de una ruta & 1 & \text{Ec.~\ref{eq:tq}}\
 \endhead
 B.A.T.M.A.N. & \textit{Better Approach To Mobile Ad-hoc Networking} \\
 IC & Intervalo de confianza \\
+ICMP & \textit{Internet Control Message Protocol}; aquí, el eco (\textit{ping}) \\
 MAC & \textit{Medium Access Control}, control de acceso al medio \\
 MANET & \textit{Mobile Ad-hoc Network}, red ad-hoc móvil \\
 OGM & \textit{Originator Message}, mensaje de originador \\
 OLSR & \textit{Optimized Link State Routing} \\
 P2P & \textit{Peer-to-peer}, red entre pares \\
 RPGM & \textit{Reference Point Group Mobility}, movilidad en grupo por punto de referencia \\
-SSE & \textit{Server-Sent Events} \\
+TCP & \textit{Transmission Control Protocol}, envío con confirmación \\
+TQ & \textit{Transmission Quality}, calidad de transmisión de una ruta \\
 TTL & \textit{Time To Live}, saltos restantes de un mensaje \\
+UDP & \textit{User Datagram Protocol}, envío sin confirmación \\
 \end{longtable}

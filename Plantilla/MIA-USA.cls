@@ -300,4 +300,5 @@
 
 %%  Comandos definidos para las tablas y demás información del preámbulo
 %% - -- --- ----- ------- ----------- ------------- ----------- ------- ----- --- -- -
-\renewcommand*\thesection{\arabic{section}}
+% Secciones numeradas con el capítulo: 2.1, 2.2, 2.3 (indicación del tutor).
+\renewcommand*\thesection{\thechapter.\arabic{section}}

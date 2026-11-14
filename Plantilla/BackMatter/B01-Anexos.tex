@@ -1,35 +1,36 @@
-% Anexo: cómo reproducir los resultados.
+% Anexo A: cómo reproducir los resultados. Anexo B: comprobaciones automáticas.
 
-\section*{Reproducción de los resultados}
+\section*{Anexo A. Reproducción de los resultados}
 
 Todas las tablas y figuras del Capítulo~\ref{cap:resultados} se generan a partir de los lotes del
 repositorio. Se requiere Python 3 con las dependencias de \texttt{requirements.txt}.
 
-\section*{Preparar el entorno}
+\subsection*{Preparar el entorno}
 
 \begin{verbatim}
 python3 -m venv venv
 venv/bin/pip install -r requirements.txt
-venv/bin/python -m unittest discover -s tests
 \end{verbatim}
 
-\section*{Correr los experimentos}
+\subsection*{Correr las pruebas de simulación}
 
-Cada lote deja su salida en \texttt{reportes/}: resumen estadístico, una fila por corrida, y los
-reportes de cada semilla.
+Cada lote deja su salida en \texttt{reportes/}: el resumen estadístico, una fila por corrida y los
+reportes de cada semilla. Entre paréntesis, la prueba de la Tabla~\ref{tab:experimentos} a la que
+corresponde.
 
 \begin{verbatim}
-venv/bin/python main.py --batch lotes/capitulo5_fallos.json
-venv/bin/python main.py --batch lotes/capitulo5_fallos_movil.json
-venv/bin/python main.py --batch lotes/movilidad.json
-venv/bin/python main.py --batch lotes/movilidad_datos.json
-venv/bin/python main.py --batch lotes/robustez.json
-venv/bin/python main.py --batch lotes/generalidad.json
+venv/bin/python main.py --batch lotes/tipos_paquete.json           # P3
+venv/bin/python main.py --batch lotes/capitulo5_fallos.json        # P4
+venv/bin/python main.py --batch lotes/capitulo5_fallos_movil.json  # P5
+venv/bin/python main.py --batch lotes/movilidad.json               # P6
+venv/bin/python main.py --batch lotes/movilidad_datos.json         # P7
+venv/bin/python main.py --batch lotes/robustez.json                # P8
+venv/bin/python main.py --batch lotes/generalidad.json             # P9
 \end{verbatim}
 
-\section*{Generar tablas y figuras}
+\subsection*{Generar tablas y figuras}
 
-El siguiente comando toma el lote más reciente de cada tipo y reescribe las tablas de
+La siguiente orden toma el lote más reciente de cada tipo y vuelve a escribir las tablas de
 \texttt{Plantilla/MainMatter/Cap5/tablas/} y las figuras de \texttt{Plantilla/Images/Cap5/}. No
 corre simulaciones.
 
@@ -37,19 +38,23 @@ corre simulaciones.
 venv/bin/python -m analysis.capitulo5
 \end{verbatim}
 
-\section*{Explorar una corrida}
+\subsection*{Observar una prueba en la interfaz}
 
 \begin{verbatim}
-# Interfaz web local, con el escenario de la caída del puente
+# Interfaz web local, con el escenario de la caída del puente (P1, P2 y P4)
 venv/bin/python main.py --web --seed 1 \
     --config escenarios/fallos/fallo_puente.txt
 
-# Una corrida sin ventana, con el resumen en la terminal
+# La misma corrida sin ventana, con el resumen en la terminal
 venv/bin/python main.py --headless --duracion 240 --seed 1 \
     --config escenarios/fallos/fallo_puente.txt
 \end{verbatim}
 
-\section*{Compilar este documento}
+En la interfaz, la pestaña ``Tráfico'' permite elegir el tipo de paquete, la cantidad y el
+intervalo; la pestaña ``Red'' muestra la matriz de conocimiento, y la tecla O muestra los OGM del
+nodo seleccionado.
+
+\subsection*{Compilar este documento}
 
 \begin{verbatim}
 cd Plantilla
@@ -58,3 +63,52 @@ pdflatex main && bibtex main && pdflatex main && pdflatex main
 
 El repositorio incluye una guía más amplia, con casos de uso y sus salidas esperadas, en
 \texttt{docs/guia\_ejecucion.md}.
+
+\section*{Anexo B. Comprobaciones automáticas del código}
+
+Además de las pruebas de simulación, el repositorio incluye 390 comprobaciones automáticas escritas
+con el módulo \texttt{unittest} de Python~\cite{Python}. Cada una ejecuta una parte pequeña del
+programa y compara el resultado con el valor correcto; por ejemplo, que un OGM perdido baje el TQ,
+que un enlace sin pérdidas lo mantenga en 1.0, o que una caída programada dé lo mismo que la misma
+caída hecha a mano en la interfaz. Sirven para detectar si un cambio en el programa dañó algo que
+ya funcionaba. La Tabla~\ref{tab:pruebas} muestra cómo se reparten. Se ejecutan con:
+
+\begin{verbatim}
+venv/bin/python -m unittest discover -s tests
+\end{verbatim}
+
+Las 390 pasan; en Linux se omite una, que necesita un componente de macOS.
+
+\begin{table}[htbp!]
+    \centering
+    \caption{Comprobaciones automáticas del código, por área del simulador}
+    \label{tab:pruebas}
+    \footnotesize
+    \begin{tabular}{|p{9.2cm}|p{2.6cm}|}
+        \hline
+        \textbf{Área} & \textbf{Comprobaciones} \\
+        \hline
+        Protocolo (TQ, elección de rutas) y medio de radiofrecuencia & 17 \\
+        \hline
+        Motor y nodos simulados & 57 \\
+        \hline
+        Lectura y revisión de escenarios & 26 \\
+        \hline
+        Fallos programables y adaptación de rutas & 30 \\
+        \hline
+        Envío de paquetes de datos y tipos de paquete & 38 \\
+        \hline
+        Movimiento descentralizado & 13 \\
+        \hline
+        Métricas de lo que cree cada nodo & 12 \\
+        \hline
+        Otros mapas, movimiento de usuarios e inundación & 14 \\
+        \hline
+        Reportes, lotes, uso por terminal y análisis & 82 \\
+        \hline
+        Interfaz web & 101 \\
+        \hline
+        \textbf{Total} & \textbf{390} \\
+        \hline
+    \end{tabular}
+\end{table}

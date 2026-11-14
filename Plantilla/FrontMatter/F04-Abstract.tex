@@ -1,72 +1,81 @@
 % Resumen analítico (máximo 500 palabras) y su versión en inglés.
 \section*{Resumen}
 
-Las redes descentralizadas no tienen un punto desde el cual se pueda observar o
-controlar el sistema: cada nodo decide con lo que oye. Evaluarlas exige una
-herramienta que respete esa condición. Los simuladores de propósito general
-evalúan un modelo del protocolo reimplementado dentro de la herramienta; los
-emuladores ejecutan código real con un costo por nodo alto y sin un modelo listo
-de atenuación entre pisos, y las herramientas de redes entre pares no modelan el
-medio radio. Este trabajo plantea la necesidad de un simulador hecho a la medida
-y lo construye: una herramienta en Python que ejecuta en cada nodo simulado las
-mismas clases de enrutamiento B.A.T.M.A.N. y de detección de fallos del nodo de
-red, y reemplaza únicamente los sockets por un modelo del medio con distancia y
-pisos. Sobre esa base se implementó un plano de datos que avanza salto a salto
-por la tabla de cada nodo, una movilidad de Gateway que decide solo con lo oído,
-métricas de descentralización, caídas programables, ejecución por lotes con
-semillas y una interfaz web local.
+En una red descentralizada no existe un equipo central que vea o dirija todo el
+sistema: cada nodo decide con lo que alcanza a oír de sus vecinos. Para estudiar
+una red así antes de construirla se usan simuladores, pero las herramientas
+disponibles dejan vacíos. Los simuladores de propósito general evalúan una copia
+del protocolo escrita para la herramienta; los emuladores ejecutan el programa
+real, pero cada nodo consume muchos recursos y no incluyen un modelo listo de la
+pérdida de señal entre los pisos de un edificio, y las herramientas de redes
+entre pares no representan el medio de radiofrecuencia. Este trabajo implementa
+un simulador que atiende esos vacíos. Está escrito en Python y ejecuta en cada
+nodo simulado las mismas clases de enrutamiento B.A.T.M.A.N. y de detección de
+fallos que usa el nodo de red; lo único que reemplaza es la red, por un modelo
+del medio que depende de la distancia y de los pisos. El desarrollo siguió cuatro
+etapas: requerimientos, diseño, implementación y pruebas. El simulador envía
+paquetes de datos salto a salto con la tabla de rutas de cada nodo, permite elegir
+el tipo de paquete (UDP, ICMP o TCP), mueve los Gateway solo con información
+local, programa caídas de nodos, repite experimentos con semillas y se maneja
+desde una interfaz web local.
 
-Como caso de aplicación se evaluó una Red de Expansión de Cobertura con 7 Gateway
-y 6 Nodos de usuario en un edificio de tres pisos, con 10 semillas por
-experimento. La caída de un Gateway puente mantuvo la malla partida 90 s sin
-reducir la cobertura media (1.000): la cobertura, por sí sola, no revela el daño.
-Dos fallos dirigidos al nodo más crítico redujeron la entrega de datos a 0.284
-frente a 0.502 de dos fallos al azar (diferencia pareada de 0.218, IC 95~\%
-[0.149, 0.287]), con cobertura estadísticamente indistinguible. Con Gateway
-móviles, la partición por la caída del puente bajó de 90 s a 6.2 s, a costa de
-que la cobertura media descendiera a 0.922. La inundación entregó más que B.A.T.M.A.N. en campo abierto, con cerca
-del doble de transmisiones, pero mucho menos en el edificio (0.430 contra 0.786),
-donde sus difusiones carecen de reintentos sobre enlaces débiles. Las tablas de
-resultados se reprodujeron byte a byte en dos máquinas. El simulador no se
-validó contra hardware ni contra el módulo batman-adv, y su modelo de radio es
-simple: los resultados describen esta implementación bajo este medio. Esos
-frentes quedan como trabajo futuro.
+Las pruebas son simulaciones de una Red de Expansión de Cobertura con 7 Gateway
+y 6 Nodos de usuario en un edificio de tres pisos, con 10 semillas por prueba. La
+caída de un Gateway puente mantuvo la malla partida 90 s sin reducir la cobertura
+media (1.000): la cobertura, por sí sola, no muestra el daño. Dos fallos dirigidos
+al nodo más crítico redujeron la entrega de datos a 0.284 frente a 0.502 de dos
+fallos al azar (diferencia pareada de 0.218, IC 95~\% [0.149, 0.287]), con una
+cobertura estadísticamente indistinguible. Con Gateway móviles la malla se adaptó
+sola: la partición por la caída del puente bajó de 90 s a 6.2 s, a costa de que la
+cobertura media descendiera a 0.922. Con el mismo tráfico, TCP entregó 0.924 de
+los paquetes, UDP 0.772 e ICMP 0.646, y TCP necesitó cerca de 2.6 veces las
+transmisiones de UDP. La inundación entregó más que B.A.T.M.A.N. en campo
+abierto, con cerca del doble de transmisiones, pero mucho menos en el edificio
+(0.430 contra 0.786). Las tablas de resultados se reprodujeron byte a byte en dos
+máquinas. El simulador no se validó contra equipos físicos ni contra el módulo
+batman-adv, y su modelo del medio es simple: los resultados describen esta
+implementación bajo este medio. Esos frentes quedan como trabajo futuro.
 
 \textbf{Palabras clave}: redes descentralizadas, simulación, B.A.T.M.A.N., redes
-malladas, cobertura, tolerancia a fallos, movilidad descentralizada,
-reproducibilidad.
+malladas, cobertura, adaptabilidad, movilidad descentralizada, reproducibilidad.
 
 % Resumen en inglés
 \newpage
 \section*{Abstract}
 
-Decentralized networks have no vantage point from which the system can be
-observed or controlled: each node decides based on what it hears. Evaluating them
-requires a tool that respects this condition. General-purpose simulators evaluate
-a model of the protocol reimplemented inside the tool; emulators run real code at
-a high per-node cost and without a ready-made inter-floor attenuation model; and
-peer-to-peer tools do not model the radio medium. This work argues for a
-tailor-made simulator and builds one: a Python tool that runs, in every simulated
-node, the same B.A.T.M.A.N. routing and failure-detection classes as the network
-node, replacing only the sockets with a medium model based on distance and floors.
-On that base it adds a data plane that advances hop by hop through each node's own
-table, Gateway mobility that decides only from what is heard, decentralization
-metrics, programmable failures, seeded batch execution and a local web interface.
+In a decentralized network no central device sees or controls the whole system:
+each node decides based on what it hears from its neighbours. Simulators are used
+to study such networks before building them, but the available tools leave gaps.
+General-purpose simulators evaluate a copy of the protocol written for the tool;
+emulators run the real program, but each node is costly and they offer no
+ready-made model of signal loss between the floors of a building; and
+peer-to-peer tools do not represent the radio-frequency medium. This work
+implements a simulator that addresses those gaps. It is written in Python and
+runs, in every simulated node, the same B.A.T.M.A.N. routing and
+failure-detection classes used by the network node; the only thing it replaces is
+the network, with a medium model based on distance and floors. Development
+followed four stages: requirements, design, implementation and testing. The
+simulator forwards data packets hop by hop using each node's own routing table,
+lets the user choose the packet type (UDP, ICMP or TCP), moves Gateways using
+local information only, schedules node failures, repeats experiments with seeds
+and is operated from a local web interface.
 
-The application case is a Coverage Expansion Network with 7 Gateways and 6 user
-nodes in a three-storey building, using 10 seeds per experiment. Losing a bridge
+The tests are simulations of a Coverage Expansion Network with 7 Gateways and 6
+user nodes in a three-storey building, with 10 seeds per test. Losing a bridge
 Gateway kept the mesh partitioned for 90 s without lowering mean coverage (1.000):
-coverage alone does not reveal the damage. Two failures targeting the most critical
+coverage alone does not show the damage. Two failures targeting the most critical
 node reduced data delivery to 0.284 against 0.502 for two random failures (paired
 difference 0.218, 95\% CI [0.149, 0.287]), with statistically indistinguishable
-coverage. With mobile Gateways, the partition caused by the bridge failure fell
-from 90 s to 6.2 s, at the cost of mean coverage falling to 0.922. Flooding delivered more than B.A.T.M.A.N. in open
-terrain, with about twice the transmissions, but far less in the building (0.430
-against 0.786), where its broadcasts have no retries over weak links. Result tables
+coverage. With mobile Gateways the mesh adapted by itself: the partition caused
+by the bridge failure fell from 90 s to 6.2 s, at the cost of mean coverage
+falling to 0.922. Under the same traffic, TCP delivered 0.924 of the packets, UDP
+0.772 and ICMP 0.646, and TCP needed about 2.6 times the transmissions of UDP.
+Flooding delivered more than B.A.T.M.A.N. in open terrain, with about twice the
+transmissions, but far less in the building (0.430 against 0.786). Result tables
 were reproduced byte for byte on two machines. The simulator was not validated
-against hardware or the batman-adv module, and its radio model is simple: the
-results describe this implementation under this medium. Those fronts remain as
-future work.
+against physical devices or the batman-adv module, and its medium model is
+simple: the results describe this implementation under this medium. Those fronts
+remain as future work.
 
 \textbf{Keywords}: decentralized networks, simulation, B.A.T.M.A.N., mesh networks,
-coverage, fault tolerance, decentralized mobility, reproducibility.
+coverage, adaptability, decentralized mobility, reproducibility.

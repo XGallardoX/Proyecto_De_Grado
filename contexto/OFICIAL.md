@@ -1,6 +1,6 @@
 # Documento oficial del proyecto
 
-Fecha: 2026-11-04. **Este es el archivo oficial**: si otro documento de
+Fecha: 2026-11-13. **Este es el archivo oficial**: si otro documento de
 `contexto/` o `docs/` dice algo distinto sobre el estado del proyecto,
 manda este. Los demás quedan como historia y detalle (ver el final).
 
@@ -10,16 +10,17 @@ manda este. Los demás quedan como historia y detalle (ver el final).
 
 | Campo | Valor | Estado |
 |---|---|---|
-| Título | *Un simulador a la medida para redes descentralizadas: cobertura y resiliencia de una malla B.A.T.M.A.N.* | Confirmado |
+| Título | *Un simulador para redes descentralizadas: cobertura y adaptabilidad de una malla B.A.T.M.A.N.* | Cambiado el 2026-11-13 por indicación del tutor (sin "a la medida"; "adaptabilidad" en vez de "resiliencia") |
 | Tutor y profesor | Joaquín Fernando Sánchez Cifuentes | Confirmado |
 | Autores | Juan Camilo Gallardo Sánchez (XGallardoX) y Jefferson Gutiérrez Tovar | Confirmado |
 | Programa | Pregrado en Ingeniería de Ciencias de la Computación e Inteligencia Artificial, Universidad Sergio Arboleda | Confirmado. La plantilla `MIA-USA.cls` es la misma de pregrado y posgrado: solo cambian los datos de portada |
-| Encuadre | Problema: la necesidad de un simulador hecho a la medida para redes descentralizadas. Caso de aplicación: Red de Expansión de Cobertura | Decidido |
+| Encuadre | Problema: una sola pregunta (cómo implementar un simulador para redes descentralizadas…). Objetivo general: *implementar* el simulador. Objetivos específicos: requerimientos, diseño, implementación y pruebas. Caso de aplicación: Red de Expansión de Cobertura | Decidido (tutor, 2026-11-13) |
 
 ## Estado actual
 
-**El simulador y el borrador completo del documento están hechos.** El PDF
-compila sin errores ni referencias rotas: 75 páginas. Copia para leer sin
+**El simulador y el borrador completo del documento están hechos, con las
+correcciones del tutor del 2026-11-13 aplicadas** (ver la sección siguiente). El PDF
+compila sin errores ni referencias rotas: 92 páginas. Copia para leer sin
 instalar LaTeX: `Plantilla/documento_actual.pdf`.
 
 | Parte del documento | Archivo en `Plantilla/` | Estado |
@@ -32,15 +33,44 @@ instalar LaTeX: `Plantilla/documento_actual.pdf`.
 | Cap. 1 Introducción | `MainMatter/Cap0/` | Escrito |
 | Cap. 2 Planteamiento y objetivos | `MainMatter/Cap1/` | Escrito |
 | Cap. 3 Estado del arte | `MainMatter/Cap2/` | Revisado y actualizado al encuadre |
-| Cap. 4 Metodología | `MainMatter/Cap3/` | Escrito |
-| Cap. 5 Desarrollo | `MainMatter/Cap4/` | Escrito |
-| Cap. 6 Resultados y discusión | `MainMatter/Cap5/` | Escrito |
+| Cap. 4 Metodología | `MainMatter/Cap3/` | Escrito. Ya no trae los requerimientos ni la tabla de experimentos (pasaron al Cap. 5) |
+| Cap. 5 Desarrollo | `MainMatter/Cap4/` | Reorganizado: 5.1 Requerimientos, 5.2 Diseño, 5.3 Implementación, 5.4 Pruebas |
+| Cap. 6 Resultados y discusión | `MainMatter/Cap5/` | Organizado por prueba (P1 a P11): esperado contra obtenido |
 | Cap. 7 Conclusiones | `MainMatter/Cap9/` | Escrito |
-| Anexos (reproducción) | `BackMatter/B01-Anexos.tex` | Escrito |
+| Anexos | `BackMatter/B01-Anexos.tex` | A: reproducción. B: comprobaciones automáticas (las 390 pruebas `unittest`) |
 
 Ojo con los números: los nombres de carpeta no coinciden con el capítulo
 impreso. Lo que el código y los documentos viejos llaman "Capítulo 5" es el
 **Capítulo 6** del PDF. Dentro del texto se usan siempre `\ref`.
+
+## Correcciones del tutor (2026-11-13)
+
+Aplicadas en el documento:
+
+- Sin "a la medida"; "cobertura y adaptabilidad", sin "resiliencia"; "medio de
+  radiofrecuencia" en vez de "medio radio" (también en el código y los docs).
+- Problema formulado como una sola pregunta; objetivo general "Implementar…";
+  objetivos específicos: requerimientos, diseño, implementación y pruebas.
+- Secciones numeradas con el capítulo (2.1, 2.2…): cambio en `MIA-USA.cls`.
+  **Esto reemplaza la regla anterior de "manda la plantilla" para los títulos.**
+- Cap. 5 en el orden de los objetivos. Las "pruebas" son simulaciones (P1 a P11),
+  cada una con nombre, propósito y resultado esperado (tabla `tab:experimentos`);
+  las pruebas `unittest` pasaron al Anexo B como "comprobaciones automáticas".
+- Redacción menos técnica; cada ecuación con sus símbolos definidos; leyendas de
+  figuras que describen lo que se ve; citas en las afirmaciones que las admiten.
+- Evidencia visual: 11 capturas de la interfaz en `Images/Cap4/`, tomadas del
+  simulador (escenario `fallo_puente`, semilla 1), más una tabla con las métricas
+  de una corrida (`tab:corrida-puente`).
+- 14 referencias nuevas, comprobadas en Crossref (RFC 768 y 792, en el RFC).
+
+En el simulador: tipos de paquete **UDP, ICMP y TCP** (`sim/datos.py`), con
+`tipo`/`cantidad` por flujo, el parámetro `tipo_paquete`, la pestaña **Tráfico**
+de la interfaz y el lote `lotes/tipos_paquete.json` (tabla `tipos_paquete`).
+Los lotes con tráfico se volvieron a correr y sus tablas salieron idénticas.
+
+Pendiente de esas correcciones: que los autores lean el texto nuevo; el tutor
+también pidió revisar la redacción y comparar el simulador con otros modelos
+(la Tabla `tab:faltantes` del Cap. 6 es un primer paso).
 
 ## Lo que falta
 
@@ -58,7 +88,7 @@ Decisión de los autores (2026-11-04): el documento no lleva nota sobre el uso d
 - No se validó contra hardware ni contra batman-adv. Lo que corre es la
   implementación en Python de `mesh/`, con diferencias conocidas respecto de
   B.A.T.M.A.N. (Sección 5.11 del PDF).
-- El medio de radio es simple: simétrico y sin colisiones.
+- El medio de radiofrecuencia es simple: simétrico y sin colisiones.
 - No se mide latencia.
 - La escala llega a unas decenas de nodos: con 100 nodos densos ya corre por
   debajo del tiempo real.
@@ -73,7 +103,7 @@ Decisión de los autores (2026-11-04): el documento no lleva nota sobre el uso d
 ## Resultados oficiales
 
 Todas las cifras del Capítulo 6 salen de estos lotes (10 semillas cada uno,
-420 corridas en total), corridos el 2026-11-04:
+450 corridas en total), corridos el 2026-11-04 (`tipos_paquete`, el 2026-11-13):
 
 | Lote (`lotes/`) | Qué compara | Tablas |
 |---|---|---|
@@ -83,6 +113,7 @@ Todas las cifras del Capítulo 6 salen de estos lotes (10 semillas cada uno,
 | `movilidad_datos.json` (nuevo) | Tres modos con 6 flujos de datos | `movilidad_datos` |
 | `robustez.json` | Fallos al azar contra dirigidos | `robustez` |
 | `generalidad.json` (nuevo) | B.A.T.M.A.N. contra inundación en dos mapas | `generalidad` |
+| `tipos_paquete.json` (2026-11-13) | UDP, ICMP y TCP en el edificio, 6 flujos | `tipos_paquete` |
 
 La tabla `diferencias` trae las diferencias pareadas con su intervalo del 95 %.
 
@@ -97,6 +128,8 @@ Resultados principales:
   cobertura en ese fallo baja a 0.922.
 - **El plano de control se degrada:** en `base`, la exactitud del conocimiento
   cae de 0.95 (`seguir`) a 0.55 (descentralizada).
+- **Tipos de paquete:** TCP entrega 0.924, UDP 0.772 e ICMP 0.646; TCP usa 2.6
+  veces las transmisiones de UDP.
 - **Inundación contra B.A.T.M.A.N.:** depende del mapa. En campo abierto gana la
   inundación con cerca del doble de transmisiones; en el edificio gana
   B.A.T.M.A.N. (0.786 contra 0.430).
@@ -116,7 +149,8 @@ Después solo cambió su formato (anchos de columna).
 ## Fuentes
 
 Auditoría del 2026-11-04 sobre la bibliografía impresa (44 referencias, ninguna
-cita rota).
+cita rota). El 2026-11-13 se añadieron 14 más (58 en total): 12 comprobadas en
+Crossref; los RFC 768 y 792 y el libro de Jain (1991), por su referencia canónica.
 
 | Tipo | Cantidad | Qué se comprobó |
 |---|---|---|
@@ -147,11 +181,11 @@ Modeler y NetSim.
 ## Cómo trabajar
 
 ```bash
-# Pruebas (371; en Linux se omite 1, que necesita macOS)
+# Pruebas (390; en Linux se omite 1, que necesita macOS)
 venv/bin/python -m unittest discover -s tests
 
 # Rehacer los resultados y regenerar tablas y figuras
-venv/bin/python main.py --batch lotes/<lote>.json   # los seis de arriba
+venv/bin/python main.py --batch lotes/<lote>.json   # los siete de arriba
 venv/bin/python -m analysis.capitulo5
 
 # Compilar (TeX Live en ~/texlive/2026, en la máquina de XGallardoX)
@@ -159,9 +193,9 @@ export PATH=~/texlive/2026/bin/x86_64-linux:$PATH
 cd Plantilla && pdflatex main && bibtex main && pdflatex main && pdflatex main
 ```
 
-- **Formato:** manda la plantilla. Títulos, márgenes, numeración, "Cuadro" en los
-  títulos de tablas, bibliografía numerada y anexos antes de ella quedan como los
-  trae. Las referencias a secciones sí llevan el capítulo ("Sección 3.7").
+- **Formato:** manda la plantilla, salvo la numeración de secciones, que por
+  indicación del tutor lleva el capítulo (2.1, 2.2…). Márgenes, "Cuadro" en los
+  títulos de tablas, bibliografía numerada y anexos antes de ella quedan como los trae.
 - Las tablas de `MainMatter/Cap5/tablas/` y las figuras de `Images/Cap5/` son
   generadas: no se editan a mano. Si cambia un resultado, hay que revisar
   también las cifras citadas en la prosa del Capítulo 6, el resumen y las

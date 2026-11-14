@@ -1,138 +1,145 @@
 % Planteamiento del problema, justificación, objetivos y alcance. El problema
-% sigue la indicación del tutor: la necesidad de un simulador hecho a la medida
-% para redes descentralizadas.
+% sigue la indicación del tutor: la necesidad de un simulador para redes
+% descentralizadas, formulada como una sola pregunta.
 
 Este capítulo formula el problema que da origen al trabajo, justifica la
-construcción de una herramienta propia y fija los objetivos y el alcance.
+implementación de una herramienta propia y fija los objetivos y el alcance.
 
 \section{Planteamiento del problema}
 \label{sec:problema}
 
-Quien quiere evaluar un protocolo para una red descentralizada dispone de tres
-tipos de herramienta, y cada uno deja fuera algo que aquí resulta esencial
-(Capítulo~\ref{cap:estado-arte}). Los simuladores de propósito general, como ns-3 u
-OMNeT++, evalúan un modelo del protocolo reimplementado dentro de la herramienta, de
-modo que lo validado no es lo que se ejecutaría en un dispositivo. Los emuladores,
-como CORE o Mininet-WiFi, ejecutan código real, pero cada nodo consume recursos
-del anfitrión y el modelo de propagación entre pisos de un edificio no viene
-incluido. Las herramientas para redes entre pares o de consenso operan en la capa
-de aplicación y no modelan el medio radio ni el movimiento físico.
+Quien quiera evaluar un protocolo para una red descentralizada dispone de tres
+tipos de herramienta, y cada uno deja por fuera algo que aquí resulta esencial
+(Capítulo~\ref{cap:estado-arte}). Los simuladores de propósito general, como
+ns-3~\cite{Riley2010ns3} u OMNeT++~\cite{Varga2008Omnetpp}, evalúan una copia del
+protocolo escrita para la herramienta, de modo que lo que se comprueba no es el
+programa que se instalaría en un equipo. Los emuladores, como
+CORE~\cite{Ahrenholz2008Core} o Mininet-WiFi~\cite{Fontes2015MininetWifi},
+ejecutan el programa real, pero cada nodo consume recursos del computador y no
+incluyen un modelo de la pérdida de señal entre los pisos de un edificio. Las
+herramientas para redes entre pares, como PeerSim~\cite{Montresor2009Peersim},
+trabajan en la capa de aplicación y no representan el medio de radiofrecuencia
+ni el movimiento físico de los nodos.
 
-A estas diferencias se suma un riesgo más sutil. Un simulador tiene, por
-construcción, una vista global del sistema: conoce todas las posiciones, todos los
-enlaces y el camino más corto entre cualquier par de nodos. Si el experimento usa
-esa información para decidir algo que en la red real decidiría un nodo, ya no está
-evaluando una red descentralizada. El simulador del que parte este trabajo, concebido para otro propósito, se apoyaba en
-esa vista global en tres lugares: la movilidad de los Gateway consultaba las posiciones de
-todos los nodos, los mensajes se entregaban por búsqueda en el grafo real con
-garantía de llegada si existía un camino, y no había tráfico de datos que pusiera a
-prueba las tablas de rutas. Además, la calidad de transmisión (TQ), la métrica central
-del protocolo, valía siempre 1.0, porque nunca se registraban los mensajes perdidos.
+A estas diferencias se suma un riesgo menos visible. Un simulador conoce, por
+construcción, todo el sistema: las posiciones de los nodos, los enlaces y el
+camino más corto entre cualquier par. Si el experimento usa esa información para
+decidir algo que en la red real decidiría un nodo, ya no está evaluando una red
+descentralizada, en la que cada nodo solo dispone de información
+local~\cite{Corson1999RFC2501}. El simulador del que parte este
+trabajo~\cite{JofsanchezciSimulador}, concebido para otro propósito, usaba esa
+información global en tres lugares: el movimiento de los Gateway consultaba las
+posiciones de todos los nodos, los mensajes se entregaban buscando el camino en
+la red real, con garantía de llegada si existía alguno, y no había paquetes de
+datos que pusieran a prueba las tablas de rutas. Además, la calidad de
+transmisión (TQ), la medida con la que el protocolo elige sus
+rutas~\cite{Seither2011BatmanAdv}, valía siempre 1.0, porque nunca se
+registraban los mensajes perdidos.
 
-Por otra parte, en una red de este tipo las preguntas relevantes no se responden con
-una sola cifra de conectividad global: ¿qué cree cada nodo, y cuánto se aleja eso de
-la realidad?, ¿cuánto tarda la red en notar un fallo y repararse?, ¿qué nodos son
-críticos y qué pasa si caen precisamente esos?, ¿puede la red reorganizarse sin que
-nadie la coordine? Responderlas requiere instrumentar la vista de cada nodo y
-compararla con la verdad física, algo que la herramienta debe ofrecer como parte de
-su flujo de trabajo.
+Por otra parte, en una red de este tipo las preguntas de interés no se
+responden con una sola cifra de conectividad: qué cree cada nodo y cuánto se
+aleja eso de la realidad, cuánto tarda la red en notar un fallo y adaptarse, qué
+nodos son críticos y si la red puede reorganizarse sin que nadie la coordine.
+La literatura sobre la confianza en los estudios de simulación pide, además, que
+cada resultado se pueda repetir y que se declare qué parte del sistema es un
+modelo~\cite{Pawlikowski2002Credibility,Kurkowski2005Incredibles}.
 
-El problema se formula entonces así:
+El problema se formula entonces con la siguiente pregunta:
 
 \begin{quote}
-\textit{No se dispone de una herramienta que, al mismo tiempo, ejecute el código de
-enrutamiento de los nodos en lugar de un modelo aparte, no requiera virtualizar un sistema por nodo, modele el
-medio radio de una edificación, garantice que las decisiones de los nodos usen solo
-información local y mida la divergencia entre lo que cada nodo cree y lo que realmente
-sucede. Sin ella, la evaluación de redes descentralizadas queda sujeta a modelos que no
-corresponden a la implementación o a suposiciones de conocimiento global que
-contradicen el objeto de estudio.}
+\textit{¿Cómo implementar un simulador para redes descentralizadas que ejecute
+el código de enrutamiento de los nodos, represente el medio de radiofrecuencia
+de una edificación, tome sus decisiones solo con información local y permita
+medir la cobertura y la adaptabilidad de la red?}
 \end{quote}
 
-De ahí se derivan las preguntas que orientan el trabajo:
-
-\begin{enumerate}
-\item ¿Qué requisitos debe cumplir un simulador para evaluar una red descentralizada
-sin introducir decisiones con información global?
-\item ¿Qué revela un simulador así, sobre la cobertura y la resiliencia de una malla
-B.A.T.M.A.N., que no se aprecia en las métricas de conectividad habituales?
-\item ¿Qué ganancias y costos tiene que los Gateway decidan su movimiento solo con lo
-que oyen, frente a reglas que usan información global?
-\end{enumerate}
+En este documento, la \textit{cobertura} es la fracción de usuarios que la malla
+alcanza, y la \textit{adaptabilidad} es la capacidad de la malla para
+reorganizarse por sí misma cuando cambian las condiciones, por ejemplo cuando un
+nodo se cae o se mueve: rehacer sus rutas, volver a unirse y recuperar a los
+usuarios que quedaron sin servicio. Ambas se miden con las métricas de la
+Sección~\ref{sec:metricas}.
 
 \section{Justificación}
 \label{sec:justificacion}
 
 La justificación es de tres tipos. En lo \textbf{científico}, la literatura ha
-señalado problemas de credibilidad en los estudios de simulación
-de redes~\cite{Kurkowski2005Incredibles,Pawlikowski2002Credibility} y una
-sensibilidad de los resultados a la herramienta empleada~\cite{Cavin2002Accuracy}. Una
-herramienta en la que cada corrida se define por un archivo y una semilla, y en la que
-la frontera entre lo real y lo modelado es explícita, ataca directamente esos problemas.
+señalado problemas de confianza en los estudios de simulación de
+redes~\cite{Kurkowski2005Incredibles,Pawlikowski2002Credibility} y que los
+resultados dependen de la herramienta
+empleada~\cite{Cavin2002Accuracy}. Una herramienta en la que cada corrida se
+define con un archivo y una semilla, y en la que se declara qué parte es
+programa real y qué parte es modelo, atiende directamente esos problemas.
 
-En lo \textbf{práctico}, poder explorar con bajo costo el comportamiento de una malla
-antes de desplegarla (dónde poner los radios, qué pasa si cae uno, cuántos hacen
-falta) tiene valor por sí mismo para quien la diseña. Un archivo de escenario y una
-ejecución de minutos en un computador personal son un costo muy inferior al de un
-banco de pruebas físico.
+En lo \textbf{práctico}, las mallas inalámbricas se usan para dar conectividad
+donde no hay infraestructura o esta ha fallado~\cite{Akyildiz2005Mesh,Reina2015Disaster}.
+Poder explorar con bajo costo su comportamiento antes de desplegarlas (dónde
+poner los equipos, qué pasa si se cae uno, cuántos hacen falta) es útil para
+quien las diseña, y los bancos de prueba físicos son costosos y difíciles de
+repetir~\cite{Kiess2007RealWorld}.
 
-En lo \textbf{académico}, la interfaz permite ver lo que un nodo cree, su tabla y los
-mensajes que propagan esa información, lo que convierte a la herramienta en un recurso
-para enseñar el funcionamiento de las redes descentralizadas. Además, las reglas locales
-de movilidad conectan este trabajo con el campo de la inteligencia artificial: los
-Gateway son agentes que, sin coordinación central y con observación parcial, producen un
-comportamiento colectivo, lo que abre un entorno de pruebas para métodos de aprendizaje
-de estas reglas (Sección~\ref{sec:recomendaciones}).
+En lo \textbf{académico}, la interfaz permite ver lo que un nodo cree, su tabla
+de rutas y los mensajes con los que se propaga esa información, lo que convierte
+a la herramienta en un recurso para enseñar cómo funcionan estas redes. Además,
+las reglas locales de movimiento relacionan este trabajo con la inteligencia
+artificial: los Gateway son agentes que, sin coordinación central y con
+información parcial, producen un comportamiento colectivo, como en los métodos de
+despliegue autónomo~\cite{Howard2002PotentialFields,Poduri2004ConstrainedCoverage}.
+Esto deja un entorno de pruebas para aprender esas reglas
+(Sección~\ref{sec:recomendaciones}).
 
 \section{Objetivos}
 \label{sec:objetivos}
 
 \subsection{Objetivo general}
 
-Diseñar, implementar y evaluar un simulador hecho a la medida para redes
-descentralizadas que ejecute la lógica de enrutamiento B.A.T.M.A.N. de los nodos sobre
-un modelo del medio radio y permita estudiar, de forma reproducible y solo con decisiones
-locales, la cobertura y la resiliencia de una Red de Expansión de Cobertura ante fallos
-de nodos.
+Implementar un simulador para redes descentralizadas que ejecute la lógica de
+enrutamiento B.A.T.M.A.N. de los nodos sobre un modelo del medio de
+radiofrecuencia y permita estudiar, de forma repetible y solo con decisiones
+locales, la cobertura y la adaptabilidad de una Red de Expansión de Cobertura
+ante fallos de nodos.
 
 \subsection{Objetivos específicos}
 \label{subsec:objetivos-especificos}
 
 \begin{enumerate}
-\item Caracterizar las herramientas de simulación y emulación aplicables a redes
-descentralizadas, para delimitar la brecha que justifica una herramienta a la medida.
-\item Construir un simulador configurable mediante archivos de escenario que reutilice
-las clases de enrutamiento y de detección de fallos del nodo de red, con un modelo del medio
-que contemple la distancia y los pisos de una edificación.
-\item Incorporar mecanismos de decisión local (plano de datos salto a salto y movilidad
-descentralizada de los Gateway) y métricas que cuantifiquen la divergencia entre lo que
-cree cada nodo y la realidad física.
-\item Verificar el comportamiento del simulador mediante pruebas automatizadas,
-regresión de resultados y reproducibilidad de las corridas.
-\item Evaluar una Red de Expansión de Cobertura ante distintos tipos de fallo, comparando
-la movilidad descentralizada con líneas base centralizadas y B.A.T.M.A.N. con un protocolo
-de inundación.
+\item \textbf{Requerimientos.} Definir los requerimientos del simulador a partir
+de la revisión de las herramientas de simulación y emulación existentes.
+\item \textbf{Diseño.} Diseñar la arquitectura del simulador, el modelo del medio
+de radiofrecuencia y los mecanismos con los que los nodos deciden solo con
+información local.
+\item \textbf{Implementación.} Implementar el simulador con escenarios
+configurables, envío de paquetes de datos, movimiento de los Gateway, caídas
+programables de nodos y una interfaz para observarlo y manejarlo.
+\item \textbf{Pruebas.} Probar el simulador con simulaciones de una Red de
+Expansión de Cobertura que midan su cobertura y su adaptabilidad ante distintos
+tipos de fallo.
 \end{enumerate}
+
+El Capítulo~\ref{cap:desarrollo} sigue este mismo orden.
 
 \section{Alcance y limitaciones}
 \label{sec:alcance}
 
-\textbf{Se incluye:} un simulador por pasos de tiempo de 0.5~s en Python con interfaz de
-terminal, ventana propia e interfaz web local; escenarios en un edificio por pisos y en
-campo abierto; caídas y recuperaciones programables, al azar o dirigidas; tráfico de
-datos configurable; tres modos de movilidad de Gateway y dos de usuarios; y el análisis
-de resultados por lotes.
+\textbf{Se incluye:} un simulador en Python que avanza en pasos de 0.5~s, con
+uso por terminal, ventana propia e interfaz web local; escenarios en un edificio
+por pisos y en campo abierto; caídas y recuperaciones programables, al azar o
+dirigidas; tráfico de datos configurable con paquetes de tipo UDP, ICMP y TCP;
+tres modos de movimiento de los Gateway y tres de los usuarios; y el análisis de
+resultados por lotes de corridas.
 
-\textbf{No se incluye:} el despliegue físico de la malla; la comparación contra el
-módulo batman-adv del núcleo de Linux o contra otro simulador; el modelado de colisiones,
-interferencia o capa MAC detallada; la medición de latencia, porque cada salto se resuelve
-dentro de un paso; ni la seguridad de la red.
+\textbf{No se incluye:} el despliegue físico de la malla; la comparación contra
+el módulo batman-adv del núcleo de Linux~\cite{OpenMesh2024Batmanadv} o contra
+otro simulador; las colisiones, la interferencia y el detalle de la capa de
+acceso al medio; la medición del retardo, porque cada salto se resuelve dentro de
+un paso; ni la seguridad de la red.
 
-Dos precisiones condicionan la interpretación del trabajo. Primero, el código que se
-ejecuta es la implementación en Python del nodo de red de este proyecto (paquete
-\texttt{mesh/}), no el módulo batman-adv, y difiere de este en puntos que se documentan en la
-Sección~\ref{sec:fidelidad}. Segundo, el modelo de radio es una función simple de la
-distancia y los pisos, de modo que hereda supuestos que se saben optimistas respecto
-de un canal real~\cite{Kotz2004Assumptions}. Por ello, los resultados deben leerse como
-comportamiento de esta implementación bajo este medio, y no como predicción cuantitativa
-de un despliegue físico.
+Dos precisiones condicionan la interpretación del trabajo. Primero, el código
+que se ejecuta es la implementación en Python del nodo de red de este proyecto
+(paquete \texttt{mesh/}), no el módulo batman-adv, y difiere de este en puntos
+que se documentan en la Sección~\ref{sec:fidelidad}. Segundo, el modelo del medio
+es una función simple de la distancia y de los pisos, de modo que hereda
+supuestos que se saben optimistas frente a un canal
+real~\cite{Kotz2004Assumptions}. Por ello, los resultados deben leerse como el
+comportamiento de esta implementación bajo este medio, y no como una predicción
+numérica de un despliegue físico.

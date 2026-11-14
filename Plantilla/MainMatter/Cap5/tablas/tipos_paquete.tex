@@ -1,0 +1,21 @@
+% Generado por python -m analysis.capitulo5 (no editar a mano).
+\begin{table}[htbp!]
+    \centering
+    \caption{Entrega según el tipo de paquete en el despliegue de referencia}
+    \label{tab:cap5-tipos}
+    \footnotesize
+    \setlength{\tabcolsep}{3pt}
+    \begin{tabular}{|>{\raggedright\arraybackslash\hspace{0pt}}p{4.3cm}|>{\raggedright\arraybackslash\hspace{0pt}}p{2.0cm}|>{\raggedright\arraybackslash\hspace{0pt}}p{2.2cm}|>{\raggedright\arraybackslash\hspace{0pt}}p{1.6cm}|>{\raggedright\arraybackslash\hspace{0pt}}p{1.9cm}|>{\raggedright\arraybackslash\hspace{0pt}}p{1.9cm}|}
+        \hline
+        \textbf{Tipo de paquete} & \textbf{Entrega de datos} & \textbf{Transmisiones por paquete} & \textbf{Saltos} & \textbf{Perdidos por el radio} & \textbf{Perdidos sin ruta} \\
+        \hline
+        UDP (sin confirmación) & 0.772 $\pm$ 0.061 & 7.46 $\pm$ 1.96 & 3.91 $\pm$ 0.74 & 0.155 $\pm$ 0.048 & 0.053 $\pm$ 0.035 \\
+        \hline
+        ICMP (eco: ida y vuelta) & 0.646 $\pm$ 0.082 & 11.83 $\pm$ 2.67 & 3.85 $\pm$ 0.72 & 0.256 $\pm$ 0.060 & 0.079 $\pm$ 0.024 \\
+        \hline
+        TCP (confirmación y retransmisión) & 0.924 $\pm$ 0.024 & 19.39 $\pm$ 4.46 & 3.97 $\pm$ 0.74 & 0.007 $\pm$ 0.007 & 0.041 $\pm$ 0.012 \\
+        \hline
+    \end{tabular}
+
+    \vspace{0.4em}\parbox{15.1cm}{\scriptsize Media $\pm$ desviación estándar de 10 corridas de 240 s con 6 flujos entre Nodos de usuario y nodos fijos (lote \texttt{lotes/tipos\_paquete.json}). Un eco de ICMP cuenta como entregado solo si la respuesta vuelve al origen; un segmento de TCP, si llegó al destino, con hasta 3 retransmisiones.}
+\end{table}

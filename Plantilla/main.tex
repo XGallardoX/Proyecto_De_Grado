@@ -8,16 +8,11 @@
 \usepackage{breakcites}
 \usepackage{longtable}
 \usetikzlibrary{babel,positioning,fit,arrows.meta}
-% Títulos numerados como en la plantilla; las referencias llevan el capítulo,
-% porque cruzan capítulos.
-\makeatletter
-\renewcommand{\p@section}{\thechapter.}
-\renewcommand{\p@subsection}{\thechapter.}
-\makeatother
+% Las secciones se numeran con el capítulo (2.1, 2.2, ...): ver MIA-USA.cls.
 
 \usepackage[pagebackref=true,breaklinks=true]{hyperref}
 \hypersetup{
-	pdftitle={Un simulador a la medida para redes descentralizadas: cobertura y resiliencia de una malla B.A.T.M.A.N.}, 
+	pdftitle={Un simulador para redes descentralizadas: cobertura y adaptabilidad de una malla B.A.T.M.A.N.}, 
 	pdfauthor={Juan Camilo Gallardo Sánchez y Jefferson Gutiérrez Tovar}, 
 	pdfsubject={}, 
 	pdfcreator={LaTeX}, 
@@ -32,7 +27,7 @@
 \graphicspath{{Images/}}
 
 
-\title{Un simulador a la medida para redes descentralizadas: cobertura y resiliencia de una malla B.A.T.M.A.N.}
+\title{Un simulador para redes descentralizadas: cobertura y adaptabilidad de una malla B.A.T.M.A.N.}
 \author{Juan Camilo Gallardo Sánchez \\{} Jefferson Gutiérrez Tovar}
 \documenttype{Trabajo de grado}
 
