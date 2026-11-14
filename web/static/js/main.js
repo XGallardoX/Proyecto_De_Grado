@@ -10,6 +10,7 @@ import { Log } from "./paneles/log.js";
 import { pintarPanelNodo } from "./paneles/nodo.js";
 import { pintarMatriz } from "./paneles/matriz.js";
 import { pintarRealModelo } from "./paneles/real_modelo.js";
+import { COLOR_TIPO, construirTrafico, pintarTrafico } from "./paneles/trafico.js";
 import { ajustePygame, construirParametros, sincronizarParametros } from "./paneles/parametros.js";
 import { abrirMenu, cerrarMenu, menuAbierto } from "./paneles/menu.js";
 import { prepararInicio } from "./paneles/inicio.js";
@@ -270,7 +271,8 @@ function pintarLeyenda(col) {
     ["anillo", "var(--alerta)", "En alerta"], ["circulo", col.caido, "Caído"],
     ["linea", "var(--enlace-bueno)", "Enlace fiable"], ["linea", "var(--enlace-malo)", "Enlace débil"],
     ["punto", col.ogm, "OGM"], ["punto", col.bcn, "Beacon"],
-    ["punto", col.mensaje, "Datos"], ["anillo", col.mensaje, "Nodo crítico"],
+    ["punto", col.mensaje, "Datos UDP"], ["punto", COLOR_TIPO.icmp, "ICMP"],
+    ["punto", COLOR_TIPO.tcp, "TCP"], ["anillo", col.mensaje, "Nodo crítico"],
   ];
   $("leyenda").innerHTML = `<div class="simbolos">${simbolos.map(([forma, c, t]) =>
       `<span><span class="sim ${forma}" style="background:${c};color:${c}"></span>${t}</span>`).join("")}</div>
@@ -320,6 +322,7 @@ function alRecibirFrame(f) {
   log.agregar(f.log);
   avisarEventos(f);
   if (panelVisible("real")) pintarRealModelo($("panel-real"), f);
+  if (panelVisible("trafico")) pintarTrafico($("panel-trafico"), f);
   if (panelVisible("parametros")) sincronizarParametros($("panel-parametros"), f.cfg, f.cfg_base);
   sincronizarListas(f);
 }
@@ -460,6 +463,7 @@ function abrirPestana(nombre) {
   if (nombre === "metricas") graficas.dibujar();
   if (nombre === "nodo") refrescarNodo();
   if (frame && nombre === "real") pintarRealModelo($("panel-real"), frame);
+  if (frame && nombre === "trafico") pintarTrafico($("panel-trafico"), frame);
   if (frame && nombre === "parametros") sincronizarParametros($("panel-parametros"), frame.cfg, frame.cfg_base);
 }
 async function refrescarInspector() {
@@ -467,6 +471,24 @@ async function refrescarInspector() {
 }
 $("btn-refrescar-inspector").addEventListener("click", refrescarInspector);
 construirParametros($("panel-parametros"), (accion, datos) => intentar(accion, datos));
+
+// ── panel de tráfico: tipo de paquete, cantidad e intervalo ──────────
+construirTrafico($("panel-trafico"), async (datos) => {
+  const r = await intentar("enviar_paquetes", datos);
+  if (!r) return;
+  const tipo = r.tipo.toUpperCase();
+  if (r.modo === "flujo") {
+    toast(`Flujo ${tipo}: ${r.cantidad} paquetes, uno cada ${r.cada} s`, "ok");
+    return;
+  }
+  if (r.ids.length > 1) {
+    mapa.animarMensaje(r.ids, r.entregado ? tipo : `✕ ${tipo}`, r.camino[0], r.camino.at(-1));
+  }
+  const extra = r.retransmisiones ? `, ${r.retransmisiones} retransmisiones` : "";
+  toast(`${tipo}: ${r.entregados} de ${r.enviados} entregados${extra}` +
+        (r.motivo ? ` · último: ${r.motivo}` : ""),
+        r.entregados === r.enviados && r.enviados ? "ok" : "alerta");
+}, (flujo) => intentar("quitar_flujo", { flujo }));
 
 // ── barra superior ────────────────────────────────────────────────────
 const pausarReanudar = () => intentar(frame?.pausado ? "reanudar" : "pausar");

@@ -557,3 +557,17 @@ body.presentacion::after { content: "Z: salir del modo presentación"; position:
   .inicio-columnas, .atajos, .dos-col { grid-template-columns: 1fr; }
   #leyenda { display: none; }
 }
+
+/* ── panel Tráfico ── */
+.form-trafico { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem 0.7rem; align-items: end; }
+.form-trafico label { display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.84em; color: var(--tenue); }
+.form-trafico select, .form-trafico input { width: 100%; }
+.form-trafico .ayuda-tipo { grid-column: 1 / -1; margin: 0; }
+.chip-tipo { display: inline-block; padding: 0.05rem 0.4rem; border-radius: 999px; font-size: 0.78em;
+  font-weight: 600; font-family: var(--mono); color: var(--c); border: 1px solid var(--c); }
+#panel-trafico h4 { margin: 0.9rem 0 0.35rem; }
+#panel-trafico tr.apagado td { color: var(--tenue); }
+#panel-trafico .tr-paquetes td { vertical-align: top; }
+#panel-trafico .tr-mal td:nth-child(3) { color: var(--alerta); }
+#panel-trafico .tr-ida, #panel-trafico .tr-vuelta { font-family: var(--mono); font-size: 0.9em; color: var(--tenue); }
+#panel-trafico [data-quitar] { padding: 0 0.35rem; }

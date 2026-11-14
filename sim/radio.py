@@ -18,7 +18,7 @@ def fiabilidad(d, df, cfg):
 
 
 # ══════════════════════════════════════════════════════════════════════════
-#  MEDIO RADIO SIMULADO  
+#  MEDIO DE RADIOFRECUENCIA SIMULADO  
 # ══════════════════════════════════════════════════════════════════════════
 class RadioMedium:
     """
@@ -82,12 +82,15 @@ class RadioMedium:
 class _Packet:
     """Paquete sólo para la animación (no afecta al protocolo). `tipo`
     ('OGM'/'BCN'), `origen` (quien originó el mensaje, no quien lo
-    reenvía), `ttl`, `emisor` y `receptor` son informativos."""
+    reenvía), `ttl`, `emisor` y `receptor` son informativos. `proto`
+    sólo lo llevan los de datos: "udp", "icmp", "icmp-r" (respuesta de
+    eco), "tcp" o "tcp-ack" (ver sim/datos.py)."""
     __slots__ = ('x', 'y', 'tx', 'ty', 'color', 'age', 'life',
-                 'tipo', 'origen', 'ttl', 'emisor', 'receptor')
+                 'tipo', 'origen', 'ttl', 'emisor', 'receptor', 'proto')
 
     def __init__(self, x, y, tx, ty, color, tipo=None, origen=None,
-                 ttl=None, emisor=None, receptor=None):
+                 ttl=None, emisor=None, receptor=None, proto=None):
+        self.proto = proto
         self.x, self.y, self.tx, self.ty = x, y, tx, ty
         self.color = color
         self.age = 0.0

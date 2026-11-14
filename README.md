@@ -4,7 +4,7 @@ Simulador de una red mesh ad-hoc que enruta con el protocolo
 **B.A.T.M.A.N.** No reimplementa el protocolo de forma simplificada:
 usa las mismas clases (`BatmanRouter`, `FaultManager`, `RouteEntry`,
 `PeerInfo`) que correrían en un dispositivo real. Lo único simulado es
-el **medio radio** — en vez de sockets UDP reales, un `RadioMedium`
+el **medio de radiofrecuencia** — en vez de sockets UDP reales, un `RadioMedium`
 decide qué paquetes llegan según la distancia entre nodos y la
 diferencia de piso. Detalle completo
 de cómo encajan las piezas en [`docs/arquitectura.md`](docs/arquitectura.md).
@@ -28,6 +28,33 @@ pip install -r requirements.txt
 Dependencias: `numpy`, `matplotlib`, `pygame`/`pygame-ce`.
 
 ---
+
+
+## Tipos de paquete (UDP, ICMP, TCP)
+
+El tráfico de datos puede ser de tres tipos (`sim/datos.py`). Los tres avanzan
+salto a salto con la tabla de rutas de cada nodo; cambia lo que pasa de extremo
+a extremo:
+
+| Tipo | Qué hace | Cuándo cuenta como entregado |
+|---|---|---|
+| `udp` (por defecto) | Un datagrama de ida, sin confirmación | Si llega al destino |
+| `icmp` | Un eco (ping): petición y respuesta por la tabla del destino | Si la respuesta vuelve al origen |
+| `tcp` | El destino confirma y el origen retransmite hasta 3 veces | Si el segmento llega al destino |
+
+Son modelos simplificados: sin establecimiento de conexión ni control de
+congestión, y las retransmisiones de TCP ocurren dentro del mismo paso.
+
+- **Escenario:** en `[traffic]`, `tipo=tcp` fija el tipo por defecto y cada flujo
+  puede llevar `tipo=...` y `cantidad=...` (`3 1 1 tipo=icmp cantidad=10`). En
+  JSON, las claves `tipo` y `cantidad` del flujo.
+- **Terminal y lotes:** `--param tipo_paquete=icmp` (o `"parametros"` en un lote)
+  cambia el tipo de los flujos que no fijan el suyo. `lotes/tipos_paquete.json`
+  compara los tres.
+- **Interfaz web:** la pestaña **Tráfico** permite elegir origen, destino, tipo,
+  cantidad e intervalo (con 0 s salen todos de una vez), y muestra las cuentas
+  por tipo, los flujos y el recorrido de ida y vuelta de los últimos paquetes.
+  Comandos: `enviar_paquetes` y `quitar_flujo`.
 
 ## Cómo ejecutar
 
@@ -530,7 +557,7 @@ La carpeta `reportes/` está en `.gitignore` — no se commitea.
 3. Calidad de enrutamiento: TQ medio de las rutas y saltos medios.
 4. Detección de gateway perdido: silencio máximo vs. el umbral de
    `timeout` configurado.
-5. Calidad del medio radio: ratio de paquetes entregados/intentados.
+5. Calidad del medio de radiofrecuencia: ratio de paquetes entregados/intentados.
 6. Ancho de banda total de la red, con eventos marcados.
 7. Sólo si hubo tráfico de datos: la entrega del plano de datos (paquetes
    entregados / enviados en los últimos 20 s).
@@ -615,7 +642,7 @@ Dos advertencias para interpretarlas:
 python -m unittest discover -s tests -v
 ```
 
-Cubre `sim/` (carga y validación de escenarios, medio radio, motor y
+Cubre `sim/` (carga y validación de escenarios, medio de radiofrecuencia, motor y
 ciclo de vida de `SimNode`: tick, inbox, batería, detección de caídas,
 movilidad), `analysis/` (columnas y campos de los reportes, resumen por
 corrida, funciones puras de la ventana, validación y agregación del
@@ -639,7 +666,7 @@ paquete avanza **salto a salto**: en cada nodo, el siguiente salto lo
 elige `BatmanRouter.next_hop()` (`mesh/router.py`) con la tabla de rutas
 de *ese* nodo; nadie conoce el camino completo. Cada salto es un unicast
 con los reintentos de la capa de enlace (3, como 802.11) y la fiabilidad
-del medio radio.
+del medio de radiofrecuencia.
 
 - Un paquete puede perderse aunque haya camino por radio: es lo que mide
   el plano de datos (ver las causas en la tabla de métricas). El camino
@@ -663,7 +690,7 @@ del medio radio.
 ```
 main.py                   ← punto de entrada (CLI): ventana, --headless, --inspect, --batch, --web
 mesh/                     ← protocolo BATMAN real (router, fault manager, ...)
-sim/                      ← motor de simulación + medio radio + carga de escenarios
+sim/                      ← motor de simulación + medio de radiofrecuencia + carga de escenarios
 analysis/                 ← métricas, visualizador pygame, reportes, runner de lote
 web/                      ← interfaz web local (servidor HTTP/SSE + frontend), paralela a pygame
 escenarios/*.json, *.txt  ← escenarios predefinidos y de ejemplo

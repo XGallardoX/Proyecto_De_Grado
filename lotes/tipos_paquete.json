@@ -1,0 +1,31 @@
+{
+  "nombre": "tipos_paquete",
+  "duracion": 240,
+  "semillas": 10,
+  "escenarios": [
+    {
+      "config": "escenarios/fallos/cobertura_edificio.txt",
+      "etiqueta": "edificio_udp",
+      "trafico": 6,
+      "parametros": {
+        "tipo_paquete": "udp"
+      }
+    },
+    {
+      "config": "escenarios/fallos/cobertura_edificio.txt",
+      "etiqueta": "edificio_icmp",
+      "trafico": 6,
+      "parametros": {
+        "tipo_paquete": "icmp"
+      }
+    },
+    {
+      "config": "escenarios/fallos/cobertura_edificio.txt",
+      "etiqueta": "edificio_tcp",
+      "trafico": 6,
+      "parametros": {
+        "tipo_paquete": "tcp"
+      }
+    }
+  ]
+}

@@ -53,6 +53,6 @@ export function pintarRealModelo(contenedor, f) {
       <li>El TQ lo calcula el BatmanRouter real: la fracción de OGM recibidos de las últimas 16 secuencias de cada vecino, multiplicada salto a salto. La calidad del medio, sin pasar por el protocolo, es la tasa de entrega.</li>
       <li>Grupos, particiones y nodos alcanzables se miden sobre los enlaces de radio, no sobre las tablas de rutas.</li>
       <li>Los mensajes y el tráfico de datos viajan salto a salto: en cada nodo, el siguiente salto lo elige BatmanRouter.next_hop() con la tabla de ese nodo. Pueden perderse aunque haya camino por radio (sin ruta, ruta vieja, la radio pierde el salto o un bucle).</li>
-      <li>El ancho de banda es una heurística (100 − 5·d Mbps), no sale del medio radio.</li>
+      <li>El ancho de banda es una heurística (100 − 5·d Mbps), no sale del medio de radiofrecuencia.</li>
     </ul>`;
 }

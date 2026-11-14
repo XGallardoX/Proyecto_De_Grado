@@ -48,6 +48,7 @@ DEFAULTS = dict(
     movilidad_usuarios="quietos",  # o "random_waypoint"/"grupos"
     velocidad_usuarios=0.25,  # m por paso de un Nodo de usuario que camina
     protocolo_datos="batman",  # o "inundacion" (comparación, sim/datos.py)
+    tipo_paquete="udp",  # o "icmp"/"tcp": el de los flujos que no fijan el suyo
 )
 
 # Colores

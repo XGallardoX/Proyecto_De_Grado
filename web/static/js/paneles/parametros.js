@@ -3,7 +3,7 @@ import { esc } from "../util.js";
 // Misma lista blanca que web/sesion.py (PARAMETROS): sólo claves que el
 // núcleo vuelve a leer de sim.cfg en cada paso.
 export const PARAMETROS = [
-  ["Medio radio", [
+  ["Medio de radiofrecuencia", [
     ["rango_comm", "Alcance de radio (m)", 4, 60, 1],
     ["falloff", "Degradación con la distancia", 0, 1.5, 0.05],
     ["perdida_base", "Pérdida base (a 0 m)", 0, 1, 0.01],
@@ -25,6 +25,7 @@ export const PARAMETROS = [
   ]],
   ["Plano de datos", [
     ["protocolo_datos", "Protocolo de datos", ["batman", "inundacion"]],
+    ["tipo_paquete", "Tipo de paquete de los flujos", ["udp", "icmp", "tcp"]],
   ]],
 ];
 

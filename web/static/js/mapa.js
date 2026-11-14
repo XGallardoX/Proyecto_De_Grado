@@ -5,6 +5,7 @@
 // La interpolación nunca inventa estado: las posiciones reales son las
 // del último frame y la animación converge a ellas.
 
+import { COLOR_TIPO } from "./paneles/trafico.js";
 import { colorCss } from "./util.js";
 
 const MARGEN = 2.5;
@@ -463,13 +464,20 @@ export class Mapa {
         if (prog >= 1) continue;
         const [sx, sy] = w2s(lerp(x0, x1, prog), lerp(y0, y1, prog));
         const a = Math.max(0.15, 1 - prog) * (lente && !filtrado ? 0.3 : 1);
-        const c = tipo === "OGM" ? col.ogm : tipo === "DATA" ? col.mensaje : col.bcn;
-        const r = (filtrado || tipo === "DATA" ? 4.5 : 3) * k;
+        // los de datos: "DATA" (UDP) o "DATA/icmp", "DATA/icmp-r",
+        // "DATA/tcp", "DATA/tcp-ack"; las respuestas se dibujan huecas
+        const esDato = tipo.startsWith("DATA");
+        const proto = esDato ? (tipo.split("/")[1] || "udp") : null;
+        const respuesta = proto === "icmp-r" || proto === "tcp-ack";
+        const c = tipo === "OGM" ? col.ogm : !esDato ? col.bcn
+          : proto === "udp" ? col.mensaje : COLOR_TIPO[proto.split("-")[0]];
+        const r = (filtrado || esDato ? 4.5 : 3) * k;
         ctx.globalAlpha = a * 0.28;
         ctx.fillStyle = c;
         ctx.beginPath(); ctx.arc(sx, sy, r * 2.3, 0, Math.PI * 2); ctx.fill();
         ctx.globalAlpha = a;
-        ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI * 2);
+        if (respuesta) { ctx.strokeStyle = c; ctx.lineWidth = 2 * k; ctx.stroke(); } else ctx.fill();
         if (filtrado && ttl != null) {
           ctx.globalAlpha = 1;
           ctx.fillStyle = ui.tinta;

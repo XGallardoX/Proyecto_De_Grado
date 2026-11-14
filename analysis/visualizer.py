@@ -152,7 +152,7 @@ def build_analysis_figure(sim, out_dir=None, verbose=True):
         ax5.plot(t, mov, color='#2980B9', linewidth=1.8,
                  label='Media móvil')
     ax5.set_ylim(-0.02, 1.05)
-    ax5.set_title("5 · Calidad del medio radio "
+    ax5.set_title("5 · Calidad del medio de radiofrecuencia "
                   "(paquetes entregados / intentados)")
     ax5.set_ylabel("ratio de entrega")
     ax5.set_xlabel("tiempo (s)")

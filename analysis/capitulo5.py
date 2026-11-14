@@ -6,7 +6,7 @@
 Lee la salida de `--batch` (resumen.json, corridas.csv y, para la cobertura
 en el tiempo, el reporte.csv de cada corrida) de `lotes/capitulo5_fallos.json`,
 `capitulo5_fallos_movil.json`, `movilidad.json`, `movilidad_datos.json`,
-`robustez.json` y `generalidad.json`, y escribe en la plantilla del documento:
+`robustez.json`, `generalidad.json` y `tipos_paquete.json`, y escribe en la plantilla del documento:
 
 - MainMatter/Cap5/tablas/*.tex: tablas listas para \\input{}.
 - Images/Cap5/*.pdf: figuras vectoriales.
@@ -348,6 +348,33 @@ def tabla_generalidad(gen):
               "sin reintentos."))
 
 
+def tabla_tipos(tipos):
+    """UDP, ICMP y TCP sobre el despliegue de referencia (lote
+    lotes/tipos_paquete.json)."""
+    filas = []
+    for clave, rotulo in (("udp", "UDP (sin confirmación)"),
+                          ("icmp", "ICMP (eco: ida y vuelta)"),
+                          ("tcp", "TCP (confirmación y retransmisión)")):
+        e = tipos[f"edificio_{clave}"]
+        filas.append([rotulo, fmt(metrica(e, "entrega_datos"), 3),
+                      fmt(metrica(e, "transmisiones_por_dato"), 2),
+                      fmt(metrica(e, "saltos_datos"), 2),
+                      fmt(metrica(e, "perdida_enlace"), 3),
+                      fmt(metrica(e, "perdida_sin_ruta"), 3)])
+    ref = tipos["edificio_udp"]
+    return tabla_tex(
+        "tab:cap5-tipos",
+        "Entrega según el tipo de paquete en el despliegue de referencia",
+        ["Tipo de paquete", "Entrega de datos", "Transmisiones por paquete",
+         "Saltos", "Perdidos por el radio", "Perdidos sin ruta"],
+        filas, ["4.3cm", "2.0cm", "2.2cm", "1.6cm", "1.9cm", "1.9cm"],
+        nota=(f"Media $\\pm$ desviación estándar de {len(ref['semillas'])} corridas "
+              f"de {ref['duracion']:g} s con 6 flujos entre Nodos de usuario y nodos "
+              "fijos (lote \\texttt{lotes/tipos\\_paquete.json}). Un eco de ICMP "
+              "cuenta como entregado solo si la respuesta vuelve al origen; un "
+              "segmento de TCP, si llegó al destino, con hasta 3 retransmisiones."))
+
+
 def tabla_diferencias(datos, rob, gen):
     filas = []
     if datos:
@@ -642,7 +669,8 @@ def figura_despliegue(escenario, salida):
 # ── principal ─────────────────────────────────────────────────────────────
 def generar(carpeta_fallos, carpeta_movilidad, plantilla,
             carpeta_fallos_movil=None, carpeta_datos=None,
-            carpeta_robustez=None, carpeta_generalidad=None):
+            carpeta_robustez=None, carpeta_generalidad=None,
+            carpeta_tipos=None):
     dir_tablas = os.path.join(plantilla, "MainMatter", "Cap5", "tablas")
     dir_figuras = os.path.join(plantilla, "Images", "Cap5")
     os.makedirs(dir_tablas, exist_ok=True)
@@ -707,6 +735,9 @@ def generar(carpeta_fallos, carpeta_movilidad, plantilla,
         ruta = os.path.join(dir_figuras, "paquetes_comparacion.pdf")
         figura_paquetes_comparacion(rob, gen, ruta)
         escritos.append(ruta)
+    if carpeta_tipos:
+        escritos.append(_escribir(os.path.join(dir_tablas, "tipos_paquete.tex"),
+                                  tabla_tipos(leer_resumen(carpeta_tipos))))
     if datos or rob or gen:
         escritos.append(_escribir(
             os.path.join(dir_tablas, "diferencias.tex"),
@@ -735,6 +766,7 @@ def main(argv=None):
     p.add_argument("--datos", help="salida de lotes/movilidad_datos.json")
     p.add_argument("--robustez", help="salida de lotes/robustez.json")
     p.add_argument("--generalidad", help="salida de lotes/generalidad.json")
+    p.add_argument("--tipos", help="salida de lotes/tipos_paquete.json")
     p.add_argument("--plantilla", default="Plantilla",
                    help="carpeta del documento (por defecto Plantilla/)")
     a = p.parse_args(argv)
@@ -752,7 +784,8 @@ def main(argv=None):
     for ruta in generar(fallos, movilidad, a.plantilla, movil,
                         opcional(a.datos, "movilidad_datos"),
                         opcional(a.robustez, "robustez"),
-                        opcional(a.generalidad, "generalidad")):
+                        opcional(a.generalidad, "generalidad"),
+                        opcional(a.tipos, "tipos_paquete")):
         print(f"  {ruta}")
     print(f"(desde {fallos}, {movilidad}" + (f" y {movil}" if movil else "")
           + ")")

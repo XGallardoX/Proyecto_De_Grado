@@ -19,7 +19,9 @@ import time
 from analysis.visualizer import (build_analysis_figure, interpretar_mensaje,
                                  siguiente_escenario)
 from sim.config_loader import MOVILIDADES, PARAMETROS, valor_parametro
-from sim.datos import NOMBRE_CAUSA
+from sim.datos import NOMBRE_CAUSA, TIPOS_PAQUETE
+
+MAX_PAQUETES_COMANDO = 1000   # tope de paquetes por comando de la interfaz
 from web import estado
 
 SEMILLA_MAXIMA = 2 ** 31 - 1
@@ -355,6 +357,78 @@ class Sesion:
                            if optimo else None),
                 "ruta_batman_convergida": convergida}
 
+    def _c_enviar_paquetes(self, datos):
+        """Envía `cantidad` paquetes de `tipo` ("udp", "icmp" o "tcp") de
+        `origen` a `destino` (ids). Con `cada` = 0 salen todos en este
+        instante (una ráfaga); con `cada` > 0, uno cada `cada` segundos
+        simulados, como un flujo que termina solo."""
+        try:
+            origen, destino = int(datos.get("origen")), int(datos.get("destino"))
+        except (TypeError, ValueError):
+            raise ValueError("faltan 'origen' y 'destino' (ids de nodos)")
+        tipo = datos.get("tipo", "udp")
+        if tipo not in TIPOS_PAQUETE:
+            raise ValueError(f"tipo de paquete desconocido: {tipo!r} "
+                             f"(válidos: {', '.join(TIPOS_PAQUETE)})")
+        try:
+            cantidad = int(datos.get("cantidad", 1))
+        except (TypeError, ValueError):
+            raise ValueError("'cantidad' debe ser un entero")
+        if not 1 <= cantidad <= MAX_PAQUETES_COMANDO:
+            raise ValueError(f"'cantidad' debe estar entre 1 y {MAX_PAQUETES_COMANDO}")
+        cada = _numero(datos.get("cada", 0), "cada")
+        if not 0 <= cada <= 600:
+            raise ValueError("'cada' debe estar entre 0 y 600 s")
+        with self.lock:
+            sim = self.sim
+            for nid in (origen, destino):
+                if nid not in sim.nodes:
+                    raise ValueError(f"no existe el nodo {nid}")
+            if origen == destino:
+                raise ValueError("el origen y el destino son el mismo nodo")
+            a, b = sim.label_of(origen), sim.label_of(destino)
+            self._registrar("enviar_paquetes", {
+                "origen": origen, "destino": destino, "tipo": tipo,
+                "cantidad": cantidad, "cada": cada})
+            if cada > 0:
+                flujo = sim.datos.agregar_flujo(origen, destino, tipo, cada, cantidad)
+                sim.log(f"Flujo {tipo.upper()} {a}→{b}: {cantidad} paquetes, "
+                        f"uno cada {cada:g} s", "info")
+                return {"modo": "flujo", "flujo": flujo["id"], "tipo": tipo,
+                        "cantidad": cantidad, "cada": cada}
+            resultados = [sim.datos.enviar(origen, destino, tipo)
+                          for _ in range(cantidad)]
+            enviados = [r for r in resultados if r["causa"] != "origen_caido"]
+            entregados = sum(r["entregado"] for r in enviados)
+            ultimo = resultados[-1]
+            motivo = None
+            if not ultimo["entregado"]:
+                motivo = NOMBRE_CAUSA[ultimo["causa"]]
+            sim.log(f"{tipo.upper()} {a}→{b}: {entregados} de {len(enviados)} "
+                    f"entregados" + (f" (último: {motivo})" if motivo else ""),
+                    "ok" if enviados and entregados == len(enviados) else "warn")
+            return {"modo": "rafaga", "tipo": tipo,
+                    "enviados": len(enviados), "entregados": entregados,
+                    "confirmados": sum(r["confirmado"] for r in enviados),
+                    "retransmisiones": sum(max(0, r["intentos"] - 1) for r in enviados),
+                    "ids": list(ultimo["camino"]),
+                    "camino": [sim.label_of(i) for i in ultimo["camino"]],
+                    "vuelta": ([sim.label_of(i) for i in ultimo["vuelta"]]
+                               if ultimo["vuelta"] else None),
+                    "entregado": ultimo["entregado"], "motivo": motivo,
+                    "tramo": ultimo["tramo"]}
+
+    def _c_quitar_flujo(self, datos):
+        try:
+            flujo = int(datos.get("flujo"))
+        except (TypeError, ValueError):
+            raise ValueError("falta 'flujo' (id del flujo)")
+        with self.lock:
+            if not self.sim.datos.quitar_flujo(flujo):
+                raise ValueError(f"no existe el flujo {flujo}")
+            self._registrar("quitar_flujo", {"flujo": flujo})
+        return None
+
     def _c_cambiar_semilla(self, datos):
         """Reconstruye la misma configuración con otra semilla."""
         try:
@@ -411,6 +485,7 @@ class Sesion:
         "agregar_nodo": _c_agregar_nodo, "eliminar_nodo": _c_eliminar_nodo,
         "mover_nodo": _c_mover_nodo, "cambiar_semilla": _c_cambiar_semilla,
         "mensaje": _c_mensaje, "parametro": _c_parametro,
+        "enviar_paquetes": _c_enviar_paquetes, "quitar_flujo": _c_quitar_flujo,
         "restaurar_parametro": _c_restaurar_parametro,
         "validar_escenario": _c_validar_escenario,
         "guardar_escenario": _c_guardar_escenario,

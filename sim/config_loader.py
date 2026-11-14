@@ -33,6 +33,11 @@ MOVILIDADES = ("seguir", "repartir", "descentralizada")
 # paquete nuevo, sin tablas (el protocolo de comparación).
 PROTOCOLOS_DATOS = ("batman", "inundacion")
 
+# Tipo de paquete de los flujos que no fijan el suyo (sim/datos.py): "udp" =
+# un datagrama sin confirmación; "icmp" = un eco, que sólo cuenta si la
+# respuesta vuelve; "tcp" = con confirmación y retransmisión.
+TIPOS_PAQUETE = ("udp", "icmp", "tcp")
+
 # Movilidad de los Nodos de usuario (SimNode.move): "quietos" = casi
 # estáticos (un temblor mínimo, como siempre); "random_waypoint" = cada uno
 # va a un punto al azar, espera y elige otro; "grupos" = de a tres, el
@@ -48,7 +53,8 @@ MOVILIDADES_USUARIOS = ("quietos", "random_waypoint", "grupos")
 #   SimNode.tick -> timeout, beacon_cada, batman_cada, battery_drain,
 #     battery_drain_nodo; SimNode._make_ogm -> ttl;
 #   SimNode.move -> move_speed, movilidad, movilidad_usuarios,
-#     velocidad_usuarios; PlanoDatos.enviar -> protocolo_datos.
+#     velocidad_usuarios; PlanoDatos.enviar -> protocolo_datos,
+#     tipo_paquete.
 # (tipo, mínimo, máximo) o (str, opciones).
 PARAMETROS = {
     "rango_comm": (float, 4.0, 60.0),
@@ -66,6 +72,7 @@ PARAMETROS = {
     "movilidad_usuarios": (str, MOVILIDADES_USUARIOS),
     "velocidad_usuarios": (float, 0.0, 2.0),
     "protocolo_datos": (str, PROTOCOLOS_DATOS),
+    "tipo_paquete": (str, TIPOS_PAQUETE),
 }
 
 
@@ -92,9 +99,13 @@ def valor_parametro(clave, valor):
 
 # Sección "traffic" (plano de datos, sim/datos.py): flujos explícitos
 # {"src", "dst", "cada", "desde", "hasta"} y/o K flujos "aleatorios" entre
-# Nodos de usuario; "cada" (s) es el intervalo por defecto.
-CLAVES_TRAFICO = ("flujos", "aleatorios", "cada")
-CLAVES_FLUJO = ("src", "dst", "cada", "desde", "hasta")
+# Nodos de usuario; "cada" (s) es el intervalo por defecto y "tipo" el tipo
+# de paquete por defecto ("udp", "icmp" o "tcp"; ver sim/datos.py). Un flujo
+# puede fijar su propio "tipo" y una "cantidad" de paquetes tras la que
+# termina.
+CLAVES_TRAFICO = ("flujos", "aleatorios", "cada", "tipo")
+CLAVES_FLUJO = ("src", "dst", "cada", "desde", "hasta", "tipo", "cantidad")
+
 
 # Claves de medium/protocol renombradas al pasar del vocabulario R/S al
 # G/N. El nombre viejo se sigue aceptando para no romper escenarios
@@ -139,7 +150,9 @@ def load_scenario(path, default_building=None):
         [traffic]
         aleatorios=2       # flujos entre pares de Nodos de usuario al azar
         cada=2             # s entre paquetes (por defecto de los flujos)
+        tipo=udp           # udp (por defecto), icmp o tcp
         2  1               # src dst [cada] [desde] [hasta]
+        3  1  1  tipo=icmp cantidad=10   # 10 ecos, uno por segundo
 
     En vez de nodos explícitos, [nodes] también acepta modo aleatorio:
         [nodes]
@@ -293,20 +306,34 @@ def _parse_txt(path):
                 raise ValueError(f"{path}:{lineno}: evento inválido '{line}'")
 
         elif section == "traffic":
-            if "=" in line:
+            tokens = line.split()
+            if "=" in tokens[0] or (len(tokens) > 1 and tokens[1].startswith("=")):
                 key, _, value = line.partition("=")
-                trafico[key.strip().lower()] = _parse_value(value)
+                clave = key.strip().lower()
+                trafico[clave] = (value.strip().lower() if clave == "tipo"
+                                  else _parse_value(value))
                 continue
-            parts = line.split()
+            # src dst [cada] [desde] [hasta] y, al final, tipo=... cantidad=...
+            parts = [t for t in tokens if "=" not in t]
+            extras = [t for t in tokens if "=" in t]
             if not 2 <= len(parts) <= 5:
                 raise ValueError(
                     f"{path}:{lineno}: flujo inválido '{line}' (se esperaba "
-                    f"'src dst [cada] [desde] [hasta]')"
+                    f"'src dst [cada] [desde] [hasta] [tipo=..] [cantidad=..]')"
                 )
             try:
                 flujo = {"src": int(parts[0]), "dst": int(parts[1])}
                 for clave, valor in zip(("cada", "desde", "hasta"), parts[2:]):
                     flujo[clave] = float(valor)
+                for extra in extras:
+                    clave, _, valor = extra.partition("=")
+                    clave = clave.lower()
+                    if clave == "tipo":
+                        flujo["tipo"] = valor.lower()
+                    elif clave == "cantidad":
+                        flujo["cantidad"] = int(valor)
+                    else:
+                        raise ValueError(clave)
             except ValueError:
                 raise ValueError(f"{path}:{lineno}: flujo inválido '{line}'")
             trafico.setdefault("flujos", []).append(flujo)
@@ -501,6 +528,7 @@ def _validar_trafico(data, path, ids):
     cada = trafico.get("cada", 2.0)
     if not _numero(cada) or cada <= 0:
         raise ValueError(f"{path}: 'traffic.cada' debe ser un número > 0")
+    _validar_tipo_paquete(trafico.get("tipo", "udp"), f"{path}: 'traffic.tipo'")
     k = trafico.get("aleatorios", 0)
     if not isinstance(k, int) or isinstance(k, bool) or k < 0:
         raise ValueError(f"{path}: 'traffic.aleatorios' debe ser un entero >= 0")
@@ -531,3 +559,15 @@ def _validar_trafico(data, path, ids):
         hasta = f.get("hasta")
         if hasta is not None and (not _numero(hasta) or hasta < desde):
             raise ValueError(f"{path}: el flujo {f} necesita 'hasta' >= 'desde'")
+        if "tipo" in f:
+            _validar_tipo_paquete(f["tipo"], f"{path}: el 'tipo' del flujo {f}")
+        cantidad = f.get("cantidad")
+        if cantidad is not None and (not isinstance(cantidad, int)
+                                     or isinstance(cantidad, bool) or cantidad < 1):
+            raise ValueError(f"{path}: el flujo {f} necesita 'cantidad' entera >= 1")
+
+
+def _validar_tipo_paquete(tipo, donde):
+    if tipo not in TIPOS_PAQUETE:
+        raise ValueError(f"{donde} debe ser uno de {', '.join(TIPOS_PAQUETE)} "
+                         f"(se recibió {tipo!r})")

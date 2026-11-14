@@ -10,6 +10,7 @@ import re
 
 from analysis.inspector import snapshot_red
 from analysis.metrics import puntos_articulacion, ruta_vigente
+from sim.datos import NOMBRE_CAUSA, NOMBRE_TIPO, PlanoDatos, TIPOS_PAQUETE
 from sim.radio import fiabilidad
 
 ESQUEMA = 1
@@ -19,7 +20,7 @@ CLAVES_MEDIUM = ("rango_comm", "perdida_base", "falloff", "floor_atten")
 CLAVES_PROTOCOL = ("timeout", "beacon_cada", "batman_cada", "ttl",
                    "battery_drain", "battery_drain_nodo", "move_speed",
                    "movilidad", "movilidad_usuarios", "velocidad_usuarios",
-                   "protocolo_datos")
+                   "protocolo_datos", "tipo_paquete")
 
 _PATRON_ETIQUETA = re.compile(r"\b([GN]\d+)\b")
 
@@ -30,6 +31,7 @@ _PATRON_ETIQUETA = re.compile(r"\b([GN]\d+)\b")
 MAX_LOG_FRAME = 20
 MAX_EVENTOS_FRAME = 20
 MAX_PAQUETES_FRAME = 300
+MAX_RECIENTES_FRAME = 25   # últimos paquetes de datos, para el panel Tráfico
 
 
 def _colores(sim):
@@ -108,8 +110,11 @@ def _enlaces(sim):
 def _paquete(p):
     """[x0, y0, x1, y1, progreso, tipo, origen, ttl]: emisor -> receptor
     del salto, y quién originó el mensaje."""
+    # los de datos que no son UDP llevan su tipo: "DATA/icmp", "DATA/tcp-ack"…
+    proto = getattr(p, "proto", None)
+    tipo = p.tipo if proto in (None, "udp") else f"{p.tipo}/{proto}"
     return [round(p.x, 2), round(p.y, 2), round(p.tx, 2), round(p.ty, 2),
-            round(p.progress, 3), p.tipo, p.origen, p.ttl]
+            round(p.progress, 3), tipo, p.origen, p.ttl]
 
 
 def _paquetes(sim, maximo=MAX_PAQUETES_FRAME):
@@ -176,6 +181,36 @@ def _contadores(sim):
     }
 
 
+def trafico(sim):
+    """El plano de datos para el panel Tráfico: los flujos con su avance,
+    las cuentas por tipo de paquete y los últimos paquetes con su recorrido
+    (la ida y, en ICMP y TCP, la vuelta de la respuesta)."""
+    d = sim.datos
+    etiquetas = lambda ids: None if ids is None else [sim.label_of(i) for i in ids]
+    return {
+        "tipos": [{"clave": t, "nombre": NOMBRE_TIPO[t]} for t in TIPOS_PAQUETE],
+        "por_tipo": {t: dict(c) for t, c in d.por_tipo.items()},
+        "enviados": d.enviados, "entregados": d.entregados,
+        "transmisiones": d.transmisiones,
+        "perdidas": {NOMBRE_CAUSA[c]: n for c, n in d.perdidas.items() if n},
+        "flujos": [{
+            "id": f["id"], "origen": sim.label_of(f["src"]),
+            "destino": sim.label_of(f["dst"]), "tipo": d.tipo_de(f),
+            "cada": f["cada"], "cantidad": f["cantidad"],
+            "enviados": f["enviados"], "entregados": f["entregados"],
+            "activo": PlanoDatos.flujo_activo(f, sim.t),
+        } for f in d.flujos],
+        "recientes": [{
+            "n": h["n"], "t": h["t"], "tipo": h["tipo"],
+            "origen": sim.label_of(h["src"]), "destino": sim.label_of(h["dst"]),
+            "entregado": h["entregado"], "confirmado": h["confirmado"],
+            "intentos": h["intentos"], "tramo": h["tramo"],
+            "motivo": NOMBRE_CAUSA[h["causa"]] if h["causa"] else None,
+            "camino": etiquetas(h["camino"]), "vuelta": etiquetas(h["vuelta"]),
+        } for h in list(d.historial)[-MAX_RECIENTES_FRAME:]],
+    }
+
+
 def nodos_de_texto(sim, texto):
     """Ids de los nodos que menciona un texto de evento (por etiqueta)."""
     por_etiqueta = {n.label: n.id for n in sim.nodes.values()}
@@ -233,6 +268,7 @@ def frame(sim, *, velocidad=1.0, semilla=None, error=None, generacion=0,
         "enlaces": _enlaces(sim),
         "paquetes": _paquetes(sim),
         "paquetes_total": len(sim.medium.packets_visual),
+        "trafico": trafico(sim),
         "resumen": sim.summary(),
         "grupos": _grupos(sim),
         "nodos_alcanzables": sim.nodes_in_mesh(),

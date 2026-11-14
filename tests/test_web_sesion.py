@@ -175,7 +175,7 @@ class ComandosTests(unittest.TestCase):
                    "battery_drain": 4.0, "battery_drain_nodo": 4.0,
                    "move_speed": 1.5, "movilidad": "repartir",
                    "movilidad_usuarios": "grupos", "velocidad_usuarios": 1.0,
-                   "protocolo_datos": "inundacion"}
+                   "protocolo_datos": "inundacion", "tipo_paquete": "tcp"}
         self.assertEqual(set(cambios), set(PARAMETROS))
 
         def huella(sim):

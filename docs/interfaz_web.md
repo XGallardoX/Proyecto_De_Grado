@@ -187,7 +187,7 @@ tres vacíos:
 2. Los emuladores corren código real, pero con un costo alto por nodo y
    sin un modelo de propagación que contemple la atenuación entre pisos.
 3. Las herramientas P2P y blockchain operan en la capa de aplicación: no
-   modelan el medio radio ni la movilidad física.
+   modelan el medio de radiofrecuencia ni la movilidad física.
 
 | Funcionalidad de la interfaz | Capacidad que demuestra | Vacío que atiende |
 |---|---|---|

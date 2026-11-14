@@ -7,7 +7,7 @@ import unittest
 from tests.test_engine import make_simulation
 
 # Medio sin pérdidas: todo paquete en rango llega (fiabilidad 1.0), así
-# lo que se verifica no depende del azar del medio radio.
+# lo que se verifica no depende del azar del medio de radiofrecuencia.
 SIN_PERDIDAS = {"perdida_base": 0.0, "falloff": 0.0}
 
 
