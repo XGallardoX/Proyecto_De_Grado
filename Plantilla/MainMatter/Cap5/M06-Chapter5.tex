@@ -5,7 +5,8 @@ Este capítulo presenta los resultados de las pruebas de la
 Tabla~\ref{tab:experimentos}, en el mismo orden. Para cada prueba se recuerda
 qué se esperaba y se compara con lo obtenido; la Tabla~\ref{tab:resumen-pruebas},
 al final, las resume. Salvo que se indique otra cosa, las cifras son el promedio
-$\pm$ la desviación estándar de 10 semillas, calculadas directamente a partir de
+$\pm$ la desviación estándar de 10 semillas (30 en las pruebas P7, P8 y P9),
+calculadas directamente a partir de
 los lotes. Las figuras y tablas de este documento que no indican fuente son de
 elaboración propia.
 
@@ -114,7 +115,11 @@ decir, menos de 30~s después de la caída: el tiempo límite se cuenta desde el
 silencio. El caso sin fallos muestra el costo de esa sensibilidad: hay
 3.1~$\pm$~2.6 alertas falsas. Con enlaces de fiabilidad entre 0.41 y 0.65, un
 tiempo límite de 30~s produce falsas alarmas de vez en cuando. Es un compromiso
-que la herramienta permite explorar cambiando un solo parámetro.
+que la herramienta permite explorar cambiando un solo parámetro. Como referencia,
+Wang et al.\ miden en equipos reales que batman-adv tarda en promedio 36.48~s en
+cambiar de Gateway cuando uno cae~\cite{Wang2026QGSwitch}. Los dos números no se
+pueden comparar de forma directa, porque vienen de redes y escenarios distintos,
+pero son del mismo orden: decenas de segundos.
 
 \textbf{Calidad de las rutas.} La Tabla~\ref{tab:cap5-calidad} indica que el TQ
 medio es parecido en todos los casos, entre 0.32 y 0.36. Es un valor bajo porque
@@ -195,17 +200,19 @@ Figura~\ref{fig:paquetes-movilidad} añaden 6 flujos de datos.
     \label{fig:paquetes-movilidad}
 \end{figure}
 
-Según la Tabla~\ref{tab:cap5-diferencias}, el movimiento descentralizado
-entrega más datos que \textit{repartir} en los tres escenarios, y más que
-\textit{seguir} en \texttt{base} y \texttt{denso}. En
-\texttt{colapso\_progresivo}, la diferencia con \textit{seguir} no es
-concluyente: el intervalo incluye el cero. Las entregas son bajas en todos los
-casos, entre 0.14 y 0.28. De dónde sale la ganancia también enseña algo: el
-movimiento descentralizado reduce sobre todo los paquetes sin ningún camino por
-radio, pero aumenta los perdidos sin ruta y por el radio. Entre los pares que sí
-tienen camino, entrega menos que \textit{seguir} en \texttt{base} ($-0.104$) y
-sin diferencia concluyente en los otros dos. Gana porque conecta a más pares,
-no porque lleve mejor los paquetes. La prueba se cumple.
+Según la Tabla~\ref{tab:cap5-diferencias}, con la corrección por
+comparaciones múltiples, el movimiento descentralizado entrega más datos que
+\textit{seguir} y que \textit{repartir} en \texttt{base} y \texttt{denso}. En
+\texttt{colapso\_progresivo} ninguna de las dos diferencias es concluyente:
+frente a \textit{repartir}, el intervalo sin corregir excluye el cero, pero el
+valor $p$ corregido es 0.078. Las entregas son bajas en todos los casos, entre
+0.16 y 0.31. De dónde sale la ganancia también enseña algo: el movimiento
+descentralizado reduce sobre todo los paquetes sin ningún camino por radio, pero
+aumenta los perdidos sin ruta y por el radio. Entre los pares que sí tienen
+camino, entrega menos que \textit{seguir} en \texttt{base} ($-0.159$) y en
+\texttt{colapso\_progresivo} ($-0.105$), sin diferencia concluyente en
+\texttt{denso}. Gana porque conecta a más pares, no porque lleve mejor los
+paquetes. La prueba se cumple en parte: en dos de los tres escenarios.
 
 \textbf{Las tablas de rutas se quedan atrás.} Este es el costo más revelador,
 y solo se ve con las métricas de lo que cree cada nodo. En \texttt{base}, la
@@ -226,16 +233,17 @@ dos caídas al azar. La Tabla~\ref{tab:cap5-robustez} las compara.
 \input{MainMatter/Cap5/tablas/robustez}
 
 Los fallos dirigidos parten la malla durante 180~s en todas las semillas,
-frente a 42~$\pm$~57~s al azar, y dejan la entrega de datos en 0.284 frente a
-0.502, una diferencia pareada de 0.218 (IC~95~\%: 0.149 a 0.287). La prueba se
+frente a 46~$\pm$~64~s al azar, y dejan la entrega de datos en 0.338 frente a
+0.542, una diferencia pareada de 0.204 (IC~95~\%: 0.159 a 0.249; concluyente
+también con la corrección de Holm). La prueba se
 cumple. Recuerda la distinción clásica entre errores y
 ataques~\cite{Albert2000ErrorAttack}, aunque ese resultado se refiere a redes
 de otro tipo y esta es una malla pequeña, de modo que es una analogía y no una
 confirmación. Lo importante es lo que \textit{no} cambia: la cobertura media
-(0.925 y 0.917) no distingue los dos casos, con un intervalo que incluye el
+(0.931 y 0.917) no distingue los dos casos, con un intervalo que incluye el
 cero, porque cada parte conserva algún Gateway. Tampoco cambia la entrega entre
-pares con camino (0.686 y 0.696): el enrutamiento sigue funcionando dentro de
-cada parte, y el daño es la falta de camino, que explica el 59.9~\% de los
+pares con camino (0.715 y 0.741): el enrutamiento sigue funcionando dentro de
+cada parte, y el daño es la falta de camino, que explica el 55.2~\% de los
 paquetes en los fallos dirigidos. Sin paquetes de datos, este daño no se habría
 visto con la métrica de cobertura.
 
@@ -257,13 +265,13 @@ Figura~\ref{fig:paquetes-comparacion} comparan los dos protocolos en dos mapas.
 
 La respuesta depende del lugar, y esta es una razón para no atar un simulador a
 un solo mapa. En campo abierto se cumple lo esperado: la inundación entrega más
-que B.A.T.M.A.N. entre pares con camino (0.937 frente a 0.803 con usuarios en
-grupos; 0.743 frente a 0.544 con usuarios que caminan al azar), con cerca del
+que B.A.T.M.A.N. entre pares con camino (0.931 frente a 0.736 con usuarios en
+grupos; 0.740 frente a 0.547 con usuarios que caminan al azar), con cerca del
 doble de transmisiones por paquete. Cuando los usuarios se mueven al azar, la
-causa principal de pérdida de B.A.T.M.A.N. es la ruta vieja (27.6~\% de los
+causa principal de pérdida de B.A.T.M.A.N. es la ruta vieja (26.1~\% de los
 paquetes): las tablas no siguen el ritmo del movimiento. En el edificio ocurre
-lo contrario y la prueba no se cumple: B.A.T.M.A.N. entrega 0.786 frente a 0.430
-de la inundación, con un número de transmisiones parecido (7.19 y 6.96). Allí
+lo contrario y la prueba no se cumple: B.A.T.M.A.N. entrega 0.811 frente a 0.465
+de la inundación, con un número de transmisiones parecido (6.64 y 7.05). Allí
 las rutas son largas (casi 4 saltos) sobre enlaces de fiabilidad media;
 B.A.T.M.A.N. reintenta cada salto hasta tres veces y la inundación no, por lo
 que sus copias se van perdiendo por el camino.
@@ -277,7 +285,14 @@ la comparación vale para la entrega dentro de este modelo, no como un veredicto
 sobre los protocolos.
 
 La Tabla~\ref{tab:cap5-diferencias} reúne las diferencias pareadas de las
-pruebas P7, P8 y P9.
+pruebas P7, P8 y P9, con 30 semillas. Son 14 comparaciones, y con tantas es
+esperable que alguna salga distinta de cero por azar; por eso la última columna
+aplica la corrección de Holm~\cite{Holm1979Sequential}: ordena los valores $p$
+de menor a mayor y multiplica el primero por 14, el segundo por 13, y así
+sucesivamente, sin que ninguno quede por debajo del anterior. Con 10 semillas y
+sin corrección, la comparación entre el movimiento descentralizado y
+\textit{repartir} en \texttt{colapso\_progresivo} parecía concluyente; con 30
+semillas y la corrección, deja de serlo.
 
 \input{MainMatter/Cap5/tablas/diferencias}
 
@@ -352,11 +367,11 @@ capítulo pertenecen a esta implementación y no a B.A.T.M.A.N.\ en general.
         \hline
         P6 & Malla unida con cobertura cercana a la centralizada & Se logra en \texttt{base} y \texttt{denso}; en los otros tres escenarios la cobertura es menor que con \textit{repartir} & En parte \\
         \hline
-        P7 & Más entrega al conectar a más nodos & Más entrega que \textit{repartir} en 3 de 3 escenarios y que \textit{seguir} en 2 de 3 & Sí \\
+        P7 & Más entrega al conectar a más nodos & Más entrega que \textit{seguir} y que \textit{repartir} en 2 de 3 escenarios; en \texttt{colapso\_progresivo}, no concluyente & En parte \\
         \hline
-        P8 & Los fallos dirigidos hacen más daño & Entrega de 0.284 frente a 0.502; la cobertura no los distingue & Sí \\
+        P8 & Los fallos dirigidos hacen más daño & Entrega de 0.338 frente a 0.542; la cobertura no los distingue & Sí \\
         \hline
-        P9 & La inundación entrega más, con más transmisiones & Sí en campo abierto; en el edificio entrega menos (0.430 frente a 0.786) & En parte \\
+        P9 & La inundación entrega más, con más transmisiones & Sí en campo abierto; en el edificio entrega menos (0.465 frente a 0.811) & En parte \\
         \hline
         P10 & Tablas idénticas al repetir & Idénticas byte a byte en dos computadores & Sí \\
         \hline

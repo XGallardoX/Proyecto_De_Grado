@@ -112,6 +112,14 @@ recibe por primera vez lo reenvía con el TTL reducido en uno. Todos los nodos
 vivos reenvían OGM, también los Nodos de usuario.
 \end{itemize}
 
+Con un TTL de 6, un OGM llega a lo sumo a 6 saltos de su origen, y las rutas
+entre los nodos más alejados dependen de que alguna copia llegue por un camino
+corto. En el despliegue de referencia de la Sección~\ref{sec:res-fallos},
+con 10 semillas, el 99.3~\% de los pares de nodos tiene ruta a los 40~s y todos
+la tienen a los 120~s, pero la primera ruta de N1 hacia N6 tarda en promedio
+22.6~s, y 80.5~s con la semilla 1. Con un TTL de 7 baja a 13~s con esa semilla.
+El TTL es un parámetro del simulador (\texttt{ttl}).
+
 La Figura~\ref{fig:ogm} muestra este mecanismo en el simulador: los OGM que
 originó G1 se alejan de él salto a salto, y el TTL que lleva cada copia baja a
 medida que se aleja.
@@ -243,7 +251,7 @@ apunta a un vecino que ya no está al alcance, el radio perdió el salto o el
 paquete quedó dando vueltas en un bucle). Esta separación permite no culpar al
 protocolo de lo que es física. Cada salto se resuelve dentro del mismo paso,
 porque un salto real dura mucho menos que 0.5~s; por eso el simulador no mide el
-retardo.
+retardo (la interfaz muestra solo una estimación, descrita más abajo).
 
 \textbf{Tipos de paquete.} El usuario elige qué tipo de paquete se envía,
 cuántos y cada cuánto tiempo. Los tres tipos usan el mismo avance salto a
@@ -263,6 +271,17 @@ Son versiones simplificadas de esos protocolos: no hay establecimiento de
 conexión ni control de congestión, y los reenvíos de TCP ocurren dentro del
 mismo paso, de modo que solo recuperan pérdidas del radio.
 
+Para que se vea el costo de cada tipo, la interfaz estima el retardo de los
+paquetes entregados a partir de lo que sí se cuenta: 2~ms por cada intento de
+transmisión por radio, incluidos los reintentos de un salto, y 1~s de espera
+antes de cada reenvío de TCP, que es el valor mínimo que recomienda la norma
+para ese tiempo de espera~\cite{Paxson2011RTO}. Los 2~ms son una
+simplificación de este trabajo, no una medición. En UDP se estima hasta que el
+paquete llega; en ICMP, la ida y la vuelta, como lo mide \texttt{ping}; en
+TCP, hasta que el paquete llega, con las esperas de los reenvíos. La
+estimación no cambia ningún resultado: no participa en las decisiones de la
+simulación.
+
 \subsection{Movimiento descentralizado de los Gateway}
 \label{sec:movilidad-descentralizada}
 
@@ -274,9 +293,9 @@ simulador.
 
 En el modo \textit{descentralizado}, cada Gateway decide únicamente con lo que
 oyó en los \textit{beacons} de sus vecinos, que llevan la posición de quien los
-emite. Esto supone que cada nodo conoce su posición, por ejemplo con un sistema
-de localización, como es habitual en estos
-métodos~\cite{Howard2002PotentialFields}. Si pasa 3 periodos sin oír a un
+emite. Esto supone que cada nodo conoce su posición. Es un supuesto de este
+trabajo: en un equipo real exigiría un sistema de localización que funcione
+dentro del edificio. Si pasa 3 periodos sin oír a un
 vecino, lo olvida. La decisión combina cuatro reglas, de la familia de las
 ``fuerzas virtuales'' revisadas en la
 Sección~\ref{sec:redes-desastre}~\cite{Howard2002PotentialFields,Zou2003VirtualForces,Poduri2004ConstrainedCoverage},
@@ -470,14 +489,17 @@ aportó el modelo (transmisiones intentadas y entregadas por el medio).
 
 \textbf{Tráfico de datos.} En el panel de la Figura~\ref{fig:trafico} se eligen
 el origen, el destino, el tipo de paquete, la cantidad y el intervalo. El panel
-muestra cuántos paquetes de cada tipo se enviaron y se entregaron, los flujos
-activos y el recorrido de los últimos paquetes, incluida la respuesta de
-regreso en ICMP y TCP.
+muestra cuántos paquetes de cada tipo se enviaron y se entregaron, el retardo
+estimado medio de cada tipo, los flujos activos y el recorrido de los últimos
+paquetes, incluida la respuesta de regreso en ICMP y TCP. Cada paquete tiene una
+línea de tiempo con sus envíos: una flecha de ida y otra de vuelta, verdes si
+llegaron y rojas si se perdieron, y entre dos envíos de TCP, la espera antes de
+reenviar.
 
 \begin{figure}[htbp!]
     \centering
     \includegraphics[width=\textwidth]{Images/Cap4/trafico.png}
-    \caption{Panel de tráfico a los 50~s de una sesión sobre el despliegue de referencia. Arriba, el formulario para elegir origen, destino, tipo de paquete, cantidad e intervalo. En la tabla ``Por tipo de paquete'' se ve el resultado de enviar 20 paquetes de cada tipo de N1 a N4 y dos flujos adicionales: UDP entregó 17 de 20; ICMP, 20 de 30, con 10 ecos sin respuesta; TCP, 30 de 30, con 18 reenvíos. Abajo, los flujos en curso y los últimos paquetes con su recorrido de ida y de vuelta. En el mapa, los puntos de colores son paquetes en tránsito}
+    \caption{Panel de tráfico a los 50~s de una sesión sobre el despliegue de referencia (semilla 1). En la tabla ``Por tipo de paquete'' se ve el resultado de enviar 20 paquetes de cada tipo de N1 a N4 y dos flujos adicionales: UDP entregó 17 de 20; ICMP, 23 de 30, con 7 ecos sin respuesta; TCP, 30 de 30, con 15 reenvíos. Debajo, el retardo estimado medio: 9~ms en UDP, 20~ms en ICMP y 275~ms en TCP, que suben por las esperas de 1~s antes de reenviar. Abajo, los flujos en curso y los últimos paquetes con su recorrido de ida y de vuelta y su línea de tiempo; el último segmento de TCP se perdió, esperó 1~s y llegó en el segundo envío. En el mapa, los puntos de colores son paquetes en tránsito}
     \label{fig:trafico}
 \end{figure}
 
@@ -488,7 +510,7 @@ cobertura, los nodos críticos y la decisión de movimiento de cada Gateway.
 \begin{figure}[htbp!]
     \centering
     \includegraphics[width=\textwidth]{Images/Cap4/fuerzas_cobertura.png}
-    \caption{Capas del mapa con movimiento descentralizado (escenario \texttt{base} a los 45~s). El fondo de colores es el mapa de cobertura: verde donde la señal de algún Gateway es buena, amarillo donde es débil y rojo donde no llega. Los Gateway se han separado desde su posición inicial para cubrir más área; el anillo punteado marca un nodo crítico y el círculo grande, el alcance del Gateway seleccionado (G2), cuya tabla de rutas y vecinos aparece a la derecha}
+    \caption{Capas del mapa con movimiento descentralizado (escenario \texttt{base}, semilla 2, a los 45~s). El fondo de colores es el mapa de cobertura: verde donde la señal de algún Gateway es buena, amarillo donde es débil y rojo donde no llega. Los Gateway se han separado desde su posición inicial para cubrir más área; la flecha que sale de G4 es su decisión de movimiento; los anillos punteados marcan los nodos críticos (G3, G4 y N3), y el círculo grande, el alcance del Gateway seleccionado (G2), cuya tabla de rutas y vecinos aparece a la derecha}
     \label{fig:fuerzas}
 \end{figure}
 
@@ -622,7 +644,7 @@ volver a ejecutar, cada uno con un propósito y un resultado esperado que se
 compara con lo que el simulador produce. La Tabla~\ref{tab:experimentos} las
 presenta. Las pruebas P1 a P3 comprueban funciones básicas con una corrida que
 se puede observar en la interfaz; las pruebas P4 a P9 comparan configuraciones
-con 10 semillas cada una, y las pruebas P10 y P11 comprueban propiedades de la
+con 10 semillas cada una (30 en P7, P8 y P9), y las pruebas P10 y P11 comprueban propiedades de la
 herramienta. Los resultados están en el Capítulo~\ref{cap:resultados}.
 
 {\footnotesize
@@ -727,7 +749,7 @@ usuarios cubiertos. Las dos cosas coinciden con lo esperado.
 
 \subsection{Comprobaciones automáticas del código}
 
-Además de las pruebas de simulación, el repositorio incluye 390 comprobaciones
+Además de las pruebas de simulación, el repositorio incluye 397 comprobaciones
 automáticas, que se ejecutan con una sola orden y avisan si un cambio en el
 programa alteró algo que ya funcionaba. No son el tema de esta sección; su
 detalle está en el Anexo B.

@@ -20,18 +20,18 @@ local, programa caídas de nodos, repite experimentos con semillas y se maneja
 desde una interfaz web local.
 
 Las pruebas son simulaciones de una Red de Expansión de Cobertura con 7 Gateway
-y 6 Nodos de usuario en un edificio de tres pisos, con 10 semillas por prueba. La
+y 6 Nodos de usuario en un edificio de tres pisos, con 10 o 30 semillas por prueba. La
 caída de un Gateway puente mantuvo la malla partida 90 s sin reducir la cobertura
 media (1.000): la cobertura, por sí sola, no muestra el daño. Dos fallos dirigidos
-al nodo más crítico redujeron la entrega de datos a 0.284 frente a 0.502 de dos
-fallos al azar (diferencia pareada de 0.218, IC 95~\% [0.149, 0.287]), con una
+al nodo más crítico redujeron la entrega de datos a 0.338 frente a 0.542 de dos
+fallos al azar (diferencia pareada de 0.204, IC 95~\% [0.159, 0.249]), con una
 cobertura estadísticamente indistinguible. Con Gateway móviles la malla se adaptó
 sola: la partición por la caída del puente bajó de 90 s a 6.2 s, a costa de que la
 cobertura media descendiera a 0.922. Con el mismo tráfico, TCP entregó 0.924 de
 los paquetes, UDP 0.772 e ICMP 0.646, y TCP necesitó cerca de 2.6 veces las
 transmisiones de UDP. La inundación entregó más que B.A.T.M.A.N. en campo
 abierto, con cerca del doble de transmisiones, pero mucho menos en el edificio
-(0.430 contra 0.786). Las tablas de resultados se reprodujeron byte a byte en dos
+(0.465 contra 0.811). Las tablas de resultados se reprodujeron byte a byte en dos
 máquinas. El simulador no se validó contra equipos físicos ni contra el módulo
 batman-adv, y su modelo del medio es simple: los resultados describen esta
 implementación bajo este medio. Esos frentes quedan como trabajo futuro.
@@ -61,17 +61,17 @@ local information only, schedules node failures, repeats experiments with seeds
 and is operated from a local web interface.
 
 The tests are simulations of a Coverage Expansion Network with 7 Gateways and 6
-user nodes in a three-storey building, with 10 seeds per test. Losing a bridge
+user nodes in a three-storey building, with 10 or 30 seeds per test. Losing a bridge
 Gateway kept the mesh partitioned for 90 s without lowering mean coverage (1.000):
 coverage alone does not show the damage. Two failures targeting the most critical
-node reduced data delivery to 0.284 against 0.502 for two random failures (paired
-difference 0.218, 95\% CI [0.149, 0.287]), with statistically indistinguishable
+node reduced data delivery to 0.338 against 0.542 for two random failures (paired
+difference 0.204, 95\% CI [0.159, 0.249]), with statistically indistinguishable
 coverage. With mobile Gateways the mesh adapted by itself: the partition caused
 by the bridge failure fell from 90 s to 6.2 s, at the cost of mean coverage
 falling to 0.922. Under the same traffic, TCP delivered 0.924 of the packets, UDP
 0.772 and ICMP 0.646, and TCP needed about 2.6 times the transmissions of UDP.
 Flooding delivered more than B.A.T.M.A.N. in open terrain, with about twice the
-transmissions, but far less in the building (0.430 against 0.786). Result tables
+transmissions, but far less in the building (0.465 against 0.811). Result tables
 were reproduced byte for byte on two machines. The simulator was not validated
 against physical devices or the batman-adv module, and its medium model is
 simple: the results describe this implementation under this medium. Those fronts

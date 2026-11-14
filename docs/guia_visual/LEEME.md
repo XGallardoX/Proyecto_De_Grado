@@ -39,3 +39,18 @@ python docs/guia_visual/a_pdf.py docs/guia_visual/guia.html docs/guia_visual_sim
   página de Tráfico.
 
 `docs/guia_visual/img/` y `tmp_guia/` no se suben al repo.
+
+## Capturas de la tesis
+
+`capturar_tesis.py` rehace con semilla fija dos capturas del Capítulo 5
+de la tesis (`Plantilla/Images/Cap4/`): `fuerzas_cobertura.png`
+(`base`, semilla 2, 45 s) y `trafico.png` (`cobertura_edificio`,
+semilla 1, 50 s). Con el mismo servidor de arriba:
+
+```bash
+python docs/guia_visual/capturar_tesis.py tmp_guia/tesis
+cp tmp_guia/tesis/*.png Plantilla/Images/Cap4/
+```
+
+Avanza paso a paso, así que la imagen sale igual en cualquier máquina.
+Imprime las cifras del panel Tráfico que cita el pie de figura.

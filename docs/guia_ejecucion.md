@@ -587,17 +587,20 @@ quedan por debajo de los dos modos centralizados, porque la malla se
 estira y los enlaces son largos. Y hay más alertas (30.3 en `denso`,
 contra 0 con `seguir`) por enlaces que parpadean.
 
-Con tráfico de datos de aplicación (`trafico: 6` en el lote, 10 semillas,
-200 s) `descentralizada` es la que más datos entrega de punta a punta:
+Con tráfico de datos de aplicación (`lotes/movilidad_datos.json`:
+`trafico: 6`, 30 semillas desde el 2026-11-14, 200 s) `descentralizada`
+es la que más datos entrega de punta a punta:
 
 | Escenario | Entrega de datos (`seguir` → `repartir` → `descentralizada`) |
 |---|---|
-| `base` | 0.211 → 0.205 → **0.277** |
-| `colapso_progresivo` | 0.216 → 0.196 → **0.234** |
-| `denso` | 0.140 → 0.182 → **0.281** |
+| `base` | 0.184 → 0.183 → **0.223** |
+| `colapso_progresivo` | 0.183 → 0.171 → **0.191** |
+| `denso` | 0.161 → 0.202 → **0.315** |
 
-Es porque cubre a más Nodos de usuario: entre los pares que sí tienen
-un camino por radio, `seguir` entrega más (0.40 contra 0.30 en `base`).
+En `colapso_progresivo` la ventaja no es concluyente con la corrección
+de Holm (tabla `diferencias` de la tesis). Es porque cubre a más Nodos
+de usuario: entre los pares que sí tienen un camino por radio, `seguir`
+entrega más (0.41 contra 0.25 en `base`).
 Los umbrales de la movilidad `descentralizada` y su elección están en
 [`movimiento_nodos.md`](movimiento_nodos.md).
 
@@ -949,7 +952,12 @@ python main.py --web --config escenarios/fallos/cobertura_edificio.txt --seed 1
    0, y pulsa "Enviar" con UDP. El log dice
    `UDP N1→N6: 0 de 10 entregados (último: sin ruta en la tabla)`: N1
    todavía no tiene ruta hacia N6, que queda en la otra punta de la
-   malla. Con ICMP y TCP pasa lo mismo.
+   malla. Con ICMP y TCP pasa lo mismo. Es por el TTL de 6 de los OGM:
+   un OGM de N6 llega a N1 solo si alguna copia viaja por un camino
+   corto, y con esta semilla eso pasa recién a los 80.5 s. Con
+   `--param ttl=7`, N1 tiene la ruta a los 13 s. Con 10 semillas y TTL
+   6, la primera ruta N1→N6 tarda 22.6 s en promedio, y a los 120 s
+   todos los pares de nodos tienen ruta.
 2. Usa "Reiniciar", pausa en t = 120 s y manda, en este orden, 10 de
    UDP, 10 de ICMP y 10 de TCP. Deberías ver:
 

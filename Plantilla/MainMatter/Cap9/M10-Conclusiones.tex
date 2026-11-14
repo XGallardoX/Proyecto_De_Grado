@@ -32,14 +32,15 @@ juntos. Su ventaja frente a la emulación es el control y las mediciones, no el
 tamaño.
 
 \textbf{Sobre las pruebas (objetivo 4).} De las once pruebas de simulación,
-nueve dieron lo esperado y dos lo dieron en parte
-(Tabla~\ref{tab:resumen-pruebas}). Con el despliegue de referencia y 10
-semillas se concluye que:
+ocho dieron lo esperado y tres lo dieron en parte
+(Tabla~\ref{tab:resumen-pruebas}). Con el despliegue de referencia, 10
+semillas en las pruebas de fallos y de tipos de paquete y 30 en las
+comparaciones de las pruebas P7 a P9, se concluye que:
 
 \begin{itemize}
 \item \textit{Cobertura.} La cobertura no muestra el daño a la conectividad:
 la caída de un puente parte la malla 90~s con cobertura media de 1.000, y dos
-fallos dirigidos reducen la entrega de datos de 0.502 a 0.284 sin una
+fallos dirigidos reducen la entrega de datos de 0.542 a 0.338 sin una
 diferencia de cobertura concluyente. Evaluar una red de este tipo exige medir
 a la vez la física, la entrega de datos y lo que cree cada nodo.
 \item \textit{Adaptabilidad.} La malla se puede adaptar sin coordinador: con
@@ -53,7 +54,7 @@ en el escenario \texttt{base}, la exactitud del conocimiento baja de 0.95 a
 UDP.
 \item \textit{Protocolos.} La comparación depende del lugar: la inundación
 supera a B.A.T.M.A.N. en campo abierto con cerca del doble de transmisiones, y
-queda muy por debajo en el edificio (0.430 frente a 0.786). Este resultado vale
+queda muy por debajo en el edificio (0.465 frente a 0.811). Este resultado vale
 para un medio sin colisiones.
 \item \textit{Repetibilidad.} Las tablas de resultados salieron idénticas byte
 a byte al repetir las corridas en dos computadores.
@@ -96,7 +97,8 @@ en inteligencia artificial, que los Gateway aprendan su regla de movimiento, y
 compararla con la de este trabajo.
 \item \textbf{Tamaño.} Optimizar el procesamiento de los OGM, que consume la
 mayor parte del tiempo, para superar el límite actual de unos 100 nodos juntos.
-\item \textbf{Estadística.} Aumentar el número de semillas en las comparaciones
-de magnitud pequeña y aplicar una corrección por hacer varias
-comparaciones~\cite{Jain1991Art}.
+\item \textbf{Estadística.} Las comparaciones de las pruebas P7 a P9 ya usan
+30 semillas y la corrección de Holm~\cite{Holm1979Sequential}. Falta llevar lo
+mismo a las pruebas de fallos y de tipos de paquete, que siguen con 10
+semillas, y comprobar si las diferencias siguen una distribución normal.
 \end{itemize}

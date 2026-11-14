@@ -1,130 +1,134 @@
 # Qué se hizo y qué falta
 
-Fecha: 2026-11-13. Sigue la lista de 14 puntos que Juan Camilo le pasó a
-Jefferson. El estado general del proyecto está en [`OFICIAL.md`](OFICIAL.md),
-que manda sobre este archivo.
+Fecha: 2026-11-14. Sigue la lista de 14 puntos que Juan Camilo le pasó a
+Jefferson el 2026-11-13. El estado general del proyecto está en
+[`OFICIAL.md`](OFICIAL.md), que manda sobre este archivo.
 
-Ojo: la lista llegó con líneas cortadas. Los puntos 2, 5, 6, 8, 9, 12, 13 y
-14, y las dos decisiones del final, se leyeron incompletos. Conviene que
-Juan Camilo la vuelva a pasar como archivo.
+## Decisiones (Juan Camilo, 2026-11-14)
 
-## Resumen
+Son las que Jefferson dejó abiertas el 2026-11-13. Ya están tomadas.
 
-| Punto | Tema | Estado |
+| Decisión | Qué se decidió | Estado |
 |---|---|---|
-| 1 | Dedicatorias | Falta |
-| 2 | Lectura completa del PDF | Falta |
-| 3 | `PREGUNTAS_FRECUENTES.md` y guía visual | Hecho |
-| 4 | `interfaz_web.md` y caso de UDP/ICMP/TCP | Hecho |
-| 5 | Los dos puntos de ns-3 que debilitan la brecha | Hecho; falta acordar la defensa |
-| 6 | Citas contra las fuentes | A medias |
-| 7 | Literatura reciente | A medias |
-| 8 | Reescribir el estado del arte | Falta |
-| 9 | Comparación cuantitativa con otro modelo | Falta |
-| 10 | Acercar el protocolo a B.A.T.M.A.N. | Falta: decisión |
-| 11 | TCP con tiempo real | Falta: decisión |
-| 12 | N1 sin ruta hacia N6 a los 40 s | Reproducido, sin investigar |
-| 13 | Estadística (más semillas, comparaciones múltiples) | Falta |
-| 14 | Preparar la sustentación | Empezado |
+| Punto 10: acercar el protocolo a B.A.T.M.A.N. | **No se hace.** Queda como recomendación (ya estaba en `sec:recomendaciones`) | Cerrada |
+| Punto 11: TCP con tiempo real | **No se rediseña `sim/datos.py`.** En su lugar, algo visual y sencillo: retardo estimado y línea de tiempo de cada paquete en la pestaña Tráfico | Hecho |
+| Renombrar `rescatista_perdido` y `colapso_progresivo` | **No se renombran** | Cerrada |
+| Captura de las capas del mapa con semilla fija | **Sí** | Hecho |
+| Punto 5: defensa frente a ns-3 | **Aprobada** la propuesta de `VERIFICACION_FUENTES.md` (sección 1) | Cerrada; va a la sustentación (punto 14) |
 
-## Lo que se hizo
+## Reparto del resto
 
-- **Punto 3.** `contexto/PREGUNTAS_FRECUENTES.md` dice "adaptabilidad" y
-  "Capítulo 6", nombra la pestaña Tráfico y tiene una pregunta 10 sobre UDP,
-  ICMP y TCP. `docs/guia_visual_simulador.pdf` se rehízo (26 páginas): todas
-  las capturas son de la interfaz actual y hay una página para la pestaña
-  Tráfico. Su fuente quedó en `docs/guia_visual/`.
-- **Punto 4.** `docs/interfaz_web.md` ya no dice "a la medida" y documenta la
-  pestaña Tráfico y los comandos `enviar_paquetes` y `quitar_flujo`.
-  `docs/guia_ejecucion.md` tiene el caso 15, con la salida de la semilla 1 y
-  del lote `tipos_paquete`.
-- **Punto 5.** Se confirmó en la documentación de ns-3 que su módulo de
-  edificios modela la pérdida entre pisos y que *Direct Code Execution*
-  ejecuta código de Linux. Lo que dice la tesis es correcto. Hay una
-  respuesta propuesta para el jurado en `contexto/VERIFICACION_FUENTES.md`.
-- **Punto 6 (parte).** Se contrastaron las 14 citas nuevas y las que estaban
-  en resumen. Se corrigió una: 802.11 no reintenta 3 veces por defecto; el 3
-  es una simplificación del simulador (Capítulo 5 y README).
-- **Punto 7 (parte).** Tres artículos de 2022 a 2026 integrados al estado del
-  arte: Wang et al., Turlykozhayeva et al. y Alam y Moh. La bibliografía
-  queda en 61 referencias.
-- **Compilación.** Se instaló MiKTeX en la máquina de Jefferson. La tesis
-  compila: 92 páginas, sin citas ni referencias rotas.
-  `Plantilla/documento_actual.pdf` es esa versión.
-- **Pruebas.** Las 390 pasan (1 omitida).
+Mitad para Claude (con Juan Camilo, en su máquina Linux) y mitad para
+Jefferson. La mitad de Claude es la de código, corridas y cifras; la de
+Jefferson, la de lectura de fuentes y redacción.
 
-## Lo que falta y por qué
+### Claude: hecho el 2026-11-14
 
-### Falta porque es una decisión de los dos autores
+- **Punto 11, versión visual.** `sim/datos.py` estima el retardo de cada
+  paquete entregado: 2 ms por intento de transmisión por radio
+  (`T_INTENTO_RADIO`) y 1 s de espera antes de cada retransmisión de TCP
+  (`RTO_TCP`, el mínimo de RFC 6298). UDP hasta que llega, ICMP ida y
+  vuelta, TCP hasta que llega el segmento. No consume `random`: el lote
+  `tipos_paquete` salió idéntico. La pestaña Tráfico muestra el retardo
+  medio por tipo como barras y una línea de tiempo por paquete (▶ ida, ◀
+  respuesta, ✕ perdido, ⏱ espera). Pruebas en
+  `tests/test_tipos_paquete.py`. Tesis: párrafo nuevo en la sección de
+  tipos de paquete (Cap. 5) y cita `Paxson2011RTO`.
+- **Capturas con semilla fija.** `docs/guia_visual/capturar_tesis.py`
+  rehace `fuerzas_cobertura.png` (`base`, semilla 2, 45 s) y
+  `trafico.png` (`cobertura_edificio`, semilla 1, 50 s). Pies de figura
+  al día con las cifras de esas corridas.
+- **Punto 12, N1 sin ruta hacia N6 a los 40 s.** Es por el TTL de 6 de
+  los OGM: con la semilla 1, N1 aprende la ruta a los 80.5 s; con TTL 7, a
+  los 13 s. En 10 semillas con TTL 6, la primera ruta N1→N6 tarda 22.6 s
+  en promedio, el 99.3 % de los pares tiene ruta a los 40 s y todos a los
+  120 s. Con TTL 4 nunca aparece. Va en la tesis (descripción del OGM,
+  Cap. 5) y en el caso 15 de `docs/guia_ejecucion.md`. No se cambia el
+  TTL por defecto.
+- **Punto 13, estadística.** `movilidad_datos`, `robustez` y
+  `generalidad` pasaron de 10 a 30 semillas, y la tabla `diferencias`
+  lleva el valor p de la prueba t pareada corregido por Holm
+  (`analysis/capitulo5.py`, con pruebas en `tests/test_capitulo5.py`).
+  Cambiaron cifras del Cap. 6, del resumen y de las conclusiones (fallos
+  dirigidos: 0.338 frente a 0.542; edificio: 0.811 frente a 0.465). Lo
+  más importante: en `colapso_progresivo`, la ventaja de la movilidad
+  descentralizada sobre `repartir` deja de ser concluyente, así que **P7
+  pasa a cumplirse en parte** (ahora son tres: P6, P7 y P9). Detalle en
+  `OFICIAL.md` ("Resultados oficiales").
+- **Arreglos de texto que dejó sugeridos Jefferson:**
+  - Cap. 2: los emuladores no traen "listo para usar" un modelo de
+    pérdida entre pisos.
+  - Cap. 5: la frase "cada nodo conoce su posición" ya no se apoya en
+    Howard et al.: queda como supuesto de este trabajo.
+  - Cap. 6: Wang et al. (36.48 s de batman-adv para cambiar de Gateway)
+    junto a la detección de caídas, aclarando que no se comparan de forma
+    directa.
+  - Conclusiones: la corrección por comparaciones múltiples cita a Holm
+    (1979), no a Jain.
 
-- **Punto 10, acercar el protocolo a B.A.T.M.A.N.** Reenviar solo el OGM del
-  mejor vecino y borrar rutas por tiempo cambia todos los resultados: hay que
-  repetir las 450 corridas, regenerar las tablas y reescribir las cifras del
-  Capítulo 6, el resumen y las conclusiones. Hay que decidir si se hace o si
-  queda como recomendación. **Es la decisión que bloquea a las demás.**
-- **Punto 11, TCP con tiempo real.** Implica rediseñar `sim/datos.py` y sus
-  pruebas, y también cambia resultados. Si se hace, conviene hacerlo junto
-  con el punto 10 para repetir las corridas una sola vez.
-- **Renombrar los escenarios** `rescatista_perdido` y `colapso_progresivo`.
-  Cambia lotes, tablas y texto.
-- **Rehacer con semilla fija la captura de las capas del mapa.** Hoy es la
-  única con semilla al azar.
-- **Punto 5, la defensa frente a ns-3.** La propuesta está escrita; falta que
-  los dos la acuerden.
+### Claude: pendiente
 
-### Falta porque depende de una de esas decisiones
+- **Punto 9, comparación cuantitativa con otro modelo.** Es la tarea más
+  grande y la deuda principal de la tesis. Se hace en la máquina de Juan
+  Camilo (Linux), porque ns-3 y batman-adv lo necesitan. Primero hay que
+  fijar el alcance con Juan Camilo: qué herramienta (batman-adv real
+  sobre interfaces de radio emuladas, que pide permisos de administrador,
+  o ns-3, que no trae B.A.T.M.A.N. y obligaría a comparar con OLSR), qué
+  escenario (el despliegue de referencia de 13 nodos) y qué métricas
+  (entrega y tiempo de partición).
 
-- **Punto 2, lectura completa del PDF.** Es trabajo de los autores, no se
-  puede delegar. Si se aprueba el punto 10, las cifras cambian, así que
-  conviene leer después.
-- **Punto 9, comparación con ns-3 o batman-adv.** Es la tarea más grande y la
-  deuda principal de la tesis. No se empezó por tres razones: los números
-  propios pueden cambiar con el punto 10; ns-3 y batman-adv necesitan Linux
-  (en la máquina de Jefferson habría que usar WSL); y falta definir el
-  alcance (qué escenarios, cuántas semillas, qué métricas).
-- **Punto 12, N1 sin ruta hacia N6 a los 40 s.** Se reprodujo (caso 15 de la
-  guía: a los 40 s no hay ruta, a los 120 s sí). No se midió con qué TTL se
-  arregla, porque el reenvío de OGM es justo lo que cambia el punto 10.
-- **Punto 13, estadística.** Subir las semillas obliga a repetir corridas;
-  conviene juntarlo con los puntos 10 y 11. La corrección por comparaciones
-  múltiples además necesita una fuente que la respalde (ver abajo).
+### Jefferson
 
-### Falta porque no se pudo hacer desde esta máquina
+En este orden:
 
-- **Punto 6, leer los artículos completos.** Springer, ScienceDirect, IEEE
-  Xplore y ACM rechazaron el acceso; solo se leyeron resúmenes y RFC. Hay
-  que leerlos con la cuenta de la universidad, en este orden:
-  1. Kiess y Mauve: la frase sobre la inundación en prototipos.
-  2. Howard et al.: "cada nodo conoce su posición" (Capítulo 5). **Dudosa.**
-  3. Fontes et al.: "pares de interfaces virtuales" en Mininet-WiFi.
-  4. Jain: la cita de la corrección por comparaciones múltiples
-     (Conclusiones). **Dudosa.**
-  5. Zeng et al. y Riley y Henderson.
-- **Punto 7, Scopus e IEEE Xplore.** La búsqueda se hizo en OpenAlex, que es
-  abierta. Las otras dos piden cuenta institucional. Queda un artículo
-  pertinente sin añadir porque no tiene resumen público: Farajkhah y Çoban
-  (DOI 10.1016/j.simpat.2026.103372).
+1. **Su dedicatoria**, debajo de su nombre en
+   `Plantilla/FrontMatter/F02-Dedication.tex`.
+2. **Repetir en su máquina los tres lotes de 30 semillas** y comprobar que
+   las tablas salen idénticas a las del repo (es la prueba P10, "idénticas
+   en dos computadores"). `generalidad` tarda cerca de una hora:
+   ```bash
+   python main.py --batch lotes/movilidad_datos.json
+   python main.py --batch lotes/robustez.json
+   python main.py --batch lotes/generalidad.json
+   python -m analysis.capitulo5
+   git status Plantilla/MainMatter/Cap5/tablas   # no debe cambiar nada
+   ```
+3. **Punto 6, leer las fuentes completas** con la cuenta de la
+   universidad, por orden de riesgo:
+   1. Kiess y Mauve: la frase sobre la inundación en prototipos.
+   2. Fontes et al.: "pares de interfaces virtuales" en Mininet-WiFi.
+   3. Jain (1991): que respalde las diferencias pareadas por semilla
+      (Cap. 4). La corrección por comparaciones múltiples ya no se le
+      atribuye.
+   4. Holm (1979): la referencia nueva del procedimiento de corrección.
+   5. Zeng et al. (GloMoSim) y Riley y Henderson (ns-3).
+   6. Howard et al.: ya no respalda la frase de la posición; sigue citado
+      por la familia de las fuerzas virtuales. Basta comprobar eso.
+4. **Punto 7, literatura reciente:** repetir la búsqueda en Scopus e IEEE
+   Xplore (2022 a 2026: simulación de mallas, B.A.T.M.A.N., despliegue
+   autónomo) y leer Farajkhah y Çoban (DOI 10.1016/j.simpat.2026.103372)
+   antes de añadirlo.
+5. **Punto 8, reescribir el estado del arte** (Cap. 3,
+   `Plantilla/MainMatter/Cap2/M03-Chapter2.tex`) en lenguaje sencillo,
+   después de 6 y 7. Regla de control: la lista de `\cite` debe ser la
+   misma antes y después, salvo lo que añada el punto 7 (paso 4).
+6. **Punto 14, preparar la sustentación:** diapositivas y respuestas a:
+   por qué no ns-3 (la propuesta aprobada en `VERIFICACION_FUENTES.md`),
+   por qué no se validó con equipos, qué significa "código real" si no es
+   batman-adv, por qué P6, P7 y P9 se cumplen solo en parte, y por qué el
+   retardo de la pestaña Tráfico es una estimación y no una medición.
+7. **Punto 2, lectura completa del PDF**, marcando lo que no se entienda
+   sin saber de redes. Va al final, porque el punto 13 cambió cifras del
+   Cap. 6, del resumen y de las conclusiones.
 
-### Falta porque es personal
+### Juan Camilo
 
-- **Punto 1, dedicatorias.** Cada autor escribe la suya en
-  `Plantilla/FrontMatter/F02-Dedication.tex`. Faltan las dos.
+- Su dedicatoria.
+- Leer también el PDF completo (punto 2).
+- Fijar con Claude el alcance del punto 9.
 
-### Falta porque no se llegó
+## Lo que queda fuera de los repartos
 
-- **Punto 8, reescribir el estado del arte.** No estaba en esta tanda. Va
-  después de los puntos 6 y 7, para no reescribir frases que luego cambian.
-  Regla de control: la lista de `\cite` debe ser la misma antes y después.
-- **Punto 14, preparar la sustentación.** Solo está la respuesta a "¿por qué
-  no usar ns-3?". Faltan las demás: por qué no se validó con equipos, qué
-  significa "código real" y por qué P6 y P9 se cumplen solo en parte.
-
-## Orden sugerido
-
-1. Decidir el punto 10 (y con él 11 y 13).
-2. Mientras tanto, lo que no depende de eso: dedicatorias (1), lectura de
-   fuentes con acceso de la universidad (6), Scopus e IEEE Xplore (7).
-3. Si se aprueba el 10: implementarlo, repetir las corridas una sola vez con
-   11 y 13 incluidos, y revisar el 12 sobre el protocolo nuevo.
-4. Comparación con otro modelo (9).
-5. Reescribir el estado del arte (8), lectura completa (2) y sustentación (14).
+- Sigue sin leerse el texto completo de los artículos de pago: Jefferson
+  no tuvo acceso desde su máquina (Springer, ScienceDirect, IEEE Xplore y
+  ACM). Por eso el punto 6 va con la cuenta de la universidad.

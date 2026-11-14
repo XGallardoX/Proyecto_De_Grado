@@ -146,13 +146,16 @@ evento: `wander`, caída (`fail`) y recuperación (`recover`).
   `paquetes_total`. Con 50 nodos hay miles en vuelo; la interfaz avisa
   cuando dibuja una muestra.
 - **`trafico`** (`web/estado.py:trafico()`, para la pestaña Tráfico):
-  `tipos`, `por_tipo` (enviados, entregados, retransmisiones y
-  sin_respuesta de cada tipo), `enviados`, `entregados`,
+  `tipos`, `por_tipo` (enviados, entregados, retransmisiones,
+  sin_respuesta, `retardo_medio` y `retardo_max` de cada tipo),
+  `retardo` (las dos constantes de la estimación), `enviados`, `entregados`,
   `transmisiones`, `perdidas` (por causa), `flujos` (id, origen,
   destino, tipo, cada, cantidad, enviados, entregados, activo) y
   `recientes` (los últimos paquetes, con su `camino` de ida, la `vuelta`
-  de la respuesta en ICMP y TCP, `intentos`, `confirmado` y el `motivo`
-  si se perdió).
+  de la respuesta en ICMP y TCP, `intentos`, `confirmado`, el `motivo`
+  si se perdió, el `retardo` estimado y `envios`: por cada envío de
+  extremo a extremo, si llegó la ida, si volvió la respuesta y los
+  intentos de radio de cada tramo).
 - **Conectividad:** `resumen` (`sim.summary()`), `grupos`
   (`_union_find` sobre todos los nodos vivos), `nodos_alcanzables`.
 - **Lente:** `vigilancia` (cada Gateway observador, a quién vigila,
@@ -241,12 +244,22 @@ datos (`sim/datos.py`) deja en `frame.trafico`.
   de cada tipo; las retransmisiones (solo TCP) y los paquetes sin
   respuesta (ecos de ICMP sin respuesta o segmentos de TCP sin
   confirmación). La fila del total trae las transmisiones por radio.
+- **Retardo estimado (medio):** una barra por tipo, en la misma escala
+  (agregado el 2026-11-14). Como cada salto se resuelve dentro del paso,
+  el retardo no se mide: se estima con 2 ms por intento de transmisión
+  por radio (`T_INTENTO_RADIO`) y 1 s de espera antes de cada
+  retransmisión de TCP (`RTO_TCP`, el mínimo de RFC 6298). UDP: hasta
+  que llega; ICMP: ida y vuelta; TCP: hasta que llega el segmento. No
+  consume `random`: ningún resultado cambia.
 - **Flujos:** cada flujo con su tipo, intervalo y avance
   (`enviados / cantidad`), y un botón para quitarlo (`quitar_flujo`).
 - **Últimos paquetes:** instante, tipo, resultado y recorrido. La ida
   sale salto a salto y, en ICMP y TCP, también la vuelta de la
   respuesta. Si se perdió, dice el motivo y si fue la respuesta la que
-  no volvió; en TCP, cuántos envíos hizo falta.
+  no volvió; en TCP, cuántos envíos hizo falta. Debajo, la **línea de
+  tiempo** del paquete: ▶ la ida y ◀ la respuesta, verdes si llegaron y
+  rojas (✕) si se perdieron; entre dos envíos de TCP, ⏱ la espera; al
+  final, el retardo estimado.
 - **Por qué se perdieron:** la cuenta por causa (sin ruta, la radio
   perdió el salto, bucle, sin camino por radio…).
 

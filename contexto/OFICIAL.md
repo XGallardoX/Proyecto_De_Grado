@@ -1,6 +1,6 @@
 # Documento oficial del proyecto
 
-Fecha: 2026-11-13. **Este es el archivo oficial**: si otro documento de
+Fecha: 2026-11-14. **Este es el archivo oficial**: si otro documento de
 `contexto/` o `docs/` dice algo distinto sobre el estado del proyecto,
 manda este. Los demás quedan como historia y detalle (ver el final).
 
@@ -20,7 +20,7 @@ manda este. Los demás quedan como historia y detalle (ver el final).
 
 **El simulador y el borrador completo del documento están hechos, con las
 correcciones del tutor del 2026-11-13 aplicadas** (ver la sección siguiente). El PDF
-compila sin errores ni referencias rotas: 92 páginas. Copia para leer sin
+compila sin errores ni referencias rotas: 94 páginas. Copia para leer sin
 instalar LaTeX: `Plantilla/documento_actual.pdf`.
 
 | Parte del documento | Archivo en `Plantilla/` | Estado |
@@ -37,7 +37,7 @@ instalar LaTeX: `Plantilla/documento_actual.pdf`.
 | Cap. 5 Desarrollo | `MainMatter/Cap4/` | Reorganizado: 5.1 Requerimientos, 5.2 Diseño, 5.3 Implementación, 5.4 Pruebas |
 | Cap. 6 Resultados y discusión | `MainMatter/Cap5/` | Organizado por prueba (P1 a P11): esperado contra obtenido |
 | Cap. 7 Conclusiones | `MainMatter/Cap9/` | Escrito |
-| Anexos | `BackMatter/B01-Anexos.tex` | A: reproducción. B: comprobaciones automáticas (las 390 pruebas `unittest`) |
+| Anexos | `BackMatter/B01-Anexos.tex` | A: reproducción. B: comprobaciones automáticas (las 397 pruebas `unittest`) |
 
 Ojo con los números: los nombres de carpeta no coinciden con el capítulo
 impreso. Lo que el código y los documentos viejos llaman "Capítulo 5" es el
@@ -100,6 +100,34 @@ Hecho por Jefferson sobre la lista de pendientes de Juan Camilo:
 92 páginas, sin errores, sin citas ni referencias rotas y con las 61 entradas en
 la bibliografía. `Plantilla/documento_actual.pdf` ya es esa versión.
 
+## Avance del 2026-11-14 (decisiones y reparto)
+
+Juan Camilo tomó las decisiones que Jefferson dejó abiertas, y el resto de
+la lista se repartió entre Claude y Jefferson. **El detalle, el reparto y el
+orden de las tareas de Jefferson están en
+[`PENDIENTES.md`](PENDIENTES.md).** En resumen:
+
+- **Punto 10 (acercar el protocolo a B.A.T.M.A.N.):** no se hace; queda como
+  recomendación. **Escenarios:** no se renombran. **Defensa frente a ns-3:**
+  aprobada.
+- **Punto 11 (TCP con tiempo real):** en vez de rediseñar, la pestaña Tráfico
+  estima el retardo (2 ms por intento de radio y 1 s de espera antes de cada
+  retransmisión de TCP, RFC 6298) y dibuja la línea de tiempo de cada paquete.
+  No cambia ningún resultado.
+- **Capturas con semilla fija:** `fuerzas_cobertura.png` y `trafico.png`, con
+  `docs/guia_visual/capturar_tesis.py`.
+- **Punto 12:** N1 sin ruta a N6 a los 40 s es efecto del TTL de 6 de los OGM
+  (con TTL 7 la ruta llega a los 13 s). Documentado en la tesis y en la guía.
+- **Punto 13:** 30 semillas en las pruebas P7 a P9 y corrección de Holm en la
+  tabla `diferencias` (ver "Resultados oficiales"). P7 pasa a cumplirse **en
+  parte**: ocho pruebas dieron lo esperado y tres en parte (P6, P7 y P9).
+- **Texto:** Wang et al. en el Cap. 6; la frase de la posición ya no se apoya
+  en Howard; Holm reemplaza a Jain en la corrección por comparaciones
+  múltiples; "listo para usar" en la frase de los emuladores. Dos referencias
+  nuevas: Holm (1979) y RFC 6298 (63 en total).
+- **Pendiente de Claude:** la comparación cuantitativa con otro modelo (punto
+  9), con el alcance por fijar con Juan Camilo.
+
 ## Lo que falta
 
 **De los autores (no se puede resolver desde el repo):**
@@ -117,7 +145,8 @@ Decisión de los autores (2026-11-04): el documento no lleva nota sobre el uso d
   implementación en Python de `mesh/`, con diferencias conocidas respecto de
   B.A.T.M.A.N. (Sección 5.11 del PDF).
 - El medio de radiofrecuencia es simple: simétrico y sin colisiones.
-- No se mide latencia.
+- No se mide latencia. La pestaña Tráfico muestra una **estimación** del
+  retardo, que no se usa en ningún resultado.
 - La escala llega a unas decenas de nodos: con 100 nodos densos ya corre por
   debajo del tiempo real.
 
@@ -130,28 +159,33 @@ Decisión de los autores (2026-11-04): el documento no lleva nota sobre el uso d
 
 ## Resultados oficiales
 
-Todas las cifras del Capítulo 6 salen de estos lotes (10 semillas cada uno,
-450 corridas en total), corridos el 2026-11-04 (`tipos_paquete`, el 2026-11-13):
+Todas las cifras del Capítulo 6 salen de estos lotes. Desde el 2026-11-14,
+`movilidad_datos`, `robustez` y `generalidad` usan **30 semillas**; los demás, 10
+(790 corridas en total). Fechas: 2026-11-04 (fallos y movilidad), 2026-11-13
+(`tipos_paquete`) y 2026-11-14 (los tres de 30 semillas):
 
 | Lote (`lotes/`) | Qué compara | Tablas |
 |---|---|---|
 | `capitulo5_fallos.json` | Caídas con Gateway fijos | `fallos`, `calidad` |
 | `capitulo5_fallos_movil.json` | Las mismas caídas con movilidad descentralizada | `fallos_movil`, `calidad_movil` |
 | `movilidad.json` | Tres modos de movilidad, sin tráfico | `movilidad` |
-| `movilidad_datos.json` (nuevo) | Tres modos con 6 flujos de datos | `movilidad_datos` |
-| `robustez.json` | Fallos al azar contra dirigidos | `robustez` |
-| `generalidad.json` (nuevo) | B.A.T.M.A.N. contra inundación en dos mapas | `generalidad` |
+| `movilidad_datos.json` (30 semillas) | Tres modos con 6 flujos de datos | `movilidad_datos` |
+| `robustez.json` (30 semillas) | Fallos al azar contra dirigidos | `robustez` |
+| `generalidad.json` (30 semillas) | B.A.T.M.A.N. contra inundación en dos mapas | `generalidad` |
 | `tipos_paquete.json` (2026-11-13) | UDP, ICMP y TCP en el edificio, 6 flujos | `tipos_paquete` |
 
-La tabla `diferencias` trae las diferencias pareadas con su intervalo del 95 %.
+La tabla `diferencias` trae las 14 diferencias pareadas con su intervalo del
+95 % y el valor p de la prueba t pareada corregido por Holm
+(`analysis/capitulo5.py`: `p_pareada`, `holm`). Una diferencia es concluyente si
+ese valor es menor que 0.05.
 
 Resultados principales:
 
 - **La cobertura no revela la partición.** Si cae el puente, la malla queda
   partida 90 s con cobertura media de 1.000.
-- **Fallos dirigidos:** entrega de datos de 0.284 contra 0.502 al azar
-  (diferencia de 0.218, IC 95 % de 0.149 a 0.287), sin diferencia concluyente
-  en cobertura.
+- **Fallos dirigidos:** entrega de datos de 0.338 contra 0.542 al azar
+  (diferencia de 0.204, IC 95 % de 0.159 a 0.249, concluyente con Holm), sin
+  diferencia concluyente en cobertura.
 - **Gateway móviles:** la partición por el puente baja de 90 s a 6.2 s, pero la
   cobertura en ese fallo baja a 0.922.
 - **El plano de control se degrada:** en `base`, la exactitud del conocimiento
@@ -160,19 +194,26 @@ Resultados principales:
   veces las transmisiones de UDP.
 - **Inundación contra B.A.T.M.A.N.:** depende del mapa. En campo abierto gana la
   inundación con cerca del doble de transmisiones; en el edificio gana
-  B.A.T.M.A.N. (0.786 contra 0.430).
+  B.A.T.M.A.N. (0.811 contra 0.465).
+- **Movilidad con datos:** la descentralizada entrega más que `seguir` y
+  `repartir` en `base` y `denso`; en `colapso_progresivo` no es concluyente
+  con Holm (frente a `repartir`, p corregido 0.078; con 10 semillas y sin
+  corrección parecía concluyente).
 
 **Correcciones respecto de lo que decía `PLAN_SIGUIENTE.md`:**
 
 - Allí la movilidad descentralizada figuraba como la de mejor entrega en
-  `colapso_progresivo`. Con diferencias pareadas, frente a `seguir` no es
-  concluyente (IC de -0.016 a +0.052). Vale lo de la tesis.
+  `colapso_progresivo`. Con 30 semillas y la corrección de Holm no es
+  concluyente ni frente a `seguir` ni frente a `repartir`. Vale lo de la tesis.
 - Allí la inundación solo se había medido en campo abierto, con 3 semillas, y
   ganaba. En el edificio, con 10 semillas, pierde por mucho.
 
 **Reproducibilidad:** las cinco tablas de los lotes del 27 de octubre salieron
 idénticas byte a byte al correrlas de nuevo en esta máquina el 4 de noviembre.
-Después solo cambió su formato (anchos de columna).
+Después solo cambió su formato (anchos de columna). El 2026-11-14, el lote
+`tipos_paquete` salió idéntico tras añadir el retardo estimado. **Falta** repetir
+en la máquina de Jefferson los tres lotes de 30 semillas, para que la prueba P10
+("idénticas en dos computadores") siga valiendo para ellos (está en su lista).
 
 ## Fuentes
 
@@ -213,13 +254,19 @@ Fontes et al., Jain (la cita de la corrección por comparaciones múltiples,
 la bibliografía llega a 61). La búsqueda se hizo en OpenAlex: falta repetirla en
 Scopus o IEEE Xplore.
 
+**2026-11-14:** Holm (1979), para la corrección por comparaciones múltiples, y
+RFC 6298, para la espera de 1 s antes de retransmitir: 63 referencias. Jain ya no
+se cita para la corrección (sigue para las diferencias pareadas), y Howard ya no
+respalda la frase "cada nodo conoce su posición", que quedó como supuesto del
+trabajo.
+
 **Sin cita, como conocimiento general:** los nombres comerciales QualNet, Riverbed
 Modeler y NetSim.
 
 ## Cómo trabajar
 
 ```bash
-# Pruebas (390; en Linux se omite 1, que necesita macOS)
+# Pruebas (397; en Linux se omite 1, que necesita macOS)
 venv/bin/python -m unittest discover -s tests
 
 # Rehacer los resultados y regenerar tablas y figuras
@@ -256,7 +303,7 @@ solo los paquetes que falten.
 | `contexto/ESTADO_PROYECTO.md` | Crónica hasta el 3 de octubre (historia) |
 | `contexto/DECISIONES_FASE3.md` | Historia de la Fase 3 |
 | `contexto/HISTORIA_ENCUADRE.md` | Por qué cambió el objetivo del proyecto |
-| `contexto/PENDIENTES.md` | Qué se hizo y qué falta de la lista de 14 puntos, y por qué falta (2026-11-13) |
+| `contexto/PENDIENTES.md` | Decisiones del 2026-11-14 y reparto del resto entre Claude y Jefferson |
 | `contexto/VERIFICACION_FUENTES.md` | ns-3 frente a la brecha, citas contra las fuentes y literatura reciente (2026-11-13) |
 | `contexto/PREGUNTAS_FRECUENTES.md` | Respuestas cortas sobre cómo funciona el simulador |
 | `docs/guia_ejecucion.md` | Casos de uso con su salida esperada |

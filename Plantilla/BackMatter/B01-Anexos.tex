@@ -66,7 +66,7 @@ El repositorio incluye una guía más amplia, con casos de uso y sus salidas esp
 
 \section*{Anexo B. Comprobaciones automáticas del código}
 
-Además de las pruebas de simulación, el repositorio incluye 390 comprobaciones automáticas escritas
+Además de las pruebas de simulación, el repositorio incluye 397 comprobaciones automáticas escritas
 con el módulo \texttt{unittest} de Python~\cite{Python}. Cada una ejecuta una parte pequeña del
 programa y compara el resultado con el valor correcto; por ejemplo, que un OGM perdido baje el TQ,
 que un enlace sin pérdidas lo mantenga en 1.0, o que una caída programada dé lo mismo que la misma
@@ -77,7 +77,7 @@ ya funcionaba. La Tabla~\ref{tab:pruebas} muestra cómo se reparten. Se ejecutan
 venv/bin/python -m unittest discover -s tests
 \end{verbatim}
 
-Las 390 pasan; en Linux se omite una, que necesita un componente de macOS.
+Las 397 pasan; en Linux se omite una, que necesita un componente de macOS.
 
 \begin{table}[htbp!]
     \centering
@@ -96,7 +96,7 @@ Las 390 pasan; en Linux se omite una, que necesita un componente de macOS.
         \hline
         Fallos programables y adaptación de rutas & 30 \\
         \hline
-        Envío de paquetes de datos y tipos de paquete & 38 \\
+        Envío de paquetes de datos y tipos de paquete & 42 \\
         \hline
         Movimiento descentralizado & 13 \\
         \hline
@@ -104,11 +104,11 @@ Las 390 pasan; en Linux se omite una, que necesita un componente de macOS.
         \hline
         Otros mapas, movimiento de usuarios e inundación & 14 \\
         \hline
-        Reportes, lotes, uso por terminal y análisis & 82 \\
+        Reportes, lotes, uso por terminal y análisis & 85 \\
         \hline
         Interfaz web & 101 \\
         \hline
-        \textbf{Total} & \textbf{390} \\
+        \textbf{Total} & \textbf{397} \\
         \hline
     \end{tabular}
 \end{table}
