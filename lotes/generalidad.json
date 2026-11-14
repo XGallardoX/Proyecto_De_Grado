@@ -1,7 +1,7 @@
 {
   "nombre": "generalidad",
   "duracion": 300,
-  "semillas": 10,
+  "semillas": 30,
   "escenarios": [
     { "escenario": "campo_abierto", "etiqueta": "campo_grupos_batman" },
     { "escenario": "campo_abierto", "etiqueta": "campo_grupos_inundacion",

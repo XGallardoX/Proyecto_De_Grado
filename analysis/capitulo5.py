@@ -135,6 +135,67 @@ def diferencia_pareada(corridas, a, b, clave):
     return statistics.mean(difs), t * statistics.stdev(difs) / math.sqrt(n), n
 
 
+def _beta_incompleta(a, b, x):
+    """Beta incompleta regularizada I_x(a, b), por fracción continua
+    (método de Lentz). Basta para el valor p de una t de Student."""
+    if x <= 0.0:
+        return 0.0
+    if x >= 1.0:
+        return 1.0
+    if x > (a + 1) / (a + b + 2):
+        return 1.0 - _beta_incompleta(b, a, 1.0 - x)
+    ln_frente = (math.lgamma(a + b) - math.lgamma(a) - math.lgamma(b)
+                 + a * math.log(x) + b * math.log(1.0 - x))
+    tiny = 1e-300
+    c, d = 1.0, 1.0 - (a + b) * x / (a + 1)
+    d = 1.0 / (d if abs(d) > tiny else tiny)
+    f = d
+    for m in range(1, 300):
+        for num in (m * (b - m) * x / ((a + 2 * m - 1) * (a + 2 * m)),
+                    -(a + m) * (a + b + m) * x / ((a + 2 * m) * (a + 2 * m + 1))):
+            d = 1.0 + num * d
+            d = 1.0 / (d if abs(d) > tiny else tiny)
+            c = 1.0 + num / c
+            c = c if abs(c) > tiny else tiny
+            f *= c * d
+        if abs(c * d - 1.0) < 1e-12:
+            break
+    return math.exp(ln_frente) * f / a
+
+
+def p_t_dos_colas(t, gl):
+    """Valor p a dos colas de un estadístico t con `gl` grados de libertad."""
+    return _beta_incompleta(gl / 2.0, 0.5, gl / (gl + t * t))
+
+
+def p_pareada(corridas, a, b, clave):
+    """Valor p (t pareada, dos colas) de la diferencia a - b, o None."""
+    difs = [corridas[a][s][clave] - corridas[b][s][clave]
+            for s in corridas[a] if s in corridas[b]
+            and corridas[a][s][clave] is not None
+            and corridas[b][s][clave] is not None]
+    n = len(difs)
+    if n < 2:
+        return None
+    desv = statistics.stdev(difs)
+    if desv == 0:
+        return 0.0 if statistics.mean(difs) != 0 else 1.0
+    return p_t_dos_colas(statistics.mean(difs) / (desv / math.sqrt(n)), n - 1)
+
+
+def holm(valores_p):
+    """Valores p ajustados por el procedimiento de Holm (1979), en el mismo
+    orden; los None (comparaciones que no aplican) no cuentan ni cambian."""
+    validos = sorted((p, i) for i, p in enumerate(valores_p) if p is not None)
+    m = len(validos)
+    ajustados = [None] * len(valores_p)
+    tope = 0.0
+    for k, (p, i) in enumerate(validos):
+        tope = max(tope, min(1.0, (m - k) * p))
+        ajustados[i] = tope
+    return ajustados
+
+
 def leer_serie(ruta):
     """Una corrida: (t, fracción de Nodos vivos alcanzables, eventos)."""
     t, frac, eventos = [], [], []
@@ -376,40 +437,53 @@ def tabla_tipos(tipos):
 
 
 def tabla_diferencias(datos, rob, gen):
-    filas = []
+    """Las comparaciones pareadas del Capítulo 6, con su intervalo del 95 %
+    y el valor p corregido por Holm sobre todas las de la tabla."""
+    comps = []    # (nombre, corridas, a, b, clave)
     if datos:
         for esc in ESCENARIOS_DATOS:
             esc_tex = esc.replace("_", "\\_")
             for otro in ("seguir", "repartir"):
-                filas.append(fila_diferencia(
-                    datos, f"{esc_tex}: entrega, "
-                    f"descentralizada $-$ {otro}",
-                    f"{esc}_descentralizada_trafico6",
-                    f"{esc}_{otro}_trafico6", "entrega_datos"))
-            filas.append(fila_diferencia(
-                datos, f"{esc_tex}: entrega con camino, descentralizada "
-                "$-$ seguir", f"{esc}_descentralizada_trafico6",
-                f"{esc}_seguir_trafico6", "entrega_datos_con_camino"))
+                comps.append((f"{esc_tex}: entrega, descentralizada $-$ {otro}",
+                              datos, f"{esc}_descentralizada_trafico6",
+                              f"{esc}_{otro}_trafico6", "entrega_datos"))
+            comps.append((f"{esc_tex}: entrega con camino, descentralizada "
+                          "$-$ seguir", datos, f"{esc}_descentralizada_trafico6",
+                          f"{esc}_seguir_trafico6", "entrega_datos_con_camino"))
     if rob:
-        filas.append(fila_diferencia(rob, "Robustez: entrega, azar $-$ dirigida",
-                                     "azar", "dirigida", "entrega_datos"))
-        filas.append(fila_diferencia(rob, "Robustez: cobertura, azar $-$ dirigida",
-                                     "azar", "dirigida", "cobertura_media"))
+        comps.append(("Robustez: entrega, azar $-$ dirigida", rob,
+                      "azar", "dirigida", "entrega_datos"))
+        comps.append(("Robustez: cobertura, azar $-$ dirigida", rob,
+                      "azar", "dirigida", "cobertura_media"))
     if gen:
         for nombre, base in ENTORNOS_GENERALIDAD:
-            filas.append(fila_diferencia(
-                gen, f"{nombre}: entrega con camino, inundación $-$ B.A.T.M.A.N.",
-                f"{base}_inundacion", f"{base}_batman",
-                "entrega_datos_con_camino"))
+            comps.append((f"{nombre}: entrega con camino, inundación $-$ B.A.T.M.A.N.",
+                          gen, f"{base}_inundacion", f"{base}_batman",
+                          "entrega_datos_con_camino"))
+    ajustados = holm([p_pareada(c, a, b, k) for _, c, a, b, k in comps])
+    filas, ns = [], set()
+    for (nombre, c, a, b, k), p in zip(comps, ajustados):
+        fila = fila_diferencia(c, nombre, a, b, k)
+        ns.add(diferencia_pareada(c, a, b, k)[2])
+        if p is None:
+            filas.append(fila[:3] + ["no aplica", "no"])
+        else:
+            p_txt = "$<$0.001" if p < 0.001 else f"{p:.3f}"
+            filas.append(fila[:3] + [p_txt, "sí" if p < 0.05 else "no"])
+    n_txt = (f"{ns.pop()} semillas" if len(ns) == 1
+             else "las semillas de cada lote")
     return tabla_tex(
         "tab:cap5-diferencias",
-        "Diferencias pareadas por semilla, con intervalo de confianza del 95~\\%",
+        "Diferencias pareadas por semilla, con intervalo de confianza del 95~\\% "
+        "y corrección de Holm",
         ["Comparación", "Diferencia media", "Intervalo del 95~\\%",
-         "¿Excluye el 0?"],
-        filas, ["7.2cm", "1.9cm", "3.0cm", "1.5cm"],
-        nota=("Intervalo $t$ de Student con 9 grados de libertad sobre las "
-              "diferencias entre corridas con la misma semilla. Sin corrección "
-              "por comparaciones múltiples."))
+         "$p$ (Holm)", "¿Concluyente?"],
+        filas, ["6.0cm", "1.9cm", "2.9cm", "1.4cm", "1.9cm"],
+        nota=(f"Diferencias entre corridas con la misma semilla ({n_txt}). "
+              "Intervalo $t$ de Student sin corregir. El valor $p$ es el de la "
+              f"prueba $t$ pareada, corregido por el procedimiento de Holm sobre "
+              f"las {len(comps)} comparaciones de la tabla; una diferencia es "
+              "concluyente si ese valor es menor que 0.05."))
 
 
 # ── figuras ───────────────────────────────────────────────────────────────

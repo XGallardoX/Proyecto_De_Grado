@@ -14,6 +14,28 @@ const AYUDA_TIPO = {
 };
 
 const pct = (a, b) => (b ? `${(100 * a / b).toFixed(0)} %` : "—");
+// Retardo estimado (s): en ms por debajo de 1 s.
+const dur = (s) => (s == null ? "—" : s < 1 ? `${(1000 * s).toFixed(0)} ms` : `${s.toFixed(2)} s`);
+
+// Línea de tiempo de un paquete: cada envío de extremo a extremo es una
+// flecha de ida (▶) y, en ICMP y TCP, una de vuelta (◀), verde si llegó y
+// roja si se perdió. Entre dos envíos de TCP, la espera antes de retransmitir.
+function lineaTiempo(p, rto) {
+  if (!p.envios) return "";
+  const flecha = (ok, txt, titulo) =>
+    `<span class="tl-paso ${ok ? "tl-ok" : "tl-mal"}" title="${titulo}">${txt}${ok ? "" : "✕"}</span>`;
+  const partes = p.envios.map((e, i) => {
+    let html = "";
+    if (i > 0) html += `<span class="tl-espera" title="Espera antes de retransmitir">⏱ ${dur(rto)}</span>`;
+    html += flecha(e.ida, "▶", e.ida ? `Envío ${i + 1}: llegó al destino` : `Envío ${i + 1}: se perdió en la ida`);
+    if (e.ack !== null) {
+      const que = p.tipo === "tcp" ? "la confirmación (ACK)" : "la respuesta del eco";
+      html += flecha(e.ack, "◀", e.ack ? `Volvió ${que}` : `Se perdió ${que}`);
+    }
+    return html;
+  });
+  return `<div class="tl">${partes.join("")}<span class="tl-total">${p.retardo == null ? "" : dur(p.retardo)}</span></div>`;
+}
 const chip = (tipo) =>
   `<span class="chip-tipo" style="--c:${COLOR_TIPO[tipo] || "#888"}">${esc(tipo.toUpperCase())}</span>`;
 
@@ -77,6 +99,22 @@ function llenarNodos(sel, nodos, defecto) {
   sel.value = nodos.some((n) => String(n.id) === actual) ? actual : (defecto ?? "");
 }
 
+// Retardo estimado medio de cada tipo, como barras en la misma escala: se
+// ve de un vistazo cuánto pesan las esperas de retransmisión de TCP.
+function barrasRetardo(t) {
+  const filas = t.tipos.map(({ clave }) => [clave, t.por_tipo[clave]])
+    .filter(([, c]) => c.retardo_medio != null);
+  if (!filas.length) return "";
+  const tope = Math.max(...filas.map(([, c]) => c.retardo_medio)) || 1;
+  return `<h4 title="UDP: hasta que llega. ICMP: ida y vuelta. TCP: hasta que llega el segmento, con las esperas de retransmisión.">Retardo estimado (medio)</h4>
+    <div class="tr-retardo">${filas.map(([clave, c]) => `
+      <span>${chip(clave)}</span>
+      <span class="tr-barra"><i style="width:${Math.max(1, 100 * c.retardo_medio / tope)}%;background:${COLOR_TIPO[clave]}"></i></span>
+      <span class="tr-valor" title="máximo ${dur(c.retardo_max)}">${dur(c.retardo_medio)}</span>`).join("")}
+    </div>
+    <p class="detalle">Estimación: ${dur(t.retardo.intento_radio)} por cada intento de transmisión por radio y ${dur(t.retardo.rto_tcp)} de espera antes de cada retransmisión de TCP. Los saltos se resuelven dentro de un paso, así que el simulador no mide el tiempo real.</p>`;
+}
+
 export function pintarTrafico(contenedor, f) {
   const form = contenedor.querySelector("form");
   if (!form || !f.trafico) return;
@@ -100,7 +138,8 @@ export function pintarTrafico(contenedor, f) {
     <tr><td><b>Total</b></td><td>${t.enviados}</td><td>${t.entregados}</td>
         <td>${pct(t.entregados, t.enviados)}</td>
         <td colspan="2">${t.transmisiones} transmisiones por radio</td></tr>
-  </table>`;
+  </table>
+  ${barrasRetardo(t)}`;
 
   contenedor.querySelector(".tr-flujos").innerHTML = t.flujos.length
     ? `<table class="tabla">
@@ -124,7 +163,7 @@ export function pintarTrafico(contenedor, f) {
         if (p.entregado && p.tipo === "tcp" && !p.confirmado) res += ", sin confirmación";
         if (p.intentos > 1) res += ` · ${p.intentos} envíos`;
         return `<tr class="${p.entregado ? "tr-ok" : "tr-mal"}"><td>${p.t.toFixed(1)}</td>
-          <td>${chip(p.tipo)}</td><td>${res}</td>
+          <td>${chip(p.tipo)}</td><td>${res}${lineaTiempo(p, t.retardo.rto_tcp)}</td>
           <td>${esc(p.origen)} ⇒ ${esc(p.destino)}<br><span class="tr-ida">${ida}</span>${vuelta}</td></tr>`;
       }).join("")}
     </table>`

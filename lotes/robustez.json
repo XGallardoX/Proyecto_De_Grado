@@ -1,7 +1,7 @@
 {
   "nombre": "robustez",
   "duracion": 240,
-  "semillas": 10,
+  "semillas": 30,
   "escenarios": [
     {
       "config": "escenarios/fallos/robustez_azar.txt",

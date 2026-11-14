@@ -571,3 +571,16 @@ body.presentacion::after { content: "Z: salir del modo presentación"; position:
 #panel-trafico .tr-mal td:nth-child(3) { color: var(--alerta); }
 #panel-trafico .tr-ida, #panel-trafico .tr-vuelta { font-family: var(--mono); font-size: 0.9em; color: var(--tenue); }
 #panel-trafico [data-quitar] { padding: 0 0.35rem; }
+/* retardo estimado medio por tipo */
+#panel-trafico .tr-retardo { display: grid; grid-template-columns: auto 1fr auto; gap: 0.35rem 0.6rem; align-items: center; }
+#panel-trafico .tr-barra { height: 0.7rem; border-radius: 4px; background: color-mix(in srgb, var(--tenue) 14%, transparent); overflow: hidden; }
+#panel-trafico .tr-barra > i { display: block; height: 100%; border-radius: 4px; }
+#panel-trafico .tr-valor { font-family: var(--mono); font-size: 0.85em; text-align: right; min-width: 4.5em; }
+/* línea de tiempo de un paquete (envíos, respuestas y esperas de TCP) */
+#panel-trafico .tl { display: flex; flex-wrap: wrap; align-items: center; gap: 0.2rem; margin-top: 0.3rem; }
+#panel-trafico .tl-paso { display: inline-block; min-width: 1.5em; padding: 0 0.3rem; border-radius: 4px;
+  text-align: center; font-size: 0.8em; font-weight: 600; }
+#panel-trafico .tl-ok { color: var(--ok); background: color-mix(in srgb, var(--ok) 16%, transparent); }
+#panel-trafico .tl-mal { color: var(--alerta); background: color-mix(in srgb, var(--alerta) 16%, transparent); }
+#panel-trafico .tl-espera { font-size: 0.78em; color: var(--tenue); padding: 0 0.15rem; }
+#panel-trafico .tl-total { margin-left: 0.3rem; font-family: var(--mono); font-size: 0.82em; color: var(--tenue); }

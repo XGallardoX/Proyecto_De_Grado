@@ -1,7 +1,7 @@
 {
   "nombre": "movilidad_datos",
   "duracion": 200,
-  "semillas": 10,
+  "semillas": 30,
   "escenarios": [
     { "escenario": "base", "movilidad": "seguir", "trafico": 6 },
     { "escenario": "base", "movilidad": "repartir", "trafico": 6 },

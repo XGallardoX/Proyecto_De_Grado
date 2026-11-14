@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 import main as main_mod
 from sim.config_loader import load_scenario, validar_escenario
-from sim.datos import RETRANSMISIONES_TCP
+from sim.datos import RETRANSMISIONES_TCP, RTO_TCP, T_INTENTO_RADIO, retardo_medio
 from test_datos import LINEA, _hasta, _sim
 from web import estado
 from web.sesion import construir_sesion
@@ -71,6 +71,42 @@ class TiposTests(unittest.TestCase):
         self.assertEqual([h["tipo"] for h in d.historial], ["udp", "icmp", "tcp", "tcp"])
 
 
+class RetardoTests(unittest.TestCase):
+    """El retardo estimado sale de los intentos de radio y de las esperas
+    de TCP; no se estima para lo que no llegó."""
+    def setUp(self):
+        self.sim = _sim(LINEA)
+        _hasta(self.sim, 30)
+
+    def test_udp_cuenta_los_intentos_de_radio_de_la_ida(self):
+        r = self.sim.datos.enviar(1, 3)
+        (e,) = r["envios"]
+        self.assertGreaterEqual(e["radio_ida"], 2)          # dos saltos
+        self.assertAlmostEqual(r["retardo"], e["radio_ida"] * T_INTENTO_RADIO)
+
+    def test_icmp_es_ida_y_vuelta(self):
+        r = self.sim.datos.enviar(1, 3, "icmp")
+        (e,) = r["envios"]
+        self.assertTrue(e["ida"] and e["ack"])
+        self.assertAlmostEqual(
+            r["retardo"], (e["radio_ida"] + e["radio_ack"]) * T_INTENTO_RADIO)
+
+    def test_sin_entrega_no_hay_retardo(self):
+        self.sim.nodes[1].router.routes.pop(3, None)
+        for tipo in ("udp", "icmp", "tcp"):
+            r = self.sim.datos.enviar(1, 3, tipo)
+            self.assertIsNone(r["retardo"])
+            self.assertFalse(r["envios"][0]["ida"])
+        self.assertIsNone(retardo_medio(self.sim.datos.por_tipo["udp"]))
+
+    def test_el_frame_lleva_el_retardo(self):
+        self.sim.datos.enviar(1, 3, "tcp")
+        t = estado.frame(self.sim)["trafico"]
+        self.assertGreater(t["por_tipo"]["tcp"]["retardo_medio"], 0)
+        self.assertEqual(t["retardo"]["rto_tcp"], RTO_TCP)
+        self.assertEqual(len(t["recientes"][-1]["envios"]), 1)
+
+
 class TcpConPerdidasTests(unittest.TestCase):
     def test_tcp_retransmite_y_entrega_mas_que_udp(self):
         """Sobre un enlace con pérdidas, TCP recupera con retransmisiones lo
@@ -95,7 +131,19 @@ class TcpConPerdidasTests(unittest.TestCase):
                 self.assertGreater(sim.datos.por_tipo["tcp"]["retransmisiones"], 0)
                 self.assertLessEqual(max(h["intentos"] for h in sim.datos.historial),
                                      1 + RETRANSMISIONES_TCP)
+                # un envío por intento, y cada retransmisión espera el RTO
+                for h in sim.datos.historial:
+                    self.assertEqual(len(h["envios"]), h["intentos"])
+                    if h["entregado"]:
+                        k = next(i for i, e in enumerate(h["envios"]) if e["ida"])
+                        self.assertGreaterEqual(h["retardo"], k * RTO_TCP)
+                        self.assertLess(h["retardo"], (k + 1) * RTO_TCP)
+                    else:
+                        self.assertIsNone(h["retardo"])
+                medio = retardo_medio(sim.datos.por_tipo["tcp"])
         self.assertGreater(entrega["tcp"], entrega["udp"])
+        # las esperas de retransmisión hacen a TCP más lento en promedio
+        self.assertGreater(medio, 0.1)
 
 
 class FlujosTests(unittest.TestCase):

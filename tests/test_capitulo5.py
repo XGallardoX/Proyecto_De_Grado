@@ -58,6 +58,30 @@ class DiferenciaPareadaTests(unittest.TestCase):
             c5.fila_diferencia(corridas, "x", "a", "b", "m")[-1], "sí")
 
 
+class HolmTests(unittest.TestCase):
+    def test_valor_p_de_la_t_coincide_con_la_tabla(self):
+        # los valores críticos al 95 % dejan p = 0.05
+        for t, gl in ((12.706, 1), (2.262, 9), (2.045, 29)):
+            self.assertAlmostEqual(c5.p_t_dos_colas(t, gl), 0.05, places=3)
+        self.assertAlmostEqual(c5.p_t_dos_colas(0.0, 5), 1.0)
+
+    def test_holm_multiplica_por_las_que_quedan_y_es_monotono(self):
+        self.assertEqual(
+            [None if p is None else round(p, 6)
+             for p in c5.holm([0.01, 0.04, 0.03, None, 0.005])],
+            [0.03, 0.06, 0.06, None, 0.02])
+        # 0.5 × 2 = 1.0, y la segunda no puede quedar por debajo
+        self.assertEqual(c5.holm([0.5, 0.9]), [1.0, 1.0])
+        self.assertTrue(all(p <= 1.0 for p in c5.holm([0.6, 0.7, 0.8])))
+
+    def test_p_pareada_sin_variacion(self):
+        corridas = {"a": {"1": {"m": 2.0}, "2": {"m": 3.0}},
+                    "b": {"1": {"m": 1.0}, "2": {"m": 2.0}}}
+        self.assertEqual(c5.p_pareada(corridas, "a", "b", "m"), 0.0)
+        self.assertIsNone(c5.p_pareada({"a": {"1": {"m": 1.0}},
+                                        "b": {"1": {"m": 1.0}}}, "a", "b", "m"))
+
+
 class GenerarTests(unittest.TestCase):
     """De punta a punta con un lote chico del Capítulo 5 y otro de
     movilidad (pocos segundos simulados, una semilla)."""

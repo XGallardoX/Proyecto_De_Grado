@@ -10,7 +10,8 @@ import re
 
 from analysis.inspector import snapshot_red
 from analysis.metrics import puntos_articulacion, ruta_vigente
-from sim.datos import NOMBRE_CAUSA, NOMBRE_TIPO, PlanoDatos, TIPOS_PAQUETE
+from sim.datos import (NOMBRE_CAUSA, NOMBRE_TIPO, RTO_TCP, T_INTENTO_RADIO,
+                       PlanoDatos, TIPOS_PAQUETE, retardo_medio)
 from sim.radio import fiabilidad
 
 ESQUEMA = 1
@@ -189,7 +190,9 @@ def trafico(sim):
     etiquetas = lambda ids: None if ids is None else [sim.label_of(i) for i in ids]
     return {
         "tipos": [{"clave": t, "nombre": NOMBRE_TIPO[t]} for t in TIPOS_PAQUETE],
-        "por_tipo": {t: dict(c) for t, c in d.por_tipo.items()},
+        "por_tipo": {t: dict(c, retardo_medio=retardo_medio(c))
+                     for t, c in d.por_tipo.items()},
+        "retardo": {"intento_radio": T_INTENTO_RADIO, "rto_tcp": RTO_TCP},
         "enviados": d.enviados, "entregados": d.entregados,
         "transmisiones": d.transmisiones,
         "perdidas": {NOMBRE_CAUSA[c]: n for c, n in d.perdidas.items() if n},
@@ -207,6 +210,7 @@ def trafico(sim):
             "intentos": h["intentos"], "tramo": h["tramo"],
             "motivo": NOMBRE_CAUSA[h["causa"]] if h["causa"] else None,
             "camino": etiquetas(h["camino"]), "vuelta": etiquetas(h["vuelta"]),
+            "retardo": h["retardo"], "envios": [dict(e) for e in h["envios"]],
         } for h in list(d.historial)[-MAX_RECIENTES_FRAME:]],
     }
 

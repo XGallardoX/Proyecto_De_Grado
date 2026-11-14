@@ -38,6 +38,14 @@ control de congestión, y las retransmisiones de TCP ocurren dentro del
 mismo paso, así que sólo recuperan pérdidas de la radio (una ruta que
 falta o un bucle no cambian dentro del paso).
 
+Retardo estimado. Como cada salto se resuelve dentro del paso, el retardo
+no se mide: se estima con lo que sí se cuenta. Cada intento de transmisión
+por radio (incluidos los reintentos de la capa de enlace) suma
+T_INTENTO_RADIO, y cada retransmisión de TCP suma antes la espera RTO_TCP.
+UDP: hasta que el datagrama llega. ICMP: ida y vuelta, como mide ping.
+TCP: hasta que el destino recibe el segmento. Sólo se estima para los
+paquetes entregados, y no consume `random`: los resultados no cambian.
+
 Sólo consume `random` cuando hay tráfico (flujos del escenario o mensajes
 a mano): una corrida sin tráfico da exactamente lo mismo que antes, y un
 flujo "udp" da exactamente lo mismo que antes de existir los tipos.
@@ -54,6 +62,8 @@ CADA_DEFECTO = 2.0      # s entre paquetes de un flujo
 TIPOS_PAQUETE = ("udp", "icmp", "tcp")
 TIPO_DEFECTO = "udp"
 RETRANSMISIONES_TCP = 3   # de extremo a extremo, además de los reintentos MAC
+T_INTENTO_RADIO = 0.002   # s por intento de transmisión por radio (estimado)
+RTO_TCP = 1.0             # s de espera antes de retransmitir (mínimo de RFC 6298)
 MAX_HISTORIAL = 200       # últimos paquetes que se recuerdan (para verlos)
 NOMBRE_TIPO = {
     "udp": "UDP (datagrama sin confirmación)",
@@ -74,6 +84,18 @@ NOMBRE_CAUSA = {
     "bucle": "bucle de enrutamiento (TTL agotado)",
     "origen_caido": "el origen está caído",
 }
+
+
+def sim_inunda(sim):
+    """Si el plano de datos usa la inundación en vez de las tablas."""
+    return sim.cfg.get("protocolo_datos", "batman") == "inundacion"
+
+
+def retardo_medio(cuenta):
+    """Retardo estimado medio (s) de los entregados de un tipo, o None."""
+    if not cuenta["entregados"]:
+        return None
+    return cuenta["retardo_suma"] / cuenta["entregados"]
 
 
 class PlanoDatos:
@@ -102,8 +124,10 @@ class PlanoDatos:
         self._recientes = deque()  # (t, entregado) de la última ventana
         # por tipo de paquete y los últimos paquetes, para la interfaz
         self.por_tipo = {t: {"enviados": 0, "entregados": 0,
-                             "retransmisiones": 0, "sin_respuesta": 0}
+                             "retransmisiones": 0, "sin_respuesta": 0,
+                             "retardo_suma": 0.0, "retardo_max": 0.0}
                          for t in TIPOS_PAQUETE}
+        self._intentos_tramo = 0   # intentos de radio del último _tramo
         self.historial = deque(maxlen=MAX_HISTORIAL)
         self._n_paquete = 0
         self._n_flujo = 0
@@ -228,26 +252,42 @@ class PlanoDatos:
         self.enviados += 1
         camino, causa, optimo = self._tramo(src_id, dst_id, tipo)
         llego = causa is None
-        vuelta, confirmado, intentos, tramo = None, False, 1, None
+        # cada envío de extremo a extremo: si llegó la ida, si volvió la
+        # respuesta (None: no hubo) y los intentos de radio de cada tramo
+        envios = [{"ida": llego, "ack": None, "radio_ida": self._intentos_tramo,
+                   "radio_ack": 0}]
+        vuelta, confirmado, intentos, tramo, retardo = None, False, 1, None, None
         if tipo == "udp":
             entregado = llego
             tramo = None if llego else "ida"
+            if llego:
+                retardo = envios[0]["radio_ida"] * T_INTENTO_RADIO
         elif tipo == "icmp":
             # el destino responde con SU tabla: la vuelta puede fallar
             # aunque la ida haya llegado
             if llego:
                 vuelta, causa, _ = self._tramo(dst_id, src_id, "icmp-r")
                 confirmado = causa is None
+                envios[0].update(ack=confirmado, radio_ack=self._intentos_tramo)
                 tramo = None if confirmado else "vuelta"
             else:
                 tramo = "ida"
             entregado = confirmado
+            if confirmado:
+                retardo = (envios[0]["radio_ida"]
+                           + envios[0]["radio_ack"]) * T_INTENTO_RADIO
         else:  # tcp
-            causa_ida = causa
+            causa_ida, llego = causa, False   # llego: el segmento ya llegó
             while True:
                 if causa_ida is None:
+                    if not llego:
+                        # primera vez que el segmento llega al destino
+                        retardo = ((intentos - 1) * RTO_TCP
+                                   + envios[-1]["radio_ida"] * T_INTENTO_RADIO)
                     llego = True
                     vuelta, causa_ack, _ = self._tramo(dst_id, src_id, "tcp-ack")
+                    envios[-1].update(ack=causa_ack is None,
+                                      radio_ack=self._intentos_tramo)
                     if causa_ack is None:
                         confirmado = True
                         break
@@ -260,11 +300,15 @@ class PlanoDatos:
                 intentos += 1
                 self.por_tipo["tcp"]["retransmisiones"] += 1
                 c2, causa_ida, _ = self._tramo(src_id, dst_id, "tcp")
+                envios.append({"ida": causa_ida is None, "ack": None,
+                               "radio_ida": self._intentos_tramo, "radio_ack": 0})
                 if causa_ida is None or not llego:
                     camino = c2
             entregado = llego
             causa = None if llego else causa_ida
             tramo = None if confirmado else ("vuelta" if llego else "ida")
+            if not llego:
+                retardo = None
         if entregado:
             self.entregados += 1
             saltos = len(camino) - 1
@@ -279,20 +323,36 @@ class PlanoDatos:
         cuenta["entregados"] += entregado
         if tipo != "udp" and not confirmado:
             cuenta["sin_respuesta"] += 1
+        if entregado and retardo is not None:
+            cuenta["retardo_suma"] += retardo
+            cuenta["retardo_max"] = max(cuenta["retardo_max"], retardo)
         self._n_paquete += 1
         self.historial.append({
             "n": self._n_paquete, "t": sim.t, "tipo": tipo, "src": src_id,
             "dst": dst_id, "entregado": entregado, "causa": causa,
             "camino": list(camino), "vuelta": None if vuelta is None else list(vuelta),
-            "confirmado": confirmado, "intentos": intentos, "tramo": tramo})
+            "confirmado": confirmado, "intentos": intentos, "tramo": tramo,
+            "retardo": retardo, "envios": envios})
         return {"entregado": entregado, "camino": camino, "causa": causa,
                 "optimo": optimo, "tipo": tipo, "vuelta": vuelta,
-                "confirmado": confirmado, "intentos": intentos, "tramo": tramo}
+                "confirmado": confirmado, "intentos": intentos, "tramo": tramo,
+                "retardo": retardo, "envios": envios}
 
     def _tramo(self, src_id, dst_id, proto):
         """Un recorrido de `src_id` a `dst_id` (la ida, o la vuelta de una
         respuesta). Devuelve (camino, causa o None si llegó, camino más
-        corto por radio o None)."""
+        corto por radio o None). Deja en `_intentos_tramo` los intentos de
+        transmisión por radio que costó (en la inundación, los saltos de la
+        primera copia que llegó: las demás difusiones van en paralelo)."""
+        antes = self.intentos_mac
+        camino, causa, optimo = self._recorrer(src_id, dst_id, proto)
+        if sim_inunda(self.sim):
+            self._intentos_tramo = len(camino) - 1
+        else:
+            self._intentos_tramo = self.intentos_mac - antes
+        return camino, causa, optimo
+
+    def _recorrer(self, src_id, dst_id, proto):
         sim = self.sim
         a = sim.nodes.get(src_id)
         optimo = sim._shortest_path(src_id, dst_id)
@@ -303,7 +363,7 @@ class PlanoDatos:
             causa = "destino_caido"
         elif optimo is None:
             causa = "sin_camino"
-        elif sim.cfg.get("protocolo_datos", "batman") == "inundacion":
+        elif sim_inunda(sim):
             camino = self._inundar(src_id, dst_id, proto)
             if camino[-1] != dst_id:
                 causa = "enlace"
