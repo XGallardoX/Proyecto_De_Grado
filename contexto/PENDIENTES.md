@@ -93,6 +93,11 @@ En este orden:
    python -m analysis.capitulo5
    git status Plantilla/MainMatter/Cap5/tablas   # no debe cambiar nada
    ```
+   **Hecho el 2026-11-17** en la máquina de Jefferson (Windows, Python
+   3.14): las diez tablas salieron idénticas a las del repo. En Windows
+   tardaron 49 s, 16 s y 109 s. Las figuras de `Images/Cap5/` cambian de
+   bytes solo porque matplotlib es otra versión (3.11.2 frente a 3.11.1);
+   su contenido es el mismo y no se subieron. **P10 se cumple.**
 3. **Punto 6, leer las fuentes completas** con la cuenta de la
    universidad, por orden de riesgo:
    1. Kiess y Mauve: la frase sobre la inundación en prototipos.
@@ -112,6 +117,11 @@ En este orden:
    `Plantilla/MainMatter/Cap2/M03-Chapter2.tex`) en lenguaje sencillo,
    después de 6 y 7. Regla de control: la lista de `\cite` debe ser la
    misma antes y después, salvo lo que añada el punto 7 (paso 4).
+   **Primera versión hecha el 2026-11-17**, antes de los puntos 6 y 7:
+   frases más cortas y una explicación breve de cada término técnico. Las
+   51 fuentes y sus 68 citas, las etiquetas y las referencias cruzadas
+   quedaron iguales, y lo que afirma cada párrafo no cambió. Falta que
+   Jefferson la lea, y ajustarla si los puntos 6 y 7 cambian alguna frase.
 6. **Punto 14, preparar la sustentación:** diapositivas y respuestas a:
    por qué no ns-3 (la propuesta aprobada en `VERIFICACION_FUENTES.md`),
    por qué no se validó con equipos, qué significa "código real" si no es
