@@ -167,10 +167,33 @@ de un fallo.
 El simulador usa números al azar, por ejemplo para decidir si una transmisión
 llega. La \textit{semilla} es el valor con el que arranca el generador de esos
 números: con la misma semilla y la misma configuración se repite exactamente la
-misma corrida. Cada configuración se corre con 10 semillas (1 a 10), o con 30
-(1 a 30) en las pruebas P7 a P9, y se reporta
-como media $\pm$ desviación estándar. Las métricas que no aplican en una corrida
-no entran en el promedio.
+misma corrida.
+
+Una sola corrida no basta para sacar conclusiones. Su resultado depende de qué
+transmisiones se perdieron en ese caso particular: con otra semilla, la misma
+configuración puede dar una cifra distinta. Con una sola semilla no se puede
+saber si una diferencia entre dos configuraciones se debe a la configuración o
+al azar, ni cuánto varía el resultado. Por eso cada configuración se corre con
+varias semillas y se reporta como media $\pm$ desviación estándar, que es lo que
+pide la literatura sobre el rigor de los estudios de
+simulación~\cite{Pawlikowski2002Credibility,Kurkowski2005Incredibles}. Las
+métricas que no aplican en una corrida no entran en el promedio.
+
+El número de semillas depende de lo que se compara:
+
+\begin{itemize}
+\item \textbf{10 semillas (1 a 10)} en las pruebas P4 a P6. Las diferencias que
+se buscan allí son grandes frente a la variación entre corridas; por ejemplo, la
+malla partida 90~s con nodos fijos frente a 6~s con nodos móviles. Diez
+corridas bastan para verlas.
+\item \textbf{30 semillas (1 a 30)} en las pruebas P7 a P9, que comparan
+configuraciones con diferencias más pequeñas. Con 10 semillas, varios de sus
+intervalos de confianza quedaban cerca de cero y no permitían decidir. Con 30, el
+intervalo se estrecha cerca de la mitad, porque su ancho baja con la raíz del
+número de semillas (Ecuación~\ref{eq:ic}).
+\end{itemize}
+
+Más semillas no cambian lo que se mide, solo la precisión con que se mide.
 
 Para comparar dos configuraciones se usan diferencias pareadas por
 semilla~\cite{Jain1991Art}: para cada semilla se resta el resultado de las dos
@@ -233,6 +256,9 @@ optimistas~\cite{Kotz2004Assumptions}. Por ello, las magnitudes absolutas no se
 trasladan a un despliegue físico, aunque las comparaciones relativas sí sirven
 para orientar hipótesis.
 
-\textbf{Conclusiones estadísticas.} Diez semillas dan intervalos amplios en las
-métricas más variables. En algunas tablas un solo caso domina la dispersión,
+\textbf{Conclusiones estadísticas.} En las pruebas P4 a P6, con 10 semillas,
+los intervalos son amplios en las métricas más variables. Las comparaciones de
+las pruebas P7 a P9 usan 30 semillas y la corrección de Holm; aun así, que una
+diferencia no sea concluyente no prueba que no exista, solo que estas corridas
+no alcanzan a mostrarla. En algunas tablas un solo caso domina la dispersión,
 como se señala al discutirlas.

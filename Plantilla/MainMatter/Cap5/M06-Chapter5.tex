@@ -185,7 +185,8 @@ cobertura (0.42) es muy inferior a la de \textit{repartir} (0.82). Y paga un
 precio: el TQ y la tasa de entrega del radio son los más bajos, porque la malla
 estirada usa enlaces más largos. La prueba se cumple en parte: claramente en
 \texttt{base} y \texttt{denso}; en los otros tres escenarios la malla pasa menos
-tiempo partida que con \textit{repartir}, pero con menos cobertura.
+tiempo partida que con \textit{repartir}, pero con menos cobertura. Se cumple,
+entonces, en dos de los cinco escenarios (40~\%).
 
 \textbf{P7, con tráfico.} Se esperaba que el modo que conecta a más nodos
 entregara más paquetes. La Tabla~\ref{tab:cap5-movilidad-datos} y la
@@ -212,7 +213,7 @@ aumenta los perdidos sin ruta y por el radio. Entre los pares que sí tienen
 camino, entrega menos que \textit{seguir} en \texttt{base} ($-0.159$) y en
 \texttt{colapso\_progresivo} ($-0.105$), sin diferencia concluyente en
 \texttt{denso}. Gana porque conecta a más pares, no porque lleve mejor los
-paquetes. La prueba se cumple en parte: en dos de los tres escenarios.
+paquetes. La prueba se cumple en parte: en dos de los tres escenarios (67~\%).
 
 \textbf{Las tablas de rutas se quedan atrás.} Este es el costo más revelador,
 y solo se ve con las métricas de lo que cree cada nodo. En \texttt{base}, la
@@ -270,7 +271,8 @@ grupos; 0.740 frente a 0.547 con usuarios que caminan al azar), con cerca del
 doble de transmisiones por paquete. Cuando los usuarios se mueven al azar, la
 causa principal de pérdida de B.A.T.M.A.N. es la ruta vieja (26.1~\% de los
 paquetes): las tablas no siguen el ritmo del movimiento. En el edificio ocurre
-lo contrario y la prueba no se cumple: B.A.T.M.A.N. entrega 0.811 frente a 0.465
+lo contrario y allí la prueba no se cumple; en total, se cumple en uno de los
+dos mapas (50~\%). En el edificio, B.A.T.M.A.N. entrega 0.811 frente a 0.465
 de la inundación, con un número de transmisiones parecido (6.64 y 7.05). Allí
 las rutas son largas (casi 4 saltos) sobre enlaces de fiabilidad media;
 B.A.T.M.A.N. reintenta cada salto hasta tres veces y la inundación no, por lo
@@ -346,14 +348,20 @@ capítulo pertenecen a esta implementación y no a B.A.T.M.A.N.\ en general.
 \section{Resumen de las pruebas}
 \label{sec:res-resumen}
 
+La Tabla~\ref{tab:resumen-pruebas} reúne las once pruebas. Cuando una prueba se
+cumple solo en parte, el porcentaje indica en qué fracción de los casos se
+obtuvo lo esperado: P6, en 2 de los 5 escenarios; P7, en 2 de los 3 escenarios
+con tráfico, y P9, en 1 de los 2 mapas. La explicación de cada caso está en las
+Secciones~\ref{sec:res-movilidad} (P6 y P7) y~\ref{sec:res-generalidad} (P9).
+
 \begin{table}[htbp!]
     \centering
-    \caption{Resumen de las pruebas: lo que se esperaba, lo que se obtuvo y si coinciden}
+    \caption{Resumen de las pruebas: lo que se esperaba, lo que se obtuvo y si se cumple}
     \label{tab:resumen-pruebas}
     \footnotesize
     \begin{tabular}{|p{0.6cm}|p{4.4cm}|p{6.6cm}|p{1.6cm}|}
         \hline
-        \textbf{N.º} & \textbf{Qué se esperaba} & \textbf{Qué se obtuvo} & \textbf{¿Coincide?} \\
+        \textbf{N.º} & \textbf{Qué se esperaba} & \textbf{Qué se obtuvo} & \textbf{¿Se cumple?} \\
         \hline
         P1 & Casi todos los pares conectados con ruta a los 30~s & 152 de 156 pares (97~\%) & Sí \\
         \hline
@@ -365,13 +373,13 @@ capítulo pertenecen a esta implementación y no a B.A.T.M.A.N.\ en general.
         \hline
         P5 & Menos tiempo con la malla partida & De 90~s a 6.2~s en la caída del puente, con cobertura de 0.922 & Sí, con costo \\
         \hline
-        P6 & Malla unida con cobertura cercana a la centralizada & Se logra en \texttt{base} y \texttt{denso}; en los otros tres escenarios la cobertura es menor que con \textit{repartir} & En parte \\
+        P6 & Malla unida con cobertura cercana a la centralizada & Se logra en \texttt{base} y \texttt{denso}; en los otros tres escenarios la cobertura es menor que con \textit{repartir} & En parte (40~\%) \\
         \hline
-        P7 & Más entrega al conectar a más nodos & Más entrega que \textit{seguir} y que \textit{repartir} en 2 de 3 escenarios; en \texttt{colapso\_progresivo}, no concluyente & En parte \\
+        P7 & Más entrega al conectar a más nodos & Más entrega que \textit{seguir} y que \textit{repartir} en 2 de 3 escenarios; en \texttt{colapso\_progresivo}, no concluyente & En parte (67~\%) \\
         \hline
         P8 & Los fallos dirigidos hacen más daño & Entrega de 0.338 frente a 0.542; la cobertura no los distingue & Sí \\
         \hline
-        P9 & La inundación entrega más, con más transmisiones & Sí en campo abierto; en el edificio entrega menos (0.465 frente a 0.811) & En parte \\
+        P9 & La inundación entrega más, con más transmisiones & Sí en campo abierto; en el edificio entrega menos (0.465 frente a 0.811) & En parte (50~\%) \\
         \hline
         P10 & Tablas idénticas al repetir & Idénticas byte a byte en dos computadores & Sí \\
         \hline
