@@ -1,6 +1,6 @@
 # Documento oficial del proyecto
 
-Fecha: 2026-11-14. **Este es el archivo oficial**: si otro documento de
+Fecha: 2026-11-22. **Este es el archivo oficial**: si otro documento de
 `contexto/` o `docs/` dice algo distinto sobre el estado del proyecto,
 manda este. Los demás quedan como historia y detalle (ver el final).
 
@@ -19,9 +19,10 @@ manda este. Los demás quedan como historia y detalle (ver el final).
 ## Estado actual
 
 **El simulador y el borrador completo del documento están hechos, con las
-correcciones del tutor del 2026-11-13 aplicadas** (ver la sección siguiente). El PDF
-compila sin errores ni referencias rotas: 94 páginas. Copia para leer sin
-instalar LaTeX: `Plantilla/documento_actual.pdf`.
+correcciones del tutor del 2026-11-13 aplicadas** (ver la sección siguiente) y
+los ajustes de redacción del 2026-11-17 y 2026-11-20. El PDF compila sin errores
+ni referencias rotas: 92 páginas (comprobado el 2026-11-22 en Linux). Copia para
+leer sin instalar LaTeX: `Plantilla/documento_actual.pdf`.
 
 | Parte del documento | Archivo en `Plantilla/` | Estado |
 |---|---|---|
@@ -32,12 +33,12 @@ instalar LaTeX: `Plantilla/documento_actual.pdf`.
 | Símbolos y glosario | `FrontMatter/F05`, `F06` | Escritos |
 | Cap. 1 Introducción | `MainMatter/Cap0/` | Escrito |
 | Cap. 2 Planteamiento y objetivos | `MainMatter/Cap1/` | Escrito |
-| Cap. 3 Estado del arte | `MainMatter/Cap2/` | Revisado y actualizado al encuadre |
-| Cap. 4 Metodología | `MainMatter/Cap3/` | Escrito. Ya no trae los requerimientos ni la tabla de experimentos (pasaron al Cap. 5) |
-| Cap. 5 Desarrollo | `MainMatter/Cap4/` | Reorganizado: 5.1 Requerimientos, 5.2 Diseño, 5.3 Implementación, 5.4 Pruebas |
+| Cap. 3 Estado del arte | `MainMatter/Cap2/` | Reescrito en lenguaje sencillo (2026-11-17, primera versión): mismas 51 fuentes y 68 citas |
+| Cap. 4 Metodología | `MainMatter/Cap3/` | Escrito. Explica por qué 10 o 30 semillas y no una sola. Ya no trae los requerimientos ni la tabla de experimentos (pasaron al Cap. 5) |
+| Cap. 5 Desarrollo | `MainMatter/Cap4/` | Reorganizado: 5.1 Requerimientos, 5.2 Diseño, 5.3 Implementación, 5.4 Pruebas (sin la antigua 5.4.2: las comprobaciones automáticas están solo en el Anexo B) |
 | Cap. 6 Resultados y discusión | `MainMatter/Cap5/` | Organizado por prueba (P1 a P11): esperado contra obtenido |
 | Cap. 7 Conclusiones | `MainMatter/Cap9/` | Escrito |
-| Anexos | `BackMatter/B01-Anexos.tex` | A: reproducción. B: comprobaciones automáticas (las 397 pruebas `unittest`) |
+| Anexos | `BackMatter/B01-Anexos.tex` | A: reproducción (sin la sección para compilar el documento). B: comprobaciones automáticas (las 397 pruebas `unittest`) |
 
 Ojo con los números: los nombres de carpeta no coinciden con el capítulo
 impreso. Lo que el código y los documentos viejos llaman "Capítulo 5" es el
@@ -128,6 +129,32 @@ orden de las tareas de Jefferson están en
 - **Pendiente de Claude:** la comparación cuantitativa con otro modelo (punto
   9), con el alcance por fijar con Juan Camilo.
 
+## Avance del 2026-11-17 y 2026-11-20 (Jefferson)
+
+- **P10 con 30 semillas (2026-11-17):** `movilidad_datos`, `robustez` y
+  `generalidad` repetidos en Windows (Python 3.14): las diez tablas salieron
+  idénticas a las del repo. Las figuras cambian de bytes solo por la versión
+  de matplotlib; no se subieron. **P10 se cumple también para estos lotes.**
+- **Cap. 3 en lenguaje sencillo (2026-11-17), primera versión:** frases más
+  cortas y cada término técnico explicado. Comprobado el 2026-11-22: la lista
+  de `\cite` (68 citas, 51 fuentes), las etiquetas y las referencias cruzadas
+  son idénticas a las de antes. Falta ajustarlo si la lectura de fuentes
+  (punto 6) o la búsqueda de literatura (punto 7) cambian alguna frase.
+- **Ajustes de redacción y estructura (2026-11-20):**
+  - Cap. 4: por qué se usan varias semillas (10 en P3 a P6, 30 en P7 a P9)
+    y amenazas a la validez al día con las 30 semillas y Holm.
+  - Objetivos específicos sin subtítulos en negrita; fuera las frases del
+    tipo "este capítulo sigue el orden de los objetivos" (Cap. 2, Cap. 5 y
+    conclusiones). Introducción y Cap. 5: el Cap. 4 es cómo se trabajó y cómo
+    se mide; el 5, lo que se construyó.
+  - 5.4.2 (comprobaciones automáticas) eliminada: ya está en el Anexo B.
+  - Resumen de las pruebas: columna "¿Se cumple?" y porcentaje en las que se
+    cumplen en parte (P6 40 %, P7 67 %, P9 50 %), también en las conclusiones.
+  - Anexo A sin la sección para compilar.
+  - Guía visual: "medio de radiofrecuencia" en las dos frases que faltaban.
+- **Corrección del 2026-11-22 (Claude):** el texto nuevo del Cap. 4 decía
+  "10 semillas en P4 a P6"; P3 (`tipos_paquete`) también usa 10. Quedó "P3 a P6".
+
 ## Lo que falta
 
 **De los autores (no se puede resolver desde el repo):**
@@ -211,9 +238,10 @@ Resultados principales:
 **Reproducibilidad:** las cinco tablas de los lotes del 27 de octubre salieron
 idénticas byte a byte al correrlas de nuevo en esta máquina el 4 de noviembre.
 Después solo cambió su formato (anchos de columna). El 2026-11-14, el lote
-`tipos_paquete` salió idéntico tras añadir el retardo estimado. **Falta** repetir
-en la máquina de Jefferson los tres lotes de 30 semillas, para que la prueba P10
-("idénticas en dos computadores") siga valiendo para ellos (está en su lista).
+`tipos_paquete` salió idéntico tras añadir el retardo estimado. El 2026-11-17,
+Jefferson repitió en Windows los tres lotes de 30 semillas y las diez tablas
+salieron idénticas: la prueba P10 ("idénticas en dos computadores") vale para
+todos los lotes.
 
 ## Fuentes
 
