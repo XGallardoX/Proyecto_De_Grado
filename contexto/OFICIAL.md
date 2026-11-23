@@ -21,14 +21,15 @@ manda este. Los demás quedan como historia y detalle (ver el final).
 **El simulador y el borrador completo del documento están hechos, con las
 correcciones del tutor del 2026-11-13 aplicadas** (ver la sección siguiente) y
 los ajustes de redacción del 2026-11-17 y 2026-11-20. El PDF compila sin errores
-ni referencias rotas: 92 páginas (comprobado el 2026-11-22 en Linux). Copia para
+ni referencias rotas: 87 páginas, sin páginas en blanco (comprobado el
+2026-11-22 en Linux). Copia para
 leer sin instalar LaTeX: `Plantilla/documento_actual.pdf`.
 
 | Parte del documento | Archivo en `Plantilla/` | Estado |
 |---|---|---|
 | Portada | `main.tex` | Completa |
 | Agradecimientos | `FrontMatter/F03-Acknowledgements.tex` | Borrador breve; los autores lo revisan |
-| Dedicatoria | `FrontMatter/F02-Dedication.tex` | La de Juan Camilo, escrita; **falta la de Jefferson** |
+| Dedicatoria | `FrontMatter/F02-Dedication.tex` | Escrita por los dos autores (2026-11-22) |
 | Resumen y abstract | `FrontMatter/F04-Abstract.tex` | Escrito |
 | Símbolos y glosario | `FrontMatter/F05`, `F06` | Escritos |
 | Cap. 1 Introducción | `MainMatter/Cap0/` | Escrito |
@@ -159,10 +160,7 @@ orden de las tareas de Jefferson están en
 
 **De los autores (no se puede resolver desde el repo):**
 
-1. La dedicatoria de Jefferson, debajo de su nombre en
-   `Plantilla/FrontMatter/F02-Dedication.tex` (la de Juan Camilo está
-   escrita desde el 2026-11-22).
-2. Revisión a cargo de XGallardoX: agradecimientos, borrador completo, cómo se
+1. Revisión a cargo de XGallardoX: agradecimientos, borrador completo, cómo se
    presenta el repositorio del tutor y lectura de las fuentes clave (ver "Fuentes").
 
 Decisión de los autores (2026-11-04): el documento no lleva nota sobre el uso de IA.
@@ -315,6 +313,10 @@ solo los paquetes que falten.
 - **Formato:** manda la plantilla, salvo la numeración de secciones, que por
   indicación del tutor lleva el capítulo (2.1, 2.2…). Márgenes, "Cuadro" en los
   títulos de tablas, bibliografía numerada y anexos antes de ella quedan como los trae.
+- **Sin páginas en blanco** (2026-11-22): `main.tex` usa
+  `\documentclass[12pt,openany]{MIA-USA}`. Sin `openany`, la clase `book`
+  abre cada capítulo en página impar y deja páginas vacías (eran cinco). Los
+  márgenes no cambian, porque la plantilla usa el mismo en páginas pares e impares.
 - Las tablas de `MainMatter/Cap5/tablas/` y las figuras de `Images/Cap5/` son
   generadas: no se editan a mano. Si cambia un resultado, hay que revisar
   también las cifras citadas en la prosa del Capítulo 6, el resumen y las
