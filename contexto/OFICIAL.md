@@ -28,7 +28,7 @@ leer sin instalar LaTeX: `Plantilla/documento_actual.pdf`.
 |---|---|---|
 | Portada | `main.tex` | Completa |
 | Agradecimientos | `FrontMatter/F03-Acknowledgements.tex` | Borrador breve; los autores lo revisan |
-| Dedicatoria | `FrontMatter/F02-Dedication.tex` | Espacio para cada autor; **falta escribirla** |
+| Dedicatoria | `FrontMatter/F02-Dedication.tex` | La de Juan Camilo, escrita; **falta la de Jefferson** |
 | Resumen y abstract | `FrontMatter/F04-Abstract.tex` | Escrito |
 | Símbolos y glosario | `FrontMatter/F05`, `F06` | Escritos |
 | Cap. 1 Introducción | `MainMatter/Cap0/` | Escrito |
@@ -159,8 +159,9 @@ orden de las tareas de Jefferson están en
 
 **De los autores (no se puede resolver desde el repo):**
 
-1. Escribir cada uno su dedicatoria, debajo de su nombre en
-   `Plantilla/FrontMatter/F02-Dedication.tex`.
+1. La dedicatoria de Jefferson, debajo de su nombre en
+   `Plantilla/FrontMatter/F02-Dedication.tex` (la de Juan Camilo está
+   escrita desde el 2026-11-22).
 2. Revisión a cargo de XGallardoX: agradecimientos, borrador completo, cómo se
    presenta el repositorio del tutor y lectura de las fuentes clave (ver "Fuentes").
 
